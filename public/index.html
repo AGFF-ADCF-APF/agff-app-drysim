@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="de-CH">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Silage-Simulator</title>
+  <meta name="description" content="Lernspiel Futterkonservierung: vom Mähen bis ins Silo">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <header class="kopf">
+    <div class="marke">
+      <strong>Silage-Simulator</strong>
+      <span>Lernspiel Futterkonservierung · Prototyp</span>
+    </div>
+    <nav class="modi" role="tablist">
+      <button role="tab" data-modus="planen" aria-selected="true">Planen &amp; Wettkampf</button>
+      <button role="tab" data-modus="prognose" aria-selected="false">Prognose</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Modus 1: selber entscheiden -->
+    <section id="planen" class="modus">
+      <div class="raster">
+        <form id="planform" class="karte einstellungen" autocomplete="off">
+          <fieldset>
+            <legend>Ausgangslage</legend>
+            <label>Wetter <select name="wetter"></select></label>
+            <label class="zufall" hidden>Wettercode <input name="code" maxlength="12" placeholder="z.B. KLASSE3"></label>
+            <label>Bestand <select name="bestand"></select></label>
+            <label>Stadium <select name="stadium"></select></label>
+            <label>Ertrag <span class="mit-einheit"><input name="ertrag" type="number" min="15" max="50" step="1"> dt TS/ha</span></label>
+            <label>Boden <select name="boden"><option value="eben">eben</option><option value="maulwurf">Maulwurfshaufen</option></select></label>
+            <label>Silo <select name="siloart"></select></label>
+          </fieldset>
+          <fieldset>
+            <legend>Maschinen</legend>
+            <label>Schnitthöhe <select name="schnitthoehe"></select></label>
+            <label>Aufbereiter <select name="aufbereiter"></select></label>
+            <label class="haken"><input type="checkbox" name="breit"> Breitablage</label>
+            <label>Zetter <select name="zetterHoehe"></select></label>
+            <label>Schwader <select name="schwaderHoehe"></select></label>
+          </fieldset>
+          <fieldset>
+            <legend>Zeitplan</legend>
+            <label>Mähen <select name="maehen" class="zeit"></select></label>
+            <label>Zetten 1 <select name="zetten1" class="zeit leer"></select></label>
+            <label>Zetten 2 <select name="zetten2" class="zeit leer"></select></label>
+            <label>Zetten 3 <select name="zetten3" class="zeit leer"></select></label>
+            <label>Schwaden <select name="schwaden" class="zeit"></select></label>
+            <label>Einfahren <select name="ernte" class="zeit"></select></label>
+          </fieldset>
+          <p class="fehler" id="planfehler" role="alert"></p>
+          <div class="knoepfe">
+            <label class="tempo">Tempo <select name="tempo"><option value="40">langsam</option><option value="12" selected>normal</option><option value="0">sofort</option></select></label>
+            <button type="submit" class="haupt">Simulieren</button>
+          </div>
+        </form>
+
+        <div class="spalte">
+          <div class="karte">
+            <div class="kartenkopf"><h2 id="wettertitel">Wetter</h2><span class="uhr" id="uhr"></span></div>
+            <div id="diagramm" class="diagramm"></div>
+          </div>
+          <div id="ergebnis" hidden></div>
+          <div class="karte" id="rangliste-karte">
+            <div class="kartenkopf"><h2>Rangliste</h2><button type="button" class="klein" id="rangliste-leeren">leeren</button></div>
+            <p class="hinweis">Für den Wettkampf: alle wählen dasselbe Wetter (oder denselben Wettercode) und versuchen, am meisten Energie in guter Qualität in den Trog zu bringen. Die Rangliste bleibt nur in diesem Browser gespeichert.</p>
+            <ol id="rangliste"></ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modus 2: Ergebnis vorhersagen -->
+    <section id="prognose" class="modus" hidden>
+      <div class="szenarien" id="szenarien"></div>
+      <div class="raster" id="prognose-inhalt" hidden>
+        <div class="karte einstellungen">
+          <h2 id="szenario-titel"></h2>
+          <p id="szenario-text"></p>
+          <form id="tippform">
+            <fieldset>
+              <legend>Dein Tipp</legend>
+              <label>TS beim Einfahren <output name="tsAus"></output>
+                <input type="range" name="ts" min="15" max="70" step="1" value="35"></label>
+              <label>Rohasche <output name="ascheAus"></output>
+                <input type="range" name="asche" min="80" max="200" step="5" value="100"></label>
+              <div class="notenwahl" role="radiogroup" aria-label="Gärqualität (DLG-Note)">
+                <span>Gärqualität</span>
+                <label><input type="radio" name="note" value="1"> 1 sehr gut</label>
+                <label><input type="radio" name="note" value="2"> 2 gut</label>
+                <label><input type="radio" name="note" value="3" checked> 3 verbesserungsbedürftig</label>
+                <label><input type="radio" name="note" value="4"> 4 schlecht</label>
+                <label><input type="radio" name="note" value="5"> 5 sehr schlecht</label>
+              </div>
+            </fieldset>
+            <div class="knoepfe"><button type="submit" class="haupt">Aufdecken</button></div>
+          </form>
+        </div>
+        <div class="spalte">
+          <div class="karte">
+            <div class="kartenkopf"><h2 id="pwettertitel">Wetter</h2><span class="uhr" id="puhr"></span></div>
+            <div id="pdiagramm" class="diagramm"></div>
+          </div>
+          <div id="pergebnis" hidden></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="detail">
+    <form method="dialog">
+      <h3 id="detail-titel"></h3>
+      <p class="wert" id="detail-wert"></p>
+      <p id="detail-text"></p>
+      <button class="haupt">Schliessen</button>
+    </form>
+  </dialog>
+
+  <footer class="fuss">Lehrmodell: Trocknung nach Rotz &amp; Chen (1985), Vergärbarkeit nach Weissbach, Gärbewertung angelehnt an den DLG-Schlüssel. Die Werte sind für den Unterricht vereinfacht und keine Prognose für den Betrieb.</footer>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

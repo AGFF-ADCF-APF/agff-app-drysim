@@ -1,0 +1,23 @@
+services:
+  drysim:
+    build: .
+    container_name: agff-drysim
+    restart: unless-stopped
+    networks:
+      - web-netzwerk
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.drysim.rule=Host(`apps.graswachstum.ch`) && PathPrefix(`/drysim`)"
+      - "traefik.http.routers.drysim.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le-http}"
+      - "traefik.http.routers.drysim.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      # /drysim ohne Schrägstrich umleiten, sonst stimmen die relativen Pfade nicht
+      - "traefik.http.middlewares.drysim-slash.redirectregex.regex=^(https?://[^/]+/drysim)$$"
+      - "traefik.http.middlewares.drysim-slash.redirectregex.replacement=$${1}/"
+      - "traefik.http.middlewares.drysim-slash.redirectregex.permanent=true"
+      - "traefik.http.middlewares.drysim-strip.stripprefix.prefixes=/drysim"
+      - "traefik.http.routers.drysim.middlewares=drysim-slash,drysim-strip"
+      - "traefik.http.services.drysim.loadbalancer.server.port=80"
+
+networks:
+  web-netzwerk:
+    external: true
