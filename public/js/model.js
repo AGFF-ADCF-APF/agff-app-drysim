@@ -23,9 +23,9 @@ export const AUFBEREITER = {
 };
 
 export const HOEHEN = {
-  tief: { name: 'zu tief (Zinken kratzen)', asche: 6, verlust: 0, wirkung: 1.0 },
-  richtig: { name: 'richtig eingestellt', asche: 2, verlust: 0, wirkung: 1.0 },
-  hoch: { name: 'zu hoch', asche: 0.5, verlust: 1.5, wirkung: 0.7 },
+  tief: { name: 'Zinken 1 cm über Boden', cm: '1 cm', asche: 6, verlust: 0, wirkung: 1.0 },
+  richtig: { name: 'Zinken 3 cm über Boden', cm: '3 cm', asche: 2, verlust: 0, wirkung: 1.0 },
+  hoch: { name: 'Zinken 6 cm über Boden', cm: '6 cm', asche: 0.5, verlust: 1.5, wirkung: 0.7 },
 };
 
 export const SILOARTEN = {
@@ -38,164 +38,207 @@ const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 // Zusätzliche Rohasche (g/kg TS) durch die Schnitthöhe und Ertragsfaktor (Ertrag bezieht sich auf 7 cm)
 const SCHNITT = { 4: [30, 1.09], 5: [18, 1.06], 6: [8, 1.03], 7: [2, 1.0], 8: [0, 0.96], 9: [0, 0.92] };
 
-export function simuliere(plan, wetter) {
-  const b = BESTAENDE[plan.bestand], st = STADIEN[plan.stadium];
-  const auf = AUFBEREITER[plan.aufbereiter], silo = SILOARTEN[plan.siloart];
-  const leg = b.leg;
-  const [schnittAsche, ertragsF] = SCHNITT[plan.schnitthoehe];
-  const bodenF = plan.boden === 'maulwurf' ? 1.8 : 1;
-
-  const zetten = [...(plan.zetten ?? [])].sort((x, y) => x - y);
-  const fehler = pruefePlan(plan, zetten, wetter.length);
-  if (fehler) return { fehler };
-
-  // --- stehender Bestand bis zum Mähen: nur Oberflächenwasser (Tau, Regen) und Bodenfeuchte
-  let wo = 0, sm = 25;
-  for (let t = 0; t < plan.maehen; t++) {
-    const w = wetter[t];
-    sm = bodenfeuchte(sm, w);
-    wo = Math.min(400, wo + tau(w, 1) + w.regen * 300);
-    wo = Math.max(0, wo - 0.5 * verdunstung(w)); // dichter Bestand trocknet langsamer ab
+// Ein Feld, das Stunde für Stunde weiterläuft. Arbeitsgänge wirken zu Beginn der
+// aktuellen Stunde, danach rechnet `stunde()` das Wetter dieser Stunde.
+export class Feld {
+  constructor(setup, wetter, start = 0) {
+    this.p = setup; this.wetter = wetter; this.t = 0;
+    this.b = BESTAENDE[setup.bestand]; this.st = STADIEN[setup.stadium];
+    this.auf = AUFBEREITER[setup.aufbereiter]; this.silo = SILOARTEN[setup.siloart];
+    this.leg = this.b.leg;
+    [this.schnittAsche, this.ertragsF] = SCHNITT[setup.schnitthoehe];
+    this.bodenF = setup.boden === 'maulwurf' ? 1.8 : 1;
+    this.phase = 'stehend'; // stehend → gemaeht → schwad → geerntet
+    this.wo = 0; this.sm = 25;
+    this.verlust = { atmung: 0, auswaschung: 0, broeckel: 0, liegen: 0 };
+    this.ereignisse = []; this.bodenAsche = []; this.verlauf = []; this.zetten = [];
+    this.regenFeld = 0; this.regenStunden = 0; this.tauNaechte = new Set();
+    while (this.t < start) this.stunde();
   }
 
-  // --- Mähen
-  const dm0 = plan.ertrag * 10 * ertragsF; // dt TS/ha -> g/m²
-  let dm = dm0;
-  let wi = dm * (100 - st.ts) / st.ts;
-  let zucker = dm * b.zucker / 1000;
-  let asche = dm * (b.asche + schnittAsche * bodenF) / 1000;
-  const tsMahd = 100 * dm / (dm + wi + wo);
-  const woMahd = wo;
-  let sd = plan.breit ? 1.0 : 1.7; // Schwadfaktor: g TS je m² Schwad / g TS je m² Feld
-  let locker = 1; // Lockerungsbonus nach Zetten
-  const verlust = { atmung: 0, auswaschung: 0, broeckel: 0, liegen: 0 };
-  const ereignisse = [{ t: plan.maehen, art: 'maehen', text: 'Mähen', ts: tsMahd }];
-  const bodenAsche = [];
-  const verlauf = [];
-  let regenFeld = 0, regenStunden = 0, tauNaechte = new Set();
+  get ende() { return this.t >= this.wetter.length; }
+  tsInnen() { return this.dm / (this.dm + this.wi); }
+  ts() {
+    if (this.phase === 'stehend') return 100 * this.st.ts / (100 + this.wo / (this.p.ertrag * 10) * this.st.ts);
+    return 100 * this.dm / (this.dm + this.wi + this.wo);
+  }
+  zustand() {
+    const w = this.wetter[Math.min(this.t, this.wetter.length - 1)];
+    if (this.phase === 'stehend') return { t: this.t, phase: this.phase, w, ts: this.ts(), nass: this.wo / (this.p.ertrag * 10), zucker: this.b.zucker, asche: this.b.asche + this.schnittAsche * this.bodenF, verlust: 0 };
+    const v = Object.values(this.verlust).reduce((a, x) => a + x, 0);
+    return {
+      t: this.t, phase: this.phase, w, ts: this.ts(), nass: this.wo / this.dm, sd: this.sd,
+      zucker: 1000 * this.zucker / this.dm, asche: 1000 * this.asche / this.dm, verlust: 100 * v / this.dm0,
+    };
+  }
 
   // Verlust an TS; Zucker trägt den Anteil `zAnteil` davon
-  const verliere = (art, g, zAnteil) => {
-    g = Math.min(g, dm * 0.5);
-    const z = Math.min(zucker, g * zAnteil);
-    zucker -= z; asche -= asche / dm * (g - z); dm -= g; verlust[art] += g;
-  };
-  const tsInnen = () => dm / (dm + wi);
-  const operation = (art, hoehe, t) => {
-    const h = HOEHEN[hoehe];
-    const nass = sm > 45 ? 1.6 : 1;
-    const stoppel = plan.schnitthoehe <= 5 ? 1.5 : 1;
-    const zusatz = h.asche * bodenF * nass * stoppel;
-    asche += dm * zusatz / 1000;
-    bodenAsche.push({ art, t, zusatz, nass: nass > 1, stoppel: stoppel > 1 });
-  };
+  verliere(art, g, zAnteil) {
+    g = Math.min(g, this.dm * 0.5);
+    const z = Math.min(this.zucker, g * zAnteil);
+    this.zucker -= z; this.asche -= this.asche / this.dm * (g - z); this.dm -= g; this.verlust[art] += g;
+  }
+  erde(art, hoehe) {
+    const nass = this.sm > 45 ? 1.6 : 1;
+    const stoppel = this.p.schnitthoehe <= 5 ? 1.5 : 1;
+    const zusatz = HOEHEN[hoehe].asche * this.bodenF * nass * stoppel;
+    this.asche += this.dm * zusatz / 1000;
+    this.bodenAsche.push({ art, t: this.t, zusatz, nass: nass > 1, stoppel: stoppel > 1 });
+  }
 
-  verliere('broeckel', dm * (1 + (plan.aufbereiter === 'zinken' ? leg * 1.5 : 0)) / 100, 0);
-  const zettenSet = new Set(zetten);
+  maehen() {
+    if (this.phase !== 'stehend') return false;
+    const p = this.p, b = this.b, st = this.st;
+    this.dm0 = this.dm = p.ertrag * 10 * this.ertragsF; // dt TS/ha -> g/m²
+    this.wi = this.dm * (100 - st.ts) / st.ts;
+    this.zucker = this.dm * b.zucker / 1000;
+    this.asche = this.dm * (b.asche + this.schnittAsche * this.bodenF) / 1000;
+    this.tsMahd = this.ts(); this.woMahd = this.wo; this.maehZeit = this.t;
+    this.sd = p.breit ? 1.0 : 1.7; // Schwadfaktor: g TS je m² Schwad / g TS je m² Feld
+    this.locker = 1; // Lockerungsbonus nach Zetten
+    this.phase = 'gemaeht';
+    this.verliere('broeckel', this.dm * (1 + (p.aufbereiter === 'zinken' ? this.leg * 1.5 : 0)) / 100, 0);
+    this.ereignisse.push({ t: this.t, art: 'maehen', text: 'Mähen', ts: this.tsMahd });
+    return true;
+  }
 
-  for (let t = plan.maehen; t < plan.ernte; t++) {
-    const w = wetter[t];
-    sm = bodenfeuchte(sm, w);
+  zettenJetzt() {
+    if (this.phase !== 'gemaeht') return false;
+    const h = HOEHEN[this.p.zetterHoehe], leg = this.leg;
+    const tsi = 100 * this.tsInnen();
+    const f = clamp((tsi - 35) / 25, 0, 1);
+    this.verliere('broeckel', this.dm * (0.8 + leg * 6 * f + (1 - leg) * f) / 100, 0.1);
+    this.erde('zetten', this.p.zetterHoehe);
+    this.sd = h.wirkung < 1 ? 1.3 : 1.0;
+    this.locker = 1 + 0.3 * h.wirkung;
+    this.zetten.push(this.t);
+    this.ereignisse.push({ t: this.t, art: 'zetten', text: 'Zetten', ts: this.ts() });
+    return true;
+  }
 
-    // Arbeitsgänge zu Beginn der Stunde
-    if (zettenSet.has(t)) {
-      const h = HOEHEN[plan.zetterHoehe];
-      const tsi = 100 * tsInnen();
-      const f = clamp((tsi - 35) / 25, 0, 1);
-      verliere('broeckel', dm * (0.8 + leg * 6 * f + (1 - leg) * f) / 100, 0.1);
-      operation('zetten', plan.zetterHoehe, t);
-      sd = h.wirkung < 1 ? 1.3 : 1.0;
-      locker = 1 + 0.3 * h.wirkung;
-      ereignisse.push({ t, art: 'zetten', text: 'Zetten', ts: tsi });
+  schwaden() {
+    if (this.phase !== 'gemaeht') return false;
+    const h = HOEHEN[this.p.schwaderHoehe];
+    const f = clamp((100 * this.tsInnen() - 35) / 25, 0, 1);
+    this.verliere('broeckel', this.dm * (0.6 + this.leg * 4 * f + 0.5 * f) / 100, 0.1);
+    if (h.verlust) this.verliere('liegen', this.dm * h.verlust / 100, 0);
+    this.erde('schwaden', this.p.schwaderHoehe);
+    this.sd = 5; this.locker = 1;
+    this.phase = 'schwad'; this.schwadZeit = this.t;
+    this.ereignisse.push({ t: this.t, art: 'schwaden', text: 'Schwaden', ts: this.ts() });
+    return true;
+  }
+
+  stunde() {
+    if (this.ende || this.phase === 'geerntet') return;
+    const w = this.wetter[this.t];
+    this.sm = bodenfeuchte(this.sm, w);
+    if (this.phase === 'stehend') {
+      // stehender Bestand: nur Oberflächenwasser (Tau, Regen); dichter Bestand trocknet langsamer ab
+      this.wo = Math.min(400, this.wo + tau(w, 1) + w.regen * 300);
+      this.wo = Math.max(0, this.wo - 0.5 * verdunstung(w));
+      this.t++;
+      return;
     }
-    if (t === plan.schwaden) {
-      const h = HOEHEN[plan.schwaderHoehe];
-      const f = clamp((100 * tsInnen() - 35) / 25, 0, 1);
-      verliere('broeckel', dm * (0.6 + leg * 4 * f + 0.5 * f) / 100, 0.1);
-      if (h.verlust) verliere('liegen', dm * h.verlust / 100, 0);
-      operation('schwaden', plan.schwaderHoehe, t);
-      sd = 5; locker = 1;
-      ereignisse.push({ t, art: 'schwaden', text: 'Schwaden' });
-    }
+    const auf = this.auf, leg = this.leg, sd = this.sd;
 
     // Wasser von aussen: Tau und Regen landen zuerst auf der Oberfläche
     const tauG = tau(w, sd);
-    if (tauG > 0 && (w.h >= 20 || w.h < 9)) tauNaechte.add(w.h >= 20 ? w.tag : w.tag - 1);
+    if (tauG > 0 && (w.h >= 20 || w.h < 9)) this.tauNaechte.add(w.h >= 20 ? w.tag : w.tag - 1);
     let regenG = 0;
     if (w.regen > 0) {
-      regenG = w.regen * 1000 * 0.25 / sd; regenFeld += w.regen; regenStunden++;
-      const tsi = tsInnen();
+      regenG = w.regen * 1000 * 0.25 / sd; this.regenFeld += w.regen; this.regenStunden++;
+      const tsi = this.tsInnen();
       if (tsi > 0.25) {
-        verliere('auswaschung', dm * Math.min(0.015, 0.0015 * w.regen * auf.kutikula * (tsi > 0.4 ? 1.5 : 1)), 0.5);
+        this.verliere('auswaschung', this.dm * Math.min(0.015, 0.0015 * w.regen * auf.kutikula * (tsi > 0.4 ? 1.5 : 1)), 0.5);
       }
     }
     // Ein Teil des Regens dringt direkt ins Gewebe, bei verletzter Wachsschicht mehr
-    wi += regenG * 0.1 * auf.kutikula;
-    wo = Math.min(dm * 2, wo + tauG + regenG * (1 - 0.1 * auf.kutikula));
+    this.wi += regenG * 0.1 * auf.kutikula;
+    this.wo = Math.min(this.dm * 2, this.wo + tauG + regenG * (1 - 0.1 * auf.kutikula));
     // Aufnahme von Oberflächenwasser ins Gewebe (beschädigte Wachsschicht: schneller)
-    const aufnahme = wo * 0.05 * auf.kutikula;
-    wo -= aufnahme; wi += aufnahme;
+    const aufnahme = this.wo * 0.05 * auf.kutikula;
+    this.wo -= aufnahme; this.wi += aufnahme;
     // Oberflächenwasser verdunstet zuerst, die Schwadoberfläche ist kleiner als das Feld
-    const vo = Math.min(wo, verdunstung(w) / Math.sqrt(sd));
-    wo -= vo;
+    this.wo -= Math.min(this.wo, verdunstung(w) / Math.sqrt(sd));
 
     // Inneres Wasser: Rotz & Chen, gebremst solange die Oberfläche nass ist
-    const tag1 = t - plan.maehen < 24 ? 1 : 0;
-    const SD = dm * sd;
-    let dr = (w.rad + 43.8 * w.vpd) / (61.4 * sm + SD * (1.82 - 0.83 * tag1) * 1.68 + 2767);
-    dr *= ((1 - leg) * auf.gras + leg * auf.klee) * locker;
+    const tag1 = this.t - this.maehZeit < 24 ? 1 : 0;
+    const SD = this.dm * sd;
+    let dr = (w.rad + 43.8 * w.vpd) / (61.4 * this.sm + SD * (1.82 - 0.83 * tag1) * 1.68 + 2767);
+    dr *= ((1 - leg) * auf.gras + leg * auf.klee) * this.locker;
     // Kalibrierung: dichte Schwade und Wind (bei Rotz & Chen nicht enthalten)
     dr *= 0.85 * sd ** -0.3 * (1 + 0.05 * (w.wind - 2));
-    dr *= Math.max(0.2, 1 - wo / (0.3 * dm));
-    const we = dm * (0.1 + 0.25 * (w.rh / 100) ** 4); // Gleichgewicht (Trockenbasis)
-    wi -= (wi - we) * (1 - Math.exp(-dr));
-    locker = 1 + (locker - 1) * 0.94;
+    dr *= Math.max(0.2, 1 - this.wo / (0.3 * this.dm));
+    const we = this.dm * (0.1 + 0.25 * (w.rh / 100) ** 4); // Gleichgewicht (Trockenbasis)
+    this.wi -= (this.wi - we) * (1 - Math.exp(-dr));
+    this.locker = 1 + (this.locker - 1) * 0.94;
 
     // Atmung: läuft, solange die Zellen noch feucht genug sind
-    const tsi = tsInnen();
-    const r = 0.002 * 2 ** ((w.temp - 20) / 10) * clamp((0.6 - tsi) / 0.4, 0, 1);
-    verliere('atmung', dm * r, 0.8);
+    const r = 0.002 * 2 ** ((w.temp - 20) / 10) * clamp((0.6 - this.tsInnen()) / 0.4, 0, 1);
+    this.verliere('atmung', this.dm * r, 0.8);
 
-    verlauf.push({ t: t + 1, ts: 100 * dm / (dm + wi + wo), tsInnen: 100 * tsInnen(), nass: wo / dm });
+    this.t++;
+    this.verlauf.push({ t: this.t, ts: this.ts(), tsInnen: 100 * this.tsInnen(), nass: this.wo / this.dm });
   }
 
-  // --- Ernte
-  const tsErnte = 100 * dm / (dm + wi + wo);
-  ereignisse.push({ t: plan.ernte, art: 'ernte', text: 'Einfahren', ts: tsErnte });
-  verliere('liegen', dm * silo.ernteverlust / 100, 0);
-  const tsiErnte = 100 * tsInnen();
-  if (tsiErnte > 45) verliere('broeckel', dm * leg * 4 * clamp((tsiErnte - 45) / 20, 0, 1) / 100, 0);
+  einfahren() {
+    if (this.phase !== 'schwad') return null;
+    const { b, st, silo, leg, p } = this;
+    const tsErnte = this.ts();
+    this.ereignisse.push({ t: this.t, art: 'ernte', text: 'Einfahren', ts: tsErnte });
+    this.verliere('liegen', this.dm * silo.ernteverlust / 100, 0);
+    const tsiErnte = 100 * this.tsInnen();
+    if (tsiErnte > 45) this.verliere('broeckel', this.dm * leg * 4 * clamp((tsiErnte - 45) / 20, 0, 1) / 100, 0);
+    this.phase = 'geerntet';
 
-  const ernte = {
-    dm, ts: tsErnte, zucker: 1000 * zucker / dm, asche: 1000 * asche / dm,
-    stunden: plan.ernte - plan.maehen, regenFeld, regenStunden, tauNaechte: tauNaechte.size,
-  };
-  const silage = siliere(ernte, b, silo, plan);
+    const dm = this.dm, dm0 = this.dm0;
+    const ernte = {
+      dm, ts: tsErnte, zucker: 1000 * this.zucker / dm, asche: 1000 * this.asche / dm,
+      stunden: this.t - this.maehZeit, regenFeld: this.regenFeld, regenStunden: this.regenStunden, tauNaechte: this.tauNaechte.size,
+    };
+    const plan = { ...p, maehen: this.maehZeit, zetten: this.zetten, schwaden: this.schwadZeit, ernte: this.t };
+    const silage = siliere(ernte, b, silo, plan);
 
-  // --- Energie und Rohprotein
-  const pct = (g) => 100 * g / dm0;
-  const v = Object.fromEntries(Object.entries(verlust).map(([k, g]) => [k, pct(g)]));
-  const ascheMehr = Math.max(0, ernte.asche - b.asche);
-  let nel = st.nel - 0.04 * v.atmung - 0.06 * v.auswaschung - 0.03 * v.broeckel * (0.3 + leg);
-  nel *= (1000 - ascheMehr) / 1000;
-  nel -= 0.15 * silage.buttersaeure / 10 + (ernte.ts < 25 ? 0.1 : 0);
-  const rp = st.rp - v.broeckel * leg * 1.5;
-  const tsTrog = dm * (1 - silage.siloverlust / 100);
-  const nelHa = tsTrog * 10 * nel; // MJ NEL/ha
-  // Wettkampfpunkte: Energie im Trog, abgewertet für Fehlgärung und TS ausserhalb des Zielbereichs
-  const gaerFaktor = [1, 0.95, 0.85, 0.7, 0.5][silage.note - 1];
-  const [zmin, zmax] = silo.ziel;
-  const daneben = Math.max(0, zmin - ernte.ts, ernte.ts - zmax);
-  const zielFaktor = 1 - Math.min(0.2, daneben * 0.01);
-  const punkte = Math.round(nelHa * gaerFaktor * zielFaktor / 100);
+    // --- Energie und Rohprotein
+    const v = Object.fromEntries(Object.entries(this.verlust).map(([k, g]) => [k, 100 * g / dm0]));
+    const ascheMehr = Math.max(0, ernte.asche - b.asche);
+    let nel = st.nel - 0.04 * v.atmung - 0.06 * v.auswaschung - 0.03 * v.broeckel * (0.3 + leg);
+    nel *= (1000 - ascheMehr) / 1000;
+    nel -= 0.15 * silage.buttersaeure / 10 + (ernte.ts < 25 ? 0.1 : 0);
+    const rp = st.rp - v.broeckel * leg * 1.5;
+    const tsTrog = dm * (1 - silage.siloverlust / 100);
+    const nelHa = tsTrog * 10 * nel; // MJ NEL/ha
+    // Wettkampfpunkte: Energie im Trog, abgewertet für Fehlgärung und TS ausserhalb des Zielbereichs
+    const gaerFaktor = [1, 0.95, 0.85, 0.7, 0.5][silage.note - 1];
+    const [zmin, zmax] = silo.ziel;
+    const daneben = Math.max(0, zmin - ernte.ts, ernte.ts - zmax);
+    const zielFaktor = 1 - Math.min(0.2, daneben * 0.01);
+    const punkte = Math.round(nelHa * gaerFaktor * zielFaktor / 100);
 
-  const res = {
-    plan, ernte, silage, verlust: v, dm0, tsMahd, woMahd, bodenAsche, ereignisse, verlauf,
-    nel, rp, tsTrog, nelHa, punkte,
-    verlustTotal: 100 - 100 * tsTrog / dm0,
-  };
-  res.faktoren = erklaere(res, { b, st, auf, silo, leg, schnittAsche, bodenF, ertragsF, zetten });
-  return res;
+    const res = {
+      plan, ernte, silage, verlust: v, dm0, tsMahd: this.tsMahd, woMahd: this.woMahd,
+      bodenAsche: this.bodenAsche, ereignisse: this.ereignisse, verlauf: this.verlauf,
+      nel, rp, tsTrog, nelHa, punkte, verlustTotal: 100 - 100 * tsTrog / dm0,
+    };
+    res.faktoren = erklaere(res, this);
+    return res;
+  }
+}
+
+// Ganzer Plan auf einmal (Prognose, Tests)
+export function simuliere(plan, wetter) {
+  const zetten = [...(plan.zetten ?? [])].sort((x, y) => x - y);
+  const fehler = pruefePlan(plan, zetten, wetter.length);
+  if (fehler) return { fehler };
+  const f = new Feld(plan, wetter, plan.maehen);
+  f.maehen();
+  while (f.t < plan.ernte) {
+    if (zetten.includes(f.t)) f.zettenJetzt();
+    if (f.t === plan.schwaden) f.schwaden();
+    f.stunde();
+  }
+  return f.einfahren();
 }
 
 function pruefePlan(p, zetten, n) {

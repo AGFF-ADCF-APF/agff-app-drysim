@@ -1,247 +1,257 @@
 import { stundenwetter, zufallswetter } from './weather.js';
-import { simuliere, uhr, BESTAENDE, STADIEN, AUFBEREITER, HOEHEN, SILOARTEN } from './model.js';
+import { BESTAENDE, STADIEN, AUFBEREITER, HOEHEN, SILOARTEN } from './model.js';
 import { WETTER, PROGNOSEN, GRUNDPLAN } from './scenarios.js';
+import { Szene } from './scene.js';
+import { Spiel } from './game.js';
 import { zeichne } from './chart.js';
+import { wetterSymbol, STERN } from './icons.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const z = (x, d = 1) => x.toFixed(d).replace('.', ',');
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-const optionen = (obj, f = (v) => v.name) => Object.entries(obj).map(([k, v]) => `<option value="${k}">${f(v, k)}</option>`).join('');
 const NOTEN = ['sehr gut', 'gut', 'verbesserungsbedürftig', 'schlecht', 'sehr schlecht'];
 
-// ---------- Moduswechsel
-document.querySelectorAll('.modi button').forEach((b) => b.addEventListener('click', () => {
-  document.querySelectorAll('.modi button').forEach((x) => x.setAttribute('aria-selected', x === b));
-  document.querySelectorAll('.modus').forEach((m) => { m.hidden = m.id !== b.dataset.modus; });
-}));
-
-// ---------- Erklär-Dialog
-const dialog = $('#detail');
-function zeigeFaktor(f) {
-  $('#detail-titel').textContent = f.titel;
-  $('#detail-wert').textContent = f.wert;
-  $('#detail-text').textContent = f.text;
-  dialog.showModal();
+// ---------- Bildschirme
+let spiel = null;
+function zeige(id) {
+  spiel?.stop(); spiel = null;
+  document.querySelectorAll('.bildschirm').forEach((b) => { b.hidden = b.id !== id; });
+  $('#zum-menu').hidden = id === 'start';
+  if (id === 'start') zeigeRangliste();
+  window.scrollTo({ top: 0 });
 }
-function faktorKnoepfe(res) {
-  const box = document.createElement('div');
-  box.className = 'faktoren';
-  for (const f of res.faktoren) {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = `faktor ${f.stufe}`;
-    b.innerHTML = `<strong>${esc(f.titel)}</strong><small>${esc(f.wert)}</small>`;
-    b.addEventListener('click', () => zeigeFaktor(f));
-    box.append(b);
-  }
-  return box;
-}
-function kennzahlen(res) {
-  const e = res.ernte, s = res.silage;
-  return `<div class="kennzahlen">
-    <div class="kennzahl"><span>TS beim Einfahren</span><strong>${z(e.ts)} %</strong></div>
-    <div class="kennzahl"><span>Rohasche</span><strong>${z(e.asche, 0)} g/kg</strong></div>
-    <div class="kennzahl"><span>Zucker</span><strong>${z(e.zucker, 0)} g/kg</strong></div>
-    <div class="kennzahl"><span>Gärqualität</span><strong>Note ${s.note}</strong></div>
-    <div class="kennzahl"><span>Energie</span><strong>${z(res.nel, 2)} MJ NEL</strong></div>
-    <div class="kennzahl"><span>Verlust Feld bis Trog</span><strong>${z(res.verlustTotal, 0)} %</strong></div>
-  </div>`;
-}
-
-// ---------- Animation
-function animiere(el, uhrEl, wetter, res, msProStunde, ziel) {
-  const aktionen = res.ereignisse;
-  return new Promise((fertig) => {
-    if (!msProStunde) {
-      zeichne(el, wetter, { aktionen, verlauf: res.verlauf, ziel });
-      uhrEl.textContent = uhr(res.plan.ernte);
-      return fertig();
-    }
-    let t = res.plan.maehen;
-    const schritt = () => {
-      zeichne(el, wetter, { aktionen: aktionen.filter((a) => a.t <= t), verlauf: res.verlauf, ziel, bis: t });
-      uhrEl.textContent = uhr(t);
-      if (t >= res.plan.ernte) return fertig();
-      t++;
-      setTimeout(schritt, msProStunde);
-    };
-    schritt();
-  });
-}
-
-// ====================================================================
-// Modus 1: Planen & Wettkampf
-// ====================================================================
-const form = $('#planform');
-const zeitOptionen = (leer) => {
-  let html = leer ? '<option value="">–</option>' : '';
-  for (let d = 0; d < 4; d++) {
-    html += `<optgroup label="Tag ${d + 1}">`;
-    for (let h = 5; h <= 22; h++) html += `<option value="${d * 24 + h}">Tag ${d + 1}, ${String(h).padStart(2, '0')}:00</option>`;
-    html += '</optgroup>';
-  }
-  return html;
-};
-form.wetter.innerHTML = WETTER.map((w) => `<option value="${w.id}">${w.name}</option>`).join('') + '<option value="zufall">Zufallswetter mit Code …</option>';
-form.bestand.innerHTML = optionen(BESTAENDE);
-form.stadium.innerHTML = optionen(STADIEN);
-form.siloart.innerHTML = optionen(SILOARTEN, (v) => `${v.name} (Ziel ${v.ziel[0]}–${v.ziel[1]} % TS)`);
-form.schnitthoehe.innerHTML = [4, 5, 6, 7, 8, 9].map((h) => `<option value="${h}">${h} cm</option>`).join('');
-form.aufbereiter.innerHTML = optionen(AUFBEREITER);
-form.zetterHoehe.innerHTML = form.schwaderHoehe.innerHTML = optionen(HOEHEN);
-form.querySelectorAll('select.zeit').forEach((s) => { s.innerHTML = zeitOptionen(s.classList.contains('leer')); });
-
-function setzePlan(p) {
-  for (const k of ['bestand', 'stadium', 'ertrag', 'boden', 'siloart', 'schnitthoehe', 'aufbereiter', 'zetterHoehe', 'schwaderHoehe', 'maehen', 'schwaden', 'ernte']) form[k].value = p[k];
-  form.breit.checked = p.breit;
-  [1, 2, 3].forEach((i) => { form['zetten' + i].value = p.zetten[i - 1] ?? ''; });
-}
-function lesePlan() {
-  const n = (k) => Number(form[k].value);
-  return {
-    bestand: form.bestand.value, stadium: n('stadium'), ertrag: Math.min(50, Math.max(15, n('ertrag') || 30)), boden: form.boden.value,
-    siloart: form.siloart.value, schnitthoehe: n('schnitthoehe'), aufbereiter: form.aufbereiter.value, breit: form.breit.checked,
-    zetterHoehe: form.zetterHoehe.value, schwaderHoehe: form.schwaderHoehe.value,
-    maehen: n('maehen'), schwaden: n('schwaden'), ernte: n('ernte'),
-    zetten: [1, 2, 3].map((i) => form['zetten' + i].value).filter((v) => v !== '').map(Number),
-  };
-}
-function aktuellesWetter() {
-  if (form.wetter.value === 'zufall') return zufallswetter((form.code.value || 'AGFF').trim().toUpperCase());
-  return WETTER.find((w) => w.id === form.wetter.value);
-}
-function planAktionen(p) {
-  return [{ t: p.maehen, art: 'maehen' }, ...p.zetten.map((t) => ({ t, art: 'zetten' })),
-    { t: p.schwaden, art: 'schwaden' }, { t: p.ernte, art: 'ernte' }];
-}
-function vorschau() {
-  const w = aktuellesWetter();
-  const p = lesePlan();
-  $('.zufall', form).hidden = form.wetter.value !== 'zufall';
-  $('#wettertitel').textContent = `${w.name}${w.info ? ' – ' + w.info : ''}`;
-  $('#uhr').textContent = '';
-  zeichne($('#diagramm'), stundenwetter(w), { aktionen: planAktionen(p), ziel: SILOARTEN[p.siloart].ziel });
-}
-
-// Startwerte, auch aus der Adresse (Lehrperson verschickt z.B. ?wetter=gewitter oder ?code=KLASSE3)
-setzePlan(GRUNDPLAN);
-{
-  const q = new URLSearchParams(location.search);
-  if (q.get('code')) { form.wetter.value = 'zufall'; form.code.value = q.get('code'); }
-  else if (WETTER.some((w) => w.id === q.get('wetter'))) form.wetter.value = q.get('wetter');
-}
-form.addEventListener('input', vorschau);
-vorschau();
-
-let laeuft = false;
-form.addEventListener('submit', async (ev) => {
-  ev.preventDefault();
-  if (laeuft) return;
-  const w = aktuellesWetter(), wetter = stundenwetter(w), p = lesePlan();
-  const res = simuliere(p, wetter);
-  $('#planfehler').textContent = res.fehler ?? '';
-  if (res.fehler) return;
-  laeuft = true; $('button.haupt', form).disabled = true;
-  $('#ergebnis').hidden = true;
-  const ms = { 40: 120, 12: 40, 0: 0 }[form.tempo.value] ?? 40;
-  await animiere($('#diagramm'), $('#uhr'), wetter, res, ms, SILOARTEN[p.siloart].ziel);
-  laeuft = false; $('button.haupt', form).disabled = false;
-  zeigeErgebnis(res, w);
+document.addEventListener('click', (ev) => {
+  const z = ev.target.closest('[data-gehe]');
+  if (z) zeige(z.dataset.gehe);
 });
 
-function zeigeErgebnis(res, w) {
-  const box = $('#ergebnis');
-  box.className = 'karte';
-  box.innerHTML = `<div class="kartenkopf"><h2>Ergebnis</h2><span class="uhr">${z(res.ernte.stunden, 0)} h auf dem Feld</span></div>
-    <div class="kennzahlen"><div class="kennzahl gross"><span>Punkte (Energie im Trog × Qualität)</span><strong>${res.punkte}</strong></div></div>
-    ${kennzahlen(res)}
-    <p class="hinweis">Tippe auf einen Faktor, um zu sehen, was passiert ist. Grün = gut, gelb = mittel, rot = Problem.</p>`;
-  box.append(faktorKnoepfe(res));
-  const ein = document.createElement('form');
-  ein.className = 'eintragen';
-  ein.innerHTML = `<input name="name" maxlength="30" placeholder="Name oder Team" required><button class="haupt">In Rangliste eintragen</button>`;
-  ein.addEventListener('submit', (ev) => {
-    ev.preventDefault();
-    const liste = rangliste();
-    liste.push({ name: ein.name.value.trim(), punkte: res.punkte, wetter: w.name, ts: res.ernte.ts, note: res.silage.note, zeit: Date.now() });
-    speichereRangliste(liste);
-    ein.replaceWith(Object.assign(document.createElement('p'), { className: 'hinweis', textContent: 'Eingetragen.' }));
-    zeigeRangliste();
-  });
-  box.append(ein);
-  box.hidden = false;
-  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+// Startbild: stehendes Gras am Morgen
+{
+  const s = new Szene($('#startszene'), 6);
+  s.zeige({ phase: 'stehend', ts: 18, nass: 0.25, asche: 90 }, { h: 8, sonne: 0.85, regen: 0 }, 0);
 }
 
-// Rangliste nur lokal im Browser (z.B. Beamer-Rechner der Lehrperson)
+// ---------- Einsatz planen: Auswahlkarten und Chips
+const wahl = { ...GRUNDPLAN, wetter: 'hoch' };
+const setup = $('#setupform');
+const BESCHREIBUNG = {
+  bestand: {
+    graeser: 'Viel Zucker – siliert sich leicht.',
+    ausgewogen: 'Gräser, Klee und Kräuter gemischt.',
+    klee: 'Eiweissreich, wenig Zucker, Blätter bröckeln.',
+  },
+  aufbereiter: {
+    ohne: 'Schonend, aber langsames Anwelken.',
+    zinken: 'Schlägt die Wachsschicht kräftig auf.',
+    walzen: 'Quetscht die Stängel, schont die Blätter.',
+  },
+  siloart: {
+    flachsilo: 'Mit dem Ladewagen ins Silo, gut verdichten.',
+    ballen: 'Pressen und wickeln, braucht trockeneres Futter.',
+  },
+};
+const OPTIONEN = {
+  wetter: [...WETTER.map((w) => ({ wert: w.id, titel: w.name, text: w.info, extra: `<span class="wetterreihe">${w.tage.map(wetterSymbol).join('')}</span>` })),
+    { wert: 'zufall', titel: 'Überraschung', text: 'Zufallswetter – mit Code für die ganze Klasse gleich.' }],
+  bestand: Object.entries(BESTAENDE).map(([k, v]) => ({ wert: k, titel: v.name, text: BESCHREIBUNG.bestand[k] })),
+  aufbereiter: Object.entries(AUFBEREITER).map(([k, v]) => ({ wert: k, titel: v.name.replace(/^./, (c) => c.toUpperCase()), text: BESCHREIBUNG.aufbereiter[k] })),
+  siloart: Object.entries(SILOARTEN).map(([k, v]) => ({ wert: k, titel: v.name, text: `${BESCHREIBUNG.siloart[k]} Ziel ${v.ziel[0]}–${v.ziel[1]} % TS.` })),
+  stadium: Object.entries(STADIEN).map(([k, v]) => ({ wert: Number(k), titel: v.name })),
+  boden: [{ wert: 'eben', titel: 'eben' }, { wert: 'maulwurf', titel: 'Maulwurfshaufen' }],
+  schnitthoehe: [4, 5, 6, 7, 8, 9].map((h) => ({ wert: h, titel: `${h} cm` })),
+  breit: [{ wert: true, titel: 'Breitablage' }, { wert: false, titel: 'in der Mähschwade' }],
+  zetterHoehe: Object.entries(HOEHEN).map(([k, v]) => ({ wert: k, titel: `Zinken ${v.cm} über Boden` })),
+  schwaderHoehe: Object.entries(HOEHEN).map(([k, v]) => ({ wert: k, titel: `Zinken ${v.cm} über Boden` })),
+};
+
+function baueWahl(box, feld, ziel = wahl, onChange) {
+  const ops = OPTIONEN[feld] ?? feld;
+  const karten = box.classList.contains('wahl');
+  box.replaceChildren(...ops.map((o) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = karten ? 'wahlkarte' : 'chip';
+    b.innerHTML = karten ? `<b>${esc(o.titel)}</b>${o.extra ?? ''}<small>${esc(o.text ?? '')}</small>` : esc(o.titel);
+    b.setAttribute('aria-pressed', ziel[box.dataset.feld] === o.wert);
+    b.addEventListener('click', () => {
+      ziel[box.dataset.feld] = o.wert;
+      box.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+      onChange?.();
+    });
+    return b;
+  }));
+}
+setup.querySelectorAll('[data-feld]').forEach((box) => baueWahl(box, box.dataset.feld, wahl, () => {
+  $('.code', setup).hidden = wahl.wetter !== 'zufall';
+}));
+setup.ertrag.addEventListener('input', () => { setup.ertragAus.value = `${setup.ertrag.value} dt TS/ha`; });
+
+// Wetter aus der Adresse (Lehrperson verschickt z.B. ?wetter=gewitter oder ?code=KLASSE3)
+{
+  const q = new URLSearchParams(location.search);
+  const id = q.get('code') ? 'zufall' : q.get('wetter');
+  if (id && (id === 'zufall' || WETTER.some((w) => w.id === id))) {
+    wahl.wetter = id;
+    if (q.get('code')) setup.code.value = q.get('code');
+    baueWahl($('[data-feld="wetter"]', setup), 'wetter', wahl, () => { $('.code', setup).hidden = wahl.wetter !== 'zufall'; });
+    $('.code', setup).hidden = id !== 'zufall';
+  }
+}
+
+function wetterVon(id) {
+  if (id === 'zufall') return zufallswetter((setup.code.value || 'AGFF').trim().toUpperCase());
+  return WETTER.find((w) => w.id === id);
+}
+
+let letzterStart = null;
+function starteSpiel({ einstellungen, sz, plan = null, tipp = null }) {
+  letzterStart = { einstellungen, sz, plan, tipp };
+  zeige('spiel');
+  spiel = new Spiel($('#spiel'), {
+    setup: einstellungen, wetterSzenario: sz, plan,
+    onEnde: (res) => zeigeErgebnis(res, sz, tipp, einstellungen),
+  });
+}
+
+setup.addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  const einstellungen = { ...wahl, ertrag: Number(setup.ertrag.value), name: setup.name.value.trim() };
+  starteSpiel({ einstellungen, sz: wetterVon(wahl.wetter) });
+});
+
+// ---------- Silo öffnen
+const dialog = $('#detail');
+function sterne(res) {
+  const s = res.silage, [a, b] = SILOARTEN[res.plan.siloart].ziel, ts = res.ernte.ts;
+  if (s.note >= 5) return 0;
+  if (s.note <= 2 && ts >= a && ts <= b && res.verlustTotal < 15 && res.ernte.asche <= 105) return 3;
+  if (s.note <= 3 && res.verlustTotal < 22) return 2;
+  return 1;
+}
+function abzeichen(res) {
+  const v = res.verlust, e = res.ernte, a = [];
+  if (e.asche <= 100) a.push(['Saubere Sache', 'Kaum Erde im Futter']);
+  if (v.atmung < 1.5) a.push(['Zuckerbewahrer', 'Wenig veratmet']);
+  if (e.stunden <= 12) a.push(['Blitzsilage', 'In unter 12 h im Silo']);
+  if (res.plan.bestand === 'klee' && v.broeckel < 4) a.push(['Kleeflüsterer', 'Blätter geschont']);
+  if (e.regenFeld > 2) a.push(['Vom Regen erwischt', '', true]);
+  if (e.asche > 120) a.push(['Erdsilage', '', true]);
+  if (res.silage.buttersaeure > 3) a.push(['Buttersäure-Alarm', '', true]);
+  return a;
+}
+function zeigeErgebnis(res, sz, tipp, einstellungen) {
+  zeige('ergebnis');
+  const n = sterne(res);
+  $('#sterne').innerHTML = [0, 1, 2].map((i) => STERN(i < n)).join('');
+  const urteile = ['Das Silo stinkt nach Buttersäure – das will keine Kuh fressen.', 'Geht so – da liegt mehr drin.', 'Gute Silage!', 'Perfekte Silage – die Kühe freuen sich!'];
+  $('#urteil').textContent = urteile[n];
+  // Punkte hochzählen
+  const ziel = res.punkte, t0 = performance.now();
+  const zaehle = (jetzt) => {
+    const f = Math.min(1, (jetzt - t0) / 1200);
+    $('#punkte').textContent = Math.round(ziel * (1 - (1 - f) ** 3));
+    if (f < 1) requestAnimationFrame(zaehle);
+  };
+  requestAnimationFrame(zaehle);
+
+  const e = res.ernte, s = res.silage;
+  $('#kennzahlen').innerHTML = [
+    ['TS beim Einfahren', `${z(e.ts)} %`], ['Rohasche', `${z(e.asche, 0)} g/kg TS`], ['Zucker', `${z(e.zucker, 0)} g/kg TS`],
+    ['Gärqualität', `Note ${s.note} · ${NOTEN[s.note - 1]}`], ['Energie', `${z(res.nel, 2)} MJ NEL/kg TS`], ['Verlust Feld bis Trog', `${z(res.verlustTotal, 0)} %`],
+  ].map(([a, b]) => `<div class="kennzahl"><span>${a}</span><strong>${b}</strong></div>`).join('');
+  $('#abzeichen').innerHTML = abzeichen(res).map(([t, d, minus]) => `<span class="${minus ? 'minus' : ''}" title="${esc(d)}">${minus ? '✗' : '★'} ${esc(t)}</span>`).join('');
+
+  // Wette: Tipp gegen Ergebnis
+  if (tipp) {
+    const bewerte = (diff, eng, weit) => (diff <= eng ? 3 : diff <= weit ? 1 : 0);
+    const zeilen = [
+      ['TS beim Einfahren', `${tipp.ts} %`, `${z(e.ts)} %`, bewerte(Math.abs(tipp.ts - e.ts), 3, 7)],
+      ['Rohasche', `${tipp.asche} g/kg`, `${z(e.asche, 0)} g/kg`, bewerte(Math.abs(tipp.asche - e.asche), 10, 25)],
+      ['Gärqualität', `Note ${tipp.note}`, `Note ${s.note}`, bewerte(Math.abs(tipp.note - s.note), 0, 1)],
+    ];
+    const total = zeilen.reduce((a, r) => a + r[3], 0);
+    $('#tipp-vergleich').innerHTML = `<h2>Deine Wette: ${total} von 9 Punkten</h2><table class="vergleich"><thead><tr><th></th><th>Tipp</th><th>Ergebnis</th><th>Punkte</th></tr></thead><tbody>
+      ${zeilen.map(([a, b, c, p]) => `<tr><td>${a}</td><td>${b}</td><td>${c}</td><td class="${p === 3 ? 'treffer' : p ? '' : 'daneben'}">${p}</td></tr>`).join('')}</tbody></table>`;
+    $('.punkte', $('#ergebnis')).hidden = true;
+  } else {
+    $('#tipp-vergleich').innerHTML = '';
+    $('.punkte', $('#ergebnis')).hidden = false;
+    if (einstellungen.name) {
+      const l = rangliste();
+      l.push({ name: einstellungen.name, punkte: res.punkte, wetter: sz.name, ts: e.ts, note: s.note, sterne: n });
+      speichereRangliste(l);
+    }
+  }
+
+  const box = $('#faktoren');
+  box.replaceChildren(...res.faktoren.map((f) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = `faktor ${f.stufe}`;
+    b.innerHTML = `<b>${esc(f.titel)}</b><small>${esc(f.wert)}</small>`;
+    b.addEventListener('click', () => {
+      $('#detail-titel').textContent = f.titel;
+      $('#detail-wert').textContent = f.wert;
+      $('#detail-text').textContent = f.text;
+      dialog.showModal();
+    });
+    return b;
+  }));
+  zeichne($('#rueckblick'), stundenwetter(sz), { aktionen: res.ereignisse, verlauf: res.verlauf, ziel: SILOARTEN[res.plan.siloart].ziel });
+}
+$('#nochmals').addEventListener('click', () => {
+  if (letzterStart?.plan) zeige('wetten');
+  else if (letzterStart) starteSpiel(letzterStart);
+});
+
+// ---------- Rangliste (nur lokal im Browser, z.B. Beamer-Rechner der Lehrperson)
 const RL = 'drysim-rangliste';
 function rangliste() { try { return JSON.parse(localStorage.getItem(RL)) ?? []; } catch { return []; } }
 function speichereRangliste(l) { try { localStorage.setItem(RL, JSON.stringify(l)); } catch { /* privat: nicht speicherbar */ } }
 function zeigeRangliste() {
-  const l = rangliste().sort((a, b) => b.punkte - a.punkte).slice(0, 30);
+  const l = rangliste().sort((a, b) => b.punkte - a.punkte).slice(0, 10);
   $('#rangliste').innerHTML = l.length
-    ? l.map((e) => `<li><strong>${e.punkte}</strong> ${esc(e.name)} <small>· ${esc(e.wetter)} · ${z(e.ts, 0)} % TS · Note ${e.note}</small></li>`).join('')
-    : '<li class="hinweis" style="list-style:none">Noch keine Einträge.</li>';
+    ? l.map((e) => `<li><span>${esc(e.name)}<small>${esc(e.wetter)} · ${z(e.ts, 0)} % TS · Note ${e.note}</small></span><strong>${e.punkte}</strong></li>`).join('')
+    : '<li class="leer">Noch niemand. Gib beim Einsatz einen Namen ein, dann erscheinst du hier.</li>';
 }
 $('#rangliste-leeren').addEventListener('click', () => {
   if (confirm('Rangliste in diesem Browser löschen?')) { speichereRangliste([]); zeigeRangliste(); }
 });
 zeigeRangliste();
 
-// ====================================================================
-// Modus 2: Prognose
-// ====================================================================
-const tipp = $('#tippform');
+// ---------- Prognose-Wette
+const tippform = $('#tippform');
+const tipp = { note: 2 };
 let szenario = null;
 $('#szenarien').innerHTML = PROGNOSEN.map((p) => {
   const w = WETTER.find((x) => x.id === p.wetter);
-  return `<button type="button" class="karte szenario" data-id="${p.id}" aria-pressed="false"><strong>${p.name}</strong><small>${w.name} · ${BESTAENDE[p.plan.bestand].name} · ${SILOARTEN[p.plan.siloart].name}</small></button>`;
+  return `<button type="button" class="wahlkarte" data-id="${p.id}" aria-pressed="false"><b>${p.name}</b><span class="wetterreihe">${w.tage.map(wetterSymbol).join('')}</span><small>${w.name} · ${BESTAENDE[p.plan.bestand].name} · ${SILOARTEN[p.plan.siloart].name}</small></button>`;
 }).join('');
 $('#szenarien').addEventListener('click', (ev) => {
-  const b = ev.target.closest('.szenario');
+  const b = ev.target.closest('.wahlkarte');
   if (!b) return;
-  document.querySelectorAll('.szenario').forEach((x) => x.setAttribute('aria-pressed', x === b));
+  document.querySelectorAll('#szenarien .wahlkarte').forEach((x) => x.setAttribute('aria-pressed', x === b));
   szenario = PROGNOSEN.find((p) => p.id === b.dataset.id);
   const w = WETTER.find((x) => x.id === szenario.wetter);
-  $('#prognose-inhalt').hidden = false;
+  tippform.hidden = false;
   $('#szenario-titel').textContent = szenario.name;
   $('#szenario-text').textContent = szenario.text;
-  $('#pwettertitel').textContent = `${w.name} – ${w.info}`;
-  $('#puhr').textContent = '';
-  $('#pergebnis').hidden = true;
-  $('button.haupt', tipp).disabled = false;
-  zeichne($('#pdiagramm'), stundenwetter(w), { aktionen: planAktionen(szenario.plan), ziel: SILOARTEN[szenario.plan.siloart].ziel });
+  $('#szenario-wetter').innerHTML = w.tage.map((d, i) => {
+    const mm = (d.regen ?? []).reduce((a, r) => a + r.mm, 0);
+    return `<div class="tageskarte"><b>Tag ${i + 1}</b>${wetterSymbol(d)}<span>${Math.round(d.tmax)}° / ${Math.round(d.tmin)}°</span><small>${mm > 0 ? z(mm, 0) + ' mm' : 'trocken'}</small></div>`;
+  }).join('');
+  tippform.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
-const tippAnzeige = () => {
-  tipp.tsAus.value = `${tipp.ts.value} %`;
-  tipp.ascheAus.value = `${tipp.asche.value} g/kg TS`;
+baueWahl($('[data-feld="note"]', tippform), [1, 2, 3, 4, 5].map((n) => ({ wert: n, titel: `${n} · ${NOTEN[n - 1]}` })), tipp);
+const tippText = () => {
+  tippform.tsAus.value = `${tippform.ts.value} % TS`;
+  tippform.ascheAus.value = `${tippform.asche.value} g/kg TS`;
 };
-tipp.addEventListener('input', tippAnzeige);
-tippAnzeige();
-
-tipp.addEventListener('submit', async (ev) => {
+tippform.addEventListener('input', tippText);
+tippText();
+tippform.addEventListener('submit', (ev) => {
   ev.preventDefault();
-  if (!szenario || laeuft) return;
-  const w = WETTER.find((x) => x.id === szenario.wetter), wetter = stundenwetter(w);
-  const res = simuliere(szenario.plan, wetter);
-  laeuft = true; $('button.haupt', tipp).disabled = true;
-  await animiere($('#pdiagramm'), $('#puhr'), wetter, res, 35, SILOARTEN[szenario.plan.siloart].ziel);
-  laeuft = false;
-
-  const g = { ts: Number(tipp.ts.value), asche: Number(tipp.asche.value), note: Number(tipp.note.value) };
-  const bewerte = (diff, eng, weit) => (diff <= eng ? 3 : diff <= weit ? 1 : 0);
-  const zeilen = [
-    ['TS beim Einfahren', `${g.ts} %`, `${z(res.ernte.ts)} %`, bewerte(Math.abs(g.ts - res.ernte.ts), 3, 7)],
-    ['Rohasche', `${g.asche} g/kg`, `${z(res.ernte.asche, 0)} g/kg`, bewerte(Math.abs(g.asche - res.ernte.asche), 10, 25)],
-    ['Gärqualität', `Note ${g.note}`, `Note ${res.silage.note} (${NOTEN[res.silage.note - 1]})`, bewerte(Math.abs(g.note - res.silage.note), 0, 1)],
-  ];
-  const total = zeilen.reduce((a, r) => a + r[3], 0);
-  const box = $('#pergebnis');
-  box.className = 'karte';
-  box.innerHTML = `<div class="kartenkopf"><h2>Aufgedeckt</h2><span class="uhr">${total} von 9 Punkten</span></div>
-    <table class="vergleich"><thead><tr><th></th><th>Tipp</th><th>Simulation</th><th>Punkte</th></tr></thead><tbody>
-    ${zeilen.map(([a, b, c, p]) => `<tr><td>${a}</td><td>${b}</td><td>${c}</td><td class="${p === 3 ? 'treffer' : p ? '' : 'daneben'}">${p}</td></tr>`).join('')}
-    </tbody></table>${kennzahlen(res)}<p class="hinweis">Warum? Tippe auf die Faktoren.</p>`;
-  box.append(faktorKnoepfe(res));
-  box.hidden = false;
-  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (!szenario) return;
+  const t = { ts: Number(tippform.ts.value), asche: Number(tippform.asche.value), note: tipp.note };
+  const { maehen, zetten, schwaden, ernte, ...einstellungen } = szenario.plan;
+  starteSpiel({ einstellungen, sz: WETTER.find((x) => x.id === szenario.wetter), plan: { maehen, zetten, schwaden, ernte }, tipp: t });
 });

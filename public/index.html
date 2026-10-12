@@ -9,117 +9,170 @@
 </head>
 <body>
   <header class="kopf">
-    <div class="marke">
-      <strong>Silage-Simulator</strong>
-      <span>Lernspiel Futterkonservierung · Prototyp</span>
-    </div>
-    <nav class="modi" role="tablist">
-      <button role="tab" data-modus="planen" aria-selected="true">Planen &amp; Wettkampf</button>
-      <button role="tab" data-modus="prognose" aria-selected="false">Prognose</button>
-    </nav>
+    <button type="button" class="logo" data-gehe="start" aria-label="Zum Start">
+      <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="14" width="22" height="28" rx="3" fill="#2e7d32"/><path d="M8 14 Q19 2 30 14Z" fill="#8a3b2a"/><ellipse cx="36" cy="38" rx="10" ry="5" fill="#a3a843"/></svg>
+      <span><b>Silage-Simulator</b><small>Lernspiel Futterkonservierung</small></span>
+    </button>
+    <button type="button" class="leise-knopf" data-gehe="start" id="zum-menu" hidden>Menü</button>
   </header>
 
-  <main>
-    <!-- Modus 1: selber entscheiden -->
-    <section id="planen" class="modus">
-      <div class="raster">
-        <form id="planform" class="karte einstellungen" autocomplete="off">
-          <fieldset>
-            <legend>Ausgangslage</legend>
-            <label>Wetter <select name="wetter"></select></label>
-            <label class="zufall" hidden>Wettercode <input name="code" maxlength="12" placeholder="z.B. KLASSE3"></label>
-            <label>Bestand <select name="bestand"></select></label>
-            <label>Stadium <select name="stadium"></select></label>
-            <label>Ertrag <span class="mit-einheit"><input name="ertrag" type="number" min="15" max="50" step="1"> dt TS/ha</span></label>
-            <label>Boden <select name="boden"><option value="eben">eben</option><option value="maulwurf">Maulwurfshaufen</option></select></label>
-            <label>Silo <select name="siloart"></select></label>
-          </fieldset>
-          <fieldset>
-            <legend>Maschinen</legend>
-            <label>Schnitthöhe <select name="schnitthoehe"></select></label>
-            <label>Aufbereiter <select name="aufbereiter"></select></label>
-            <label class="haken"><input type="checkbox" name="breit"> Breitablage</label>
-            <label>Zetter <select name="zetterHoehe"></select></label>
-            <label>Schwader <select name="schwaderHoehe"></select></label>
-          </fieldset>
-          <fieldset>
-            <legend>Zeitplan</legend>
-            <label>Mähen <select name="maehen" class="zeit"></select></label>
-            <label>Zetten 1 <select name="zetten1" class="zeit leer"></select></label>
-            <label>Zetten 2 <select name="zetten2" class="zeit leer"></select></label>
-            <label>Zetten 3 <select name="zetten3" class="zeit leer"></select></label>
-            <label>Schwaden <select name="schwaden" class="zeit"></select></label>
-            <label>Einfahren <select name="ernte" class="zeit"></select></label>
-          </fieldset>
-          <p class="fehler" id="planfehler" role="alert"></p>
-          <div class="knoepfe">
-            <label class="tempo">Tempo <select name="tempo"><option value="40">langsam</option><option value="12" selected>normal</option><option value="0">sofort</option></select></label>
-            <button type="submit" class="haupt">Simulieren</button>
-          </div>
-        </form>
-
-        <div class="spalte">
-          <div class="karte">
-            <div class="kartenkopf"><h2 id="wettertitel">Wetter</h2><span class="uhr" id="uhr"></span></div>
-            <div id="diagramm" class="diagramm"></div>
-          </div>
-          <div id="ergebnis" hidden></div>
-          <div class="karte" id="rangliste-karte">
-            <div class="kartenkopf"><h2>Rangliste</h2><button type="button" class="klein" id="rangliste-leeren">leeren</button></div>
-            <p class="hinweis">Für den Wettkampf: alle wählen dasselbe Wetter (oder denselben Wettercode) und versuchen, am meisten Energie in guter Qualität in den Trog zu bringen. Die Rangliste bleibt nur in diesem Browser gespeichert.</p>
-            <ol id="rangliste"></ol>
-          </div>
+  <!-- Start -->
+  <section id="start" class="bildschirm">
+    <div class="held">
+      <div class="szene-box" id="startszene"></div>
+      <div class="held-text">
+        <h1>Schaffst du die perfekte Silage?</h1>
+        <p>Mähen, zetten, schwaden, einfahren – du entscheidest wann und wie. Das Wetter macht, was es will.</p>
+        <div class="start-knoepfe">
+          <button type="button" class="gross-knopf gruen" data-gehe="setup">
+            <b>Selber silieren</b><small>Plane deinen Einsatz und spiel gegen die Uhr</small>
+          </button>
+          <button type="button" class="gross-knopf gelb" data-gehe="wetten">
+            <b>Prognose-Wette</b><small>Szenario lesen, Ergebnis tippen, Zeitraffer schauen</small>
+          </button>
         </div>
       </div>
-    </section>
+    </div>
+    <div class="unter-held">
+      <div class="karte">
+        <h2>Rangliste</h2>
+        <ol id="rangliste" class="rangliste"></ol>
+        <button type="button" class="leise-knopf" id="rangliste-leeren">Rangliste leeren</button>
+      </div>
+      <div class="karte">
+        <h2>So funktioniert's</h2>
+        <ol class="anleitung">
+          <li><b>Einsatz planen:</b> Wetter, Wiese und Maschinen wählen.</li>
+          <li><b>Aufs Feld:</b> Die Uhr läuft. Du drückst Mähen, Zetten, Schwaden und Einfahren, wenn du es für richtig hältst.</li>
+          <li><b>Silo öffnen:</b> Nach sechs Wochen zeigt sich, wie die Silage geworden ist und warum.</li>
+        </ol>
+        <p class="hinweis">Für den Wettkampf in der Klasse: Alle wählen dasselbe Wetter oder denselben Wettercode.</p>
+      </div>
+    </div>
+  </section>
 
-    <!-- Modus 2: Ergebnis vorhersagen -->
-    <section id="prognose" class="modus" hidden>
-      <div class="szenarien" id="szenarien"></div>
-      <div class="raster" id="prognose-inhalt" hidden>
-        <div class="karte einstellungen">
-          <h2 id="szenario-titel"></h2>
-          <p id="szenario-text"></p>
-          <form id="tippform">
-            <fieldset>
-              <legend>Dein Tipp</legend>
-              <label>TS beim Einfahren <output name="tsAus"></output>
-                <input type="range" name="ts" min="15" max="70" step="1" value="35"></label>
-              <label>Rohasche <output name="ascheAus"></output>
-                <input type="range" name="asche" min="80" max="200" step="5" value="100"></label>
-              <div class="notenwahl" role="radiogroup" aria-label="Gärqualität (DLG-Note)">
-                <span>Gärqualität</span>
-                <label><input type="radio" name="note" value="1"> 1 sehr gut</label>
-                <label><input type="radio" name="note" value="2"> 2 gut</label>
-                <label><input type="radio" name="note" value="3" checked> 3 verbesserungsbedürftig</label>
-                <label><input type="radio" name="note" value="4"> 4 schlecht</label>
-                <label><input type="radio" name="note" value="5"> 5 sehr schlecht</label>
-              </div>
-            </fieldset>
-            <div class="knoepfe"><button type="submit" class="haupt">Aufdecken</button></div>
-          </form>
+  <!-- Einsatz planen -->
+  <section id="setup" class="bildschirm" hidden>
+    <form id="setupform" autocomplete="off">
+      <h1>Dein Einsatz</h1>
+      <div class="karte">
+        <h2>1 · Wetterbericht</h2>
+        <div class="wahl" data-feld="wetter"></div>
+        <label class="code" hidden>Wettercode <input name="code" maxlength="12" placeholder="z.B. KLASSE3"></label>
+      </div>
+      <div class="karte">
+        <h2>2 · Die Wiese</h2>
+        <div class="wahl" data-feld="bestand"></div>
+        <div class="zeile">
+          <span>Stadium</span><div class="chips" data-feld="stadium"></div>
         </div>
-        <div class="spalte">
-          <div class="karte">
-            <div class="kartenkopf"><h2 id="pwettertitel">Wetter</h2><span class="uhr" id="puhr"></span></div>
-            <div id="pdiagramm" class="diagramm"></div>
-          </div>
-          <div id="pergebnis" hidden></div>
+        <div class="zeile">
+          <span>Ertrag</span><label class="regler"><input type="range" name="ertrag" min="20" max="45" step="1" value="30"><output name="ertragAus">30 dt TS/ha</output></label>
+        </div>
+        <div class="zeile">
+          <span>Boden</span><div class="chips" data-feld="boden"></div>
         </div>
       </div>
-    </section>
-  </main>
+      <div class="karte">
+        <h2>3 · Maschinen einstellen</h2>
+        <div class="zeile"><span>Schnitthöhe</span><div class="chips" data-feld="schnitthoehe"></div></div>
+        <div class="wahl klein" data-feld="aufbereiter"></div>
+        <div class="zeile"><span>Ablage</span><div class="chips" data-feld="breit"></div></div>
+        <div class="zeile"><span>Kreiselzetter</span><div class="chips" data-feld="zetterHoehe"></div></div>
+        <div class="zeile"><span>Schwader</span><div class="chips" data-feld="schwaderHoehe"></div></div>
+      </div>
+      <div class="karte">
+        <h2>4 · Wohin mit dem Futter?</h2>
+        <div class="wahl" data-feld="siloart"></div>
+        <label class="name">Name oder Team <input name="name" maxlength="30" placeholder="für die Rangliste"></label>
+      </div>
+      <div class="los"><button class="gross-knopf gruen"><b>Ab aufs Feld!</b></button></div>
+    </form>
+  </section>
+
+  <!-- Spiel -->
+  <section id="spiel" class="bildschirm" hidden>
+    <div class="spielfeld">
+      <div class="hud-oben">
+        <div class="uhrzeit"></div>
+        <div class="jetzt"></div>
+        <div class="tempo" role="group" aria-label="Tempo">
+          <button type="button" data-tempo="0" title="Pause">❚❚</button>
+          <button type="button" data-tempo="1" title="Normal">▶</button>
+          <button type="button" data-tempo="2" title="Schnell">▶▶</button>
+          <button type="button" data-tempo="3" title="Sehr schnell">▶▶▶</button>
+        </div>
+        <span class="zeitraffer-label">Zeitraffer</span>
+      </div>
+      <div class="szene-box"></div>
+      <div class="messer-reihe">
+        <div class="messer ts"><span>Feuchtemesser (TS)</span><strong></strong><div class="skala"><div class="ziel"></div><div class="nadel"></div></div><small></small></div>
+        <div class="messer zucker"><span>Zucker</span><strong></strong><div class="balken"><i></i></div><small>Futter für die Milchsäurebakterien</small></div>
+        <div class="messer erde"><span>Rohasche (Erde)</span><strong></strong><div class="balken"><i></i></div><small>über 100 g/kg: Clostridien-Gefahr</small></div>
+        <div class="messer verlust"><span>Verluste bisher</span><strong></strong><div class="balken"><i></i></div><small>Atmung, Bröckeln, Regen</small></div>
+      </div>
+      <div class="aktionen"></div>
+      <div class="unten">
+        <div class="bericht"></div>
+        <ul class="ticker" aria-live="polite"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Silo öffnen -->
+  <section id="ergebnis" class="bildschirm" hidden>
+    <div class="silo-kopf karte">
+      <p class="ueber">Sechs Wochen später – das Silo wird geöffnet …</p>
+      <div class="sterne" id="sterne"></div>
+      <div class="punkte"><strong id="punkte">0</strong><span>Punkte</span></div>
+      <p id="urteil" class="urteil"></p>
+      <div id="tipp-vergleich"></div>
+      <div class="kennzahlen" id="kennzahlen"></div>
+      <div class="abzeichen" id="abzeichen"></div>
+    </div>
+    <div class="karte">
+      <h2>Was ist passiert?</h2>
+      <p class="hinweis">Tippe auf eine Karte. Grün = gut gemacht, gelb = geht besser, rot = hier lag das Problem.</p>
+      <div class="faktoren" id="faktoren"></div>
+    </div>
+    <div class="karte">
+      <h2>Rückblick</h2>
+      <div id="rueckblick" class="diagramm"></div>
+    </div>
+    <div class="los">
+      <button type="button" class="gross-knopf gruen" id="nochmals"><b>Nochmals versuchen</b></button>
+      <button type="button" class="gross-knopf" data-gehe="start"><b>Zum Menü</b></button>
+    </div>
+  </section>
+
+  <!-- Prognose-Wette -->
+  <section id="wetten" class="bildschirm" hidden>
+    <h1>Prognose-Wette</h1>
+    <p class="hinweis">Lies das Szenario und tippe, wie die Silage wird. Dann läuft die Simulation im Zeitraffer.</p>
+    <div class="szenarien" id="szenarien"></div>
+    <form id="tippform" class="karte" hidden>
+      <h2 id="szenario-titel"></h2>
+      <p id="szenario-text" class="geschichte"></p>
+      <div class="bericht" id="szenario-wetter"></div>
+      <div class="tipps">
+        <label class="regler"><span>TS beim Einfahren</span><input type="range" name="ts" min="15" max="70" value="35"><output name="tsAus"></output></label>
+        <label class="regler"><span>Rohasche</span><input type="range" name="asche" min="80" max="200" step="5" value="100"><output name="ascheAus"></output></label>
+        <div><span>Gärqualität</span><div class="chips" data-feld="note"></div></div>
+      </div>
+      <div class="los"><button class="gross-knopf gelb"><b>Wette abgeben &amp; Zeitraffer starten</b></button></div>
+    </form>
+  </section>
 
   <dialog id="detail">
     <form method="dialog">
       <h3 id="detail-titel"></h3>
       <p class="wert" id="detail-wert"></p>
       <p id="detail-text"></p>
-      <button class="haupt">Schliessen</button>
+      <button class="gross-knopf gruen"><b>Verstanden</b></button>
     </form>
   </dialog>
 
-  <footer class="fuss">Lehrmodell: Trocknung nach Rotz &amp; Chen (1985), Vergärbarkeit nach Weissbach, Gärbewertung angelehnt an den DLG-Schlüssel. Die Werte sind für den Unterricht vereinfacht und keine Prognose für den Betrieb.</footer>
+  <footer class="fuss">Lehrmodell: Trocknung nach Rotz &amp; Chen (1985), Vergärbarkeit nach Weissbach, Gärbewertung angelehnt an den DLG-Schlüssel. Für den Unterricht vereinfacht, keine Prognose für den Betrieb.</footer>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

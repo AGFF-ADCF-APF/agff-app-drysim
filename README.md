@@ -15,13 +15,18 @@ Für den Wettkampf bekommen alle dasselbe Wetter, entweder eine feste Wetterlage
 
 Statische Seite ohne Build-Schritt (ES-Module), ausgeliefert mit nginx hinter Traefik.
 
+Ablauf im Spiel: Start → Einsatz planen (Wetter, Wiese, Maschinen, Silo) → Spielfeld (die Uhr läuft, Tempo wählbar; Mähen, Zetten, Schwaden und Einfahren per Knopf; Pause bei Regen, Zielbereich, „zu trocken“) → Silo öffnen (Punkte, Sterne, Abzeichen, Erklär-Karten, Rückblick). Die Prognose-Wette nutzt dasselbe Spielfeld im Zeitraffer mit vorgegebenem Plan.
+
 | Datei | Inhalt |
 |---|---|
 | `public/js/weather.js` | Stündliches Wetter aus Tageswerten (tmin/tmax, Tau über rhmax, Sonne, Wind, Regen); Zufallswetter mit Code |
-| `public/js/model.js` | Feldphase stündlich, Silierung, Punkte, Erklärtexte (`erklaere`) |
+| `public/js/model.js` | `Feld` (Stunde für Stunde, Arbeitsgänge), `simuliere` (ganzer Plan), Silierung, Punkte, Erklärtexte |
+| `public/js/game.js` | Spielablauf: Takt, Arbeitsgänge, Ticker-Meldungen, Anzeigen |
+| `public/js/scene.js` | SVG-Feldszene: Himmel im Tagesverlauf, Sonne/Mond, Wolken, Regen, Tau, Futterfarbe nach TS, Erde, Traktor |
+| `public/js/icons.js` | Wetter- und Maschinensymbole |
+| `public/js/chart.js` | Rückblick-Diagramm Wetter + TS-Verlauf |
+| `public/js/app.js` | Bildschirme, Einsatz-Auswahl, Silo öffnen, Wette, lokale Rangliste |
 | `public/js/scenarios.js` | Wetterlagen, Grundplan, Prognose-Szenarien |
-| `public/js/chart.js` | SVG-Diagramm Wetter + TS-Verlauf mit Arbeitsgängen |
-| `public/js/app.js` | Oberfläche beider Modi, lokale Rangliste |
 | `test/run.mjs` | Modell-Durchlauf aller Szenarien auf der Konsole |
 
 ```

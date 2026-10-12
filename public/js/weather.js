@@ -34,7 +34,7 @@ export function stundenwetter(szenario) {
       let rh = Math.min(100, (100 * ea) / es(t));
       if (mm > 0) rh = Math.max(rh, 97);
       stunden.push({
-        t: i * 24 + h, tag: i + 1, h, temp: t, rh, rad, wind: tag.wind, regen: mm,
+        t: i * 24 + h, tag: i + 1, h, temp: t, rh, rad, wind: tag.wind, regen: mm, sonne: tag.sonne,
         vpd: Math.max(0, es(t) * (1 - rh / 100)),
       });
     }
