@@ -105,34 +105,51 @@ export function ablageBild(breit) {
   </svg>`;
 }
 
-// Zetter oder Schwader von der Seite: Stoppeln, Futter darauf, Zinkenspitze in gewählter Höhe
+// Zetter oder Schwader von der Seite: Das Schwad liegt auf den Stoppeln, die sich unter
+// der Last biegen; die Zinkenspitze steht in der eingestellten Höhe (gemessen ab festem Boden).
 export function zinkenBild(cm, art, stoppelCm) {
   const leer = cm == null;
   const h = leer ? 4 : cm;
   const spitze = BODEN - h * PX;
-  const stY = BODEN - stoppelCm * PX;
+  const unterseite = 0.5 * stoppelCm + 0.5; // cm, wie im Modell
+  const uY = BODEN - unterseite * PX;
   const farbe = leer ? '#aaa' : '#e0a020';
   const kratzt = !leer && cm < 2;
-  const liegtLiegen = !leer && cm > 4;
-  let futter = '';
-  for (let i = 0; i < 26; i++) {
-    const x = 10 + ((i * 41) % 100) * 1.9, y = stY - 4 - ((i * 23) % 10) * 1.2;
-    futter += `<path d="M${x} ${y} l14 ${(i % 3) - 1.5}" stroke="#a3a843" stroke-width="3" stroke-linecap="round"/>`;
+  const liegtLiegen = !leer && cm > unterseite;
+
+  // Stoppeln: kurze, leicht geneigte Halme; unter dem Schwad gebogen
+  let st = '';
+  for (let x = 6; x <= 214; x += 7) {
+    const r = ((x * 37) % 17) / 17;
+    const unter = x > 14 && x < 206;
+    const hoch = unter ? unterseite * PX : stoppelCm * PX * (0.85 + r * 0.15);
+    const neigung = unter ? 7 + r * 9 : (r - 0.5) * 4; // unter dem Schwad niedergedrückt
+    st += `<path d="M${x} ${BODEN} q${neigung * 0.2} ${-hoch * 0.6} ${neigung} ${-hoch}" stroke="${r > 0.5 ? '#8aa84a' : '#7a9a40'}" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
   }
+  // Schwad als Lage mit Halmstruktur
+  const dicke = 2.6 * PX;
+  let halme = '';
+  for (let i = 0; i < 60; i++) {
+    const x = 16 + ((i * 41) % 100) * 1.86, y = uY - 3 - ((i * 23) % 10) / 10 * (dicke - 6);
+    halme += `<path d="M${x} ${y} l${10 + (i % 4) * 2} ${(i % 3) - 1}" stroke="#8f9a3a" stroke-width="1.6" stroke-linecap="round"/>`;
+  }
+  const schwad = `<path d="M14 ${uY} C40 ${uY - dicke - 3} 180 ${uY - dicke - 3} 206 ${uY} Z" fill="#b8b552"/>${halme}`;
+
   const geraet = art === 'zetten'
-    ? `<circle cx="120" cy="${spitze - 46}" r="8" fill="#555"/>
-       <path d="M120 ${spitze - 46} L82 ${spitze - 26} M120 ${spitze - 46} L158 ${spitze - 26}" stroke="#555" stroke-width="4"/>
-       <path d="M82 ${spitze - 26} q-4 18 -2 26 M158 ${spitze - 26} q4 18 2 26" stroke="${farbe}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`
-    : `<rect x="70" y="${spitze - 60}" width="100" height="6" rx="3" fill="#555"/>
-       ${[78, 98, 118, 138, 158].map((x) => `<path d="M${x} ${spitze - 54} V${spitze}" stroke="${farbe}" stroke-width="3.5" stroke-linecap="round"/>`).join('')}`;
+    ? `<circle cx="120" cy="${spitze - 50}" r="8" fill="#555"/>
+       <path d="M120 ${spitze - 50} L84 ${spitze - 30} M120 ${spitze - 50} L156 ${spitze - 30}" stroke="#555" stroke-width="4"/>
+       <path d="M84 ${spitze - 30} q-5 18 -2 30 M156 ${spitze - 30} q5 18 2 30" stroke="${farbe}" stroke-width="3.5" fill="none" stroke-linecap="round"/>`
+    : `<rect x="70" y="${spitze - 62}" width="100" height="6" rx="3" fill="#555"/>
+       ${[78, 98, 118, 138, 158].map((x) => `<path d="M${x} ${spitze - 56} V${spitze}" stroke="${farbe}" stroke-width="3.5" stroke-linecap="round"/>`).join('')}`;
   return `<svg viewBox="0 0 260 150" class="maschinenbild" role="img" aria-label="${art === 'zetten' ? 'Kreiselzetter' : 'Schwader'}, Zinken ${leer ? 'nicht eingestellt' : fmt(cm) + ' cm über Boden'}">
     ${boden()}
-    ${stoppeln(8, 205, stoppelCm)}
-    ${futter}
+    ${st}
+    ${schwad}
+    <path d="M14 ${uY} H206" stroke="var(--leise)" stroke-dasharray="3 3"/>
     ${geraet}
-    ${kratzt ? staub(118, BODEN - 1) + `<text x="8" y="18" font-size="12" font-weight="700" fill="var(--rot)">Zinken kratzen im Boden</text>` : ''}
-    ${liegtLiegen ? `<text x="8" y="18" font-size="12" font-weight="700" fill="var(--gelb-dunkel)">Futter bleibt liegen</text>` : ''}
-    ${leer ? `<text x="120" y="22" font-size="13" font-weight="700" fill="var(--leise)" text-anchor="middle">Zinkenhöhe einstellen ↓</text>` : ''}
+    ${kratzt ? staub(118, BODEN - 1) + `<text x="8" y="16" font-size="12" font-weight="700" fill="var(--rot)">Zinken kratzen im Boden</text>` : ''}
+    ${liegtLiegen ? `<text x="8" y="16" font-size="12" font-weight="700" fill="var(--gelb-dunkel)">Futter bleibt liegen</text>` : ''}
+    ${leer ? `<text x="110" y="16" font-size="13" font-weight="700" fill="var(--leise)" text-anchor="middle">Zinkenhöhe einstellen ↓</text>` : ''}
     ${lineal(228, 12, leer ? null : cm)}
     <text x="228" y="16" font-size="13" font-weight="700" fill="var(--text)" text-anchor="middle">${leer ? '?' : fmt(cm) + ' cm'}</text>
   </svg>`;

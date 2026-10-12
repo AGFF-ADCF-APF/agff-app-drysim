@@ -18,7 +18,7 @@ const w = stundenwetter(WETTER[0]);
 console.log(w.slice(0, 48).map(x => `${x.h}:${x.temp.toFixed(0)}°/${x.rh.toFixed(0)}%/${x.rad.toFixed(0)}`).join(' '));
 zeig('zufall', simuliere(GRUNDPLAN, stundenwetter(zufallswetter('ABC'))));
 // Trocknungsverlauf Hochdruck: Breitablage+Walzen+Zetten vs. Mähschwade ohne Zetten (TS je 2 h)
-for (const [name, p] of [['breit+walzen+zetten', {}], ['schwad ohne zetten', { breit: false, zetten: [] }], ['breit ohne Aufb.', { aufbereiter: 'ohne' }], ['doppelrotor', { aufbereiter: 'doppel' }]]) {
+for (const [name, p] of [['breit+walzen+zetten', {}], ['schwad ohne zetten', { breit: false, zetten: [] }], ['breit ohne Aufb.', { aufbereiter: 'ohne' }], ['zinken+buerste', { aufbereiter: 'buerste' }]]) {
   const r = simuliere({ ...GRUNDPLAN, maehen: 9, zetten: [10], schwaden: 70, ernte: 71, ...p, ...(p.zetten ? { zetten: p.zetten } : {}) }, stundenwetter(WETTER[0]));
   console.log(name.padEnd(22), r.verlauf.filter((x, i) => i % 2 === 1).slice(0, 18).map(x => `${x.t % 24}h:${x.ts.toFixed(0)}`).join(' '));
 }

@@ -25,12 +25,19 @@ export const AUFBEREITER = {
   buerste: { name: 'Aufbereiter mit Zinken und Bürste', gras: 1.3, klee: 1.12, kutikula: 2.0, broeckel: 2.5, breit: true },
 };
 
-// Arbeitshöhe der Zinken (cm über Boden, stufenlos): Erde, liegen gelassenes Futter, Wirkung
-export function zinken(cm) {
+// Arbeitshöhe der Zinken: eingestellt in cm über festem, ebenem Boden (stufenlos).
+// Auf dem Feld sinken die Räder ein (nass stärker), die Zinken laufen also tiefer.
+// Das Schwad liegt auf den Stoppeln, die sich etwa zur Hälfte biegen: Liegen die Zinken
+// darüber, bleibt Futter liegen. Hohe Stoppeln erlauben deshalb eine höhere Einstellung.
+export function zinken(cm, stoppelCm = 7, nass = false) {
+  const effektiv = cm - (nass ? 1.0 : 0.3);
+  const schwelle = 0.5 * stoppelCm + 0.5;
+  const zuHoch = Math.max(0, cm - schwelle);
   return {
-    asche: cm >= 4 ? 0.5 : 1 + 10 * clamp((2.5 - cm) / 2.5, 0, 1) ** 1.5,
-    verlust: Math.max(0, cm - 4) * 0.8,
-    wirkung: clamp(1 - Math.max(0, cm - 4) * 0.1, 0.5, 1),
+    effektiv, schwelle,
+    asche: effektiv >= 4 ? 0.5 : 1 + 10 * clamp((2.5 - effektiv) / 2.5, 0, 1) ** 1.5,
+    verlust: zuHoch * 0.8,
+    wirkung: clamp(1 - zuHoch * 0.1, 0.5, 1),
   };
 }
 
@@ -86,11 +93,12 @@ export class Feld {
     this.zucker -= z; this.asche -= this.asche / this.dm * (g - z); this.dm -= g; this.verlust[art] += g;
   }
   erde(art, hoehe) {
-    const nass = this.sm > 45 ? 1.6 : 1;
+    const nass = this.sm > 45;
+    // Bei kurzen Stoppeln liegt das Schwad direkt auf dem Boden
     const stoppel = this.p.schnitthoehe <= 5 ? 1.5 : 1;
-    const zusatz = zinken(hoehe).asche * this.bodenF * nass * stoppel;
+    const zusatz = zinken(hoehe, this.p.schnitthoehe, nass).asche * this.bodenF * stoppel;
     this.asche += this.dm * zusatz / 1000;
-    this.bodenAsche.push({ art, t: this.t, zusatz, nass: nass > 1, stoppel: stoppel > 1 });
+    this.bodenAsche.push({ art, t: this.t, zusatz, nass, stoppel: stoppel > 1 });
   }
 
   maehen() {
@@ -111,7 +119,7 @@ export class Feld {
 
   zettenJetzt() {
     if (this.phase !== 'gemaeht') return false;
-    const h = zinken(this.p.zetterHoehe), leg = this.leg;
+    const h = zinken(this.p.zetterHoehe, this.p.schnitthoehe, this.sm > 45), leg = this.leg;
     const tsi = 100 * this.tsInnen();
     const f = clamp((tsi - 35) / 25, 0, 1);
     this.verliere('broeckel', this.dm * (0.8 + leg * 6 * f + (1 - leg) * f) / 100, 0.1);
@@ -125,7 +133,7 @@ export class Feld {
 
   schwaden() {
     if (this.phase !== 'gemaeht') return false;
-    const h = zinken(this.p.schwaderHoehe);
+    const h = zinken(this.p.schwaderHoehe, this.p.schnitthoehe, this.sm > 45);
     const f = clamp((100 * this.tsInnen() - 35) / 25, 0, 1);
     this.verliere('broeckel', this.dm * (0.6 + this.leg * 4 * f + 0.5 * f) / 100, 0.1);
     if (h.verlust) this.verliere('liegen', this.dm * h.verlust / 100, 0);
@@ -380,7 +388,7 @@ function erklaere(r, c) {
     text: `Sauberes Futter hat etwa ${c.b.asche} g Rohasche/kg TS; alles darüber ist meistens Erde. ` +
       (ba ? `Über die Arbeitsgänge kam dazu: ${ba} (g/kg TS). ` : '') +
       (r.bodenAsche.some((x) => x.nass) ? 'Der Boden war nass, darum blieb mehr Erde haften. ' : '') +
-      `Zinkenhöhe: Zetter ${z(p.zetterHoehe)} cm, Schwader ${z(p.schwaderHoehe)} cm über Boden. Zetter und Schwader sollen das Futter heben und nicht den Boden kratzen. Unter etwa 2 cm reissen die Zinken Erde mit; über 4 cm bleibt Futter liegen. ` +
+      `Zinkenhöhe (gemessen auf festem Boden): Zetter ${z(p.zetterHoehe)} cm, Schwader ${z(p.schwaderHoehe)} cm. Auf dem Feld sinken die Räder ein, auf nassem Boden stärker – die Zinken laufen tiefer als eingestellt. Unter etwa 2 cm reissen sie Erde mit. Das Schwad liegt auf den Stoppeln: Bei ${p.schnitthoehe} cm Schnitthöhe bleibt ab etwa ${z(zinken(0, p.schnitthoehe).schwelle)} cm Zinkenhöhe Futter liegen. Hohe Stoppeln erlauben also eine höhere, sauberere Einstellung. ` +
       'Ab etwa 100 g/kg TS steigt die Gefahr einer Buttersäuregärung deutlich, besonders bei nassem Futter unter 35 % TS.',
   });
 
