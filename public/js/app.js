@@ -46,7 +46,7 @@ const BESCHREIBUNG = {
     ohne: 'Schonend, aber langsames Anwelken.',
     zinken: 'Schlägt die Wachsschicht kräftig auf.',
     walzen: 'Quetscht die Stängel, schont die Blätter.',
-    doppel: 'Zwei Zinkenrotoren: sehr intensiv, verteilt breit.',
+    buerste: 'Zinkenrotor mit Bürste: raut die Wachsschicht stark auf, verteilt breit.',
   },
   siloart: {
     flachsilo: 'Mit dem Ladewagen ins Silo, gut verdichten.',

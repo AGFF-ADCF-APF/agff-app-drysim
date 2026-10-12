@@ -22,7 +22,7 @@ export const AUFBEREITER = {
   ohne: { name: 'ohne Aufbereiter', gras: 0.85, klee: 0.85, kutikula: 1.0, broeckel: 0 },
   zinken: { name: 'Zinkenaufbereiter', gras: 1.18, klee: 1.05, kutikula: 1.6, broeckel: 1.5 },
   walzen: { name: 'Walzenaufbereiter', gras: 1.12, klee: 1.25, kutikula: 1.3, broeckel: 0.3 },
-  doppel: { name: 'Doppelrotor-Aufbereiter', gras: 1.3, klee: 1.12, kutikula: 2.0, broeckel: 2.5, breit: true },
+  buerste: { name: 'Aufbereiter mit Zinken und Bürste', gras: 1.3, klee: 1.12, kutikula: 2.0, broeckel: 2.5, breit: true },
 };
 
 // Arbeitshöhe der Zinken (cm über Boden, stufenlos): Erde, liegen gelassenes Futter, Wirkung
@@ -350,7 +350,7 @@ function erklaere(r, c) {
       'Der Aufbereiter verletzt Wachsschicht und Stängel. Das beschleunigt genau diese zweite, langsame Phase; die Stomata hält er nicht offen. ' +
       (p.aufbereiter === 'ohne' ? 'Ohne Aufbereiter dauert das Anwelken deutlich länger.' :
         `Die Kehrseite: Die verletzte Oberfläche nimmt Regen und Tau schneller auf, und mehr Zucker wird ausgewaschen (Faktor ${z(c.auf.kutikula)} gegenüber unbehandelt). ` +
-        (p.aufbereiter === 'doppel' ? 'Der Doppelrotor bearbeitet das Futter besonders intensiv und verteilt es breit. Er trocknet am schnellsten, ist bei Regen aber am empfindlichsten. ' : '') +
+        (p.aufbereiter === 'buerste' ? 'Zinkenrotor und Bürste rauen die Wachsschicht besonders stark auf, und das Futter wird breit verteilt. Es trocknet am schnellsten, ist bei Regen und Tau aber am empfindlichsten. ' : '') +
         (c.auf.broeckel > 1 && c.leg > 0.3 ? 'Bei kleereichem Futter schlagen Zinken die Blätter ab; ein Walzenaufbereiter ist schonender.' : '')) +
       ' In der ersten Phase direkt nach dem Mähen hilft der Aufbereiter wenig; die Breitablage ist wichtiger.',
   });

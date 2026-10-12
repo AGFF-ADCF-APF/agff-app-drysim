@@ -37,7 +37,7 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine node test/run.mjs
 ## Modell (Lehrmodell, vereinfacht)
 
 - **Trocknung**: Trocknungskonstante nach Rotz & Chen (1985) aus Strahlung, Dampfdruckdefizit, Bodenfeuchte und Schwaddichte (am ersten Tag schneller). Kalibriert auf Feldversuche der Univ. Wisconsin (Breitablage ≥ 70 % der Fläche: 35 % TS nach rund 8–10 h bei gutem Wetter; schmale Schwade erst am Folgetag; Breitablage wichtiger als Aufbereitung): Schwadfaktor hoch −0,75 (Breitablage 1, Mähschwade 1,7, Schwad 5), Wind, hohe Stoppeln (+2 %/cm über 7 cm). Der Aufbereiter wirkt erst in der zweiten Phase (ab ca. 22–30 % TS), nach dem Schliessen der Stomata.
-- **Maschinen**: Schnitthöhe 4–12 cm (Erde unter 6 cm, Ertrag −4 %/cm über 7 cm). Aufbereiter ohne / Zinken / Walzen / Doppelrotor (intensiv, verteilt breit, bei Regen empfindlicher). Zinkenhöhe von Zetter und Schwader stufenlos 0–8 cm, ohne Vorgabe: unter ca. 2 cm Erde, über 4 cm bleibt Futter liegen bzw. der Zetter wirkt schwächer.
+- **Maschinen**: Schnitthöhe 4–12 cm (Erde unter 6 cm, Ertrag −4 %/cm über 7 cm). Aufbereiter ohne / Zinken / Walzen / Zinken mit Bürste (raut die Wachsschicht stark auf, verteilt breit, bei Regen empfindlicher). Zinkenhöhe von Zetter und Schwader stufenlos 0–8 cm, ohne Vorgabe: unter ca. 2 cm Erde, über 4 cm bleibt Futter liegen bzw. der Zetter wirkt schwächer.
 - **Oberflächenwasser** (Tau, Regen) liegt in einem eigenen Speicher. Es verdunstet zuerst und bremst die Trocknung des Gewebes. Ein Teil dringt ins Gewebe ein, bei verletzter Wachsschicht (Aufbereiter) mehr.
 - **Atmung**: ca. 0,2 %/h der TS bei 20 °C (Q10 = 2), nimmt bis 60 % TS auf null ab und verbraucht Zucker.
 - **Auswaschung** durch Regen: höher bei angewelktem und aufbereitetem Futter, zur Hälfte Zucker.
@@ -48,7 +48,7 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine node test/run.mjs
 
 ## Offen / im Büro weiterentwickeln
 
-- [ ] Parameter mit Fachleuten kalibrieren: Trocknung mit Schweizer Messreihen (Gras statt Luzerne, Agroscope/AGFF) prüfen, Atmung, Bröckelverluste, Buttersäure-Ansatz; Doppelrotor-Werte mit Versuchsdaten des Herstellers abgleichen
+- [ ] Parameter mit Fachleuten kalibrieren: Trocknung mit Schweizer Messreihen (Gras statt Luzerne, Agroscope/AGFF) prüfen, Atmung, Bröckelverluste, Buttersäure-Ansatz; Werte des Aufbereiters mit Zinken und Bürste mit Versuchsdaten abgleichen
 - [ ] DLG-Punktetabelle mit dem Originalschlüssel 2006 abgleichen (Essigsäure- und pH-Stufen sind vereinfacht); evtl. Schweizer Sinnenprüfung als zweite Sicht
 - [ ] Aufbereiter vs. Wachsschicht: Im Modell beschleunigt er die kutikuläre Phase (Stomata sind nach ca. 1 h ohnehin zu), dafür nimmt das Futter mehr Wasser auf und es wird mehr ausgewaschen. Konkrete Maschine (Werbeaussage „zerstört Wachsschicht“) mit Versuchsdaten prüfen
 - [ ] Wettkampf über mehrere Geräte: Rangliste ist nur lokal im Browser → Klassenraum mit Code auf dem Server (z.B. über Konto/Kurs aus Futter v2)

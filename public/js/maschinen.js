@@ -73,11 +73,20 @@ export function aufbereiterBild(typ) {
     }
     return s;
   };
+  // Bürstenwalze: Kern mit dichten Borsten
+  const buerste = (cx, cy) => {
+    let s = '';
+    for (let i = 0; i < 24; i++) {
+      const a = (i * Math.PI) / 12;
+      s += `<path d="M${cx + Math.cos(a) * 6} ${cy + Math.sin(a) * 6} L${cx + Math.cos(a) * 15} ${cy + Math.sin(a) * 15}" stroke="#3b3b3b" stroke-width="1.6"/>`;
+    }
+    return s + `<circle cx="${cx}" cy="${cy}" r="6" fill="#777"/>`;
+  };
   const inhalt = {
     ohne: `${halm}<ellipse cx="60" cy="66" rx="34" ry="6" fill="#444"/><text x="60" y="24" font-size="11" text-anchor="middle" fill="var(--leise)">nur Mähwerk</text>`,
     zinken: `${rotor(60, 36)}${halm}<path d="M38 18 Q60 4 82 18" stroke="#999" stroke-width="3" fill="none"/>`,
     walzen: `${walze(60, 34)}${walze(60, 76)}<path d="M4 56 C30 52 60 56 116 54" stroke="#4f8f32" stroke-width="5" fill="none"/>`,
-    doppel: `${rotor(40, 34, 14)}${rotor(82, 34, 14)}${halm}<path d="M16 64 l-10 6 M104 64 l10 6" stroke="#4f8f32" stroke-width="3"/>`,
+    buerste: `${rotor(44, 34, 15)}${buerste(86, 40)}${halm}<path d="M16 64 l-10 6 M104 64 l10 6" stroke="#4f8f32" stroke-width="3"/>`,
   }[typ];
   return `<svg viewBox="0 0 120 90" class="symbol gross" aria-hidden="true">${inhalt}</svg>`;
 }
