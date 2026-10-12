@@ -75,17 +75,38 @@
       </div>
       <div class="karte">
         <h2>3 · Maschinen einstellen</h2>
-        <div class="zeile"><span>Schnitthöhe</span><div class="chips" data-feld="schnitthoehe"></div></div>
-        <div class="wahl klein" data-feld="aufbereiter"></div>
-        <div class="zeile"><span>Ablage</span><div class="chips" data-feld="breit"></div></div>
-        <div class="zeile"><span>Kreiselzetter</span><div class="chips" data-feld="zetterHoehe"></div></div>
-        <div class="zeile"><span>Schwader</span><div class="chips" data-feld="schwaderHoehe"></div></div>
+        <div class="maschinen">
+          <div class="maschine">
+            <h3>Mähwerk – Schnitthöhe</h3>
+            <div class="bild" id="bild-schnitt"></div>
+            <div class="chips" data-feld="schnitthoehe"></div>
+          </div>
+          <div class="maschine">
+            <h3>Aufbereiter</h3>
+            <div class="wahl bilder" data-feld="aufbereiter"></div>
+          </div>
+          <div class="maschine">
+            <h3>Ablage</h3>
+            <div class="wahl bilder" data-feld="breit"></div>
+          </div>
+          <div class="maschine">
+            <h3>Kreiselzetter – Zinkenhöhe</h3>
+            <div class="bild" id="bild-zetter"></div>
+            <label class="regler zinken leer"><input type="range" name="zetterHoehe" min="0" max="8" step="0.5" aria-label="Zinkenhöhe Kreiselzetter in cm"><output name="zetterAus">bitte einstellen</output></label>
+          </div>
+          <div class="maschine">
+            <h3>Schwader – Zinkenhöhe</h3>
+            <div class="bild" id="bild-schwader"></div>
+            <label class="regler zinken leer"><input type="range" name="schwaderHoehe" min="0" max="8" step="0.5" aria-label="Zinkenhöhe Schwader in cm"><output name="schwaderAus">bitte einstellen</output></label>
+          </div>
+        </div>
       </div>
       <div class="karte">
         <h2>4 · Wohin mit dem Futter?</h2>
         <div class="wahl" data-feld="siloart"></div>
         <label class="name">Name oder Team <input name="name" maxlength="30" placeholder="für die Rangliste"></label>
       </div>
+      <p class="fehler" id="setupfehler" role="alert"></p>
       <div class="los"><button class="gross-knopf gruen"><b>Ab aufs Feld!</b></button></div>
     </form>
   </section>

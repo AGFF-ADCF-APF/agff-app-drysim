@@ -1,5 +1,6 @@
 import { stundenwetter, zufallswetter } from './weather.js';
-import { BESTAENDE, STADIEN, AUFBEREITER, HOEHEN, SILOARTEN } from './model.js';
+import { BESTAENDE, STADIEN, AUFBEREITER, SILOARTEN, SCHNITTHOEHEN } from './model.js';
+import { schnittBild, aufbereiterBild, ablageBild, zinkenBild } from './maschinen.js';
 import { WETTER, PROGNOSEN, GRUNDPLAN } from './scenarios.js';
 import { Szene } from './scene.js';
 import { Spiel } from './game.js';
@@ -32,7 +33,8 @@ document.addEventListener('click', (ev) => {
 }
 
 // ---------- Einsatz planen: Auswahlkarten und Chips
-const wahl = { ...GRUNDPLAN, wetter: 'hoch' };
+// Zinkenhöhen ohne Vorgabe: die Spieler müssen sie selbst einstellen
+const wahl = { ...GRUNDPLAN, wetter: 'hoch', zetterHoehe: null, schwaderHoehe: null };
 const setup = $('#setupform');
 const BESCHREIBUNG = {
   bestand: {
@@ -44,6 +46,7 @@ const BESCHREIBUNG = {
     ohne: 'Schonend, aber langsames Anwelken.',
     zinken: 'Schlägt die Wachsschicht kräftig auf.',
     walzen: 'Quetscht die Stängel, schont die Blätter.',
+    doppel: 'Zwei Zinkenrotoren: sehr intensiv, verteilt breit.',
   },
   siloart: {
     flachsilo: 'Mit dem Ladewagen ins Silo, gut verdichten.',
@@ -54,14 +57,12 @@ const OPTIONEN = {
   wetter: [...WETTER.map((w) => ({ wert: w.id, titel: w.name, text: w.info, extra: `<span class="wetterreihe">${w.tage.map(wetterSymbol).join('')}</span>` })),
     { wert: 'zufall', titel: 'Überraschung', text: 'Zufallswetter – mit Code für die ganze Klasse gleich.' }],
   bestand: Object.entries(BESTAENDE).map(([k, v]) => ({ wert: k, titel: v.name, text: BESCHREIBUNG.bestand[k] })),
-  aufbereiter: Object.entries(AUFBEREITER).map(([k, v]) => ({ wert: k, titel: v.name.replace(/^./, (c) => c.toUpperCase()), text: BESCHREIBUNG.aufbereiter[k] })),
+  aufbereiter: Object.entries(AUFBEREITER).map(([k, v]) => ({ wert: k, titel: v.name.replace(/^./, (c) => c.toUpperCase()), text: BESCHREIBUNG.aufbereiter[k], extra: aufbereiterBild(k) })),
   siloart: Object.entries(SILOARTEN).map(([k, v]) => ({ wert: k, titel: v.name, text: `${BESCHREIBUNG.siloart[k]} Ziel ${v.ziel[0]}–${v.ziel[1]} % TS.` })),
   stadium: Object.entries(STADIEN).map(([k, v]) => ({ wert: Number(k), titel: v.name })),
   boden: [{ wert: 'eben', titel: 'eben' }, { wert: 'maulwurf', titel: 'Maulwurfshaufen' }],
-  schnitthoehe: [4, 5, 6, 7, 8, 9].map((h) => ({ wert: h, titel: `${h} cm` })),
-  breit: [{ wert: true, titel: 'Breitablage' }, { wert: false, titel: 'in der Mähschwade' }],
-  zetterHoehe: Object.entries(HOEHEN).map(([k, v]) => ({ wert: k, titel: `Zinken ${v.cm} über Boden` })),
-  schwaderHoehe: Object.entries(HOEHEN).map(([k, v]) => ({ wert: k, titel: `Zinken ${v.cm} über Boden` })),
+  schnitthoehe: SCHNITTHOEHEN.map((h) => ({ wert: h, titel: `${h} cm` })),
+  breit: [{ wert: true, titel: 'Breitablage', text: 'über die ganze Fläche', extra: ablageBild(true) }, { wert: false, titel: 'Mähschwade', text: 'schmaler Streifen', extra: ablageBild(false) }],
 };
 
 function baueWahl(box, feld, ziel = wahl, onChange) {
@@ -81,9 +82,31 @@ function baueWahl(box, feld, ziel = wahl, onChange) {
     return b;
   }));
 }
-setup.querySelectorAll('[data-feld]').forEach((box) => baueWahl(box, box.dataset.feld, wahl, () => {
+function maschinenBilder() {
+  $('#bild-schnitt').innerHTML = schnittBild(wahl.schnitthoehe);
+  $('#bild-zetter').innerHTML = zinkenBild(wahl.zetterHoehe, 'zetten', wahl.schnitthoehe);
+  $('#bild-schwader').innerHTML = zinkenBild(wahl.schwaderHoehe, 'schwaden', wahl.schnitthoehe);
+}
+const nachWahl = () => {
   $('.code', setup).hidden = wahl.wetter !== 'zufall';
-}));
+  maschinenBilder();
+};
+setup.querySelectorAll('[data-feld]').forEach((box) => baueWahl(box, box.dataset.feld, wahl, nachWahl));
+for (const feld of ['zetterHoehe', 'schwaderHoehe']) {
+  const regler = setup[feld];
+  // auch ein Klick genau auf die Mitte (Startwert des Reglers) zählt als Einstellung
+  const setze = () => {
+    wahl[feld] = Number(regler.value);
+    regler.closest('.regler').classList.remove('leer');
+    regler.nextElementSibling.value = `${z(wahl[feld])} cm über Boden`;
+    $('#setupfehler').textContent = '';
+    maschinenBilder();
+  };
+  regler.addEventListener('input', setze);
+  regler.addEventListener('pointerup', setze);
+  regler.addEventListener('keyup', (e) => { if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End') setze(); });
+}
+maschinenBilder();
 setup.ertrag.addEventListener('input', () => { setup.ertragAus.value = `${setup.ertrag.value} dt TS/ha`; });
 
 // Wetter aus der Adresse (Lehrperson verschickt z.B. ?wetter=gewitter oder ?code=KLASSE3)
@@ -115,6 +138,11 @@ function starteSpiel({ einstellungen, sz, plan = null, tipp = null }) {
 
 setup.addEventListener('submit', (ev) => {
   ev.preventDefault();
+  if (wahl.zetterHoehe == null || wahl.schwaderHoehe == null) {
+    $('#setupfehler').textContent = 'Stell zuerst die Zinkenhöhe von Kreiselzetter und Schwader ein.';
+    setup.querySelector('.regler.zinken.leer')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
   const einstellungen = { ...wahl, ertrag: Number(setup.ertrag.value), name: setup.name.value.trim() };
   starteSpiel({ einstellungen, sz: wetterVon(wahl.wetter) });
 });

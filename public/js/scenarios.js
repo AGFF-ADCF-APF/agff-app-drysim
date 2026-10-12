@@ -42,22 +42,22 @@ export const WETTER = [
 
 export const GRUNDPLAN = {
   bestand: 'ausgewogen', stadium: 3, ertrag: 30, boden: 'eben',
-  maehen: 10, schnitthoehe: 7, aufbereiter: 'walzen', breit: true,
-  zetten: [11], zetterHoehe: 'richtig', schwaden: 15, schwaderHoehe: 'richtig',
-  ernte: 17, siloart: 'flachsilo',
+  maehen: 9, schnitthoehe: 7, aufbereiter: 'walzen', breit: true,
+  zetten: [10], zetterHoehe: 3, schwaden: 17, schwaderHoehe: 3,
+  ernte: 18, siloart: 'flachsilo',
 };
 
 export const PROGNOSEN = [
   {
     id: 'bilderbuch', name: 'Bilderbuch', wetter: 'hoch',
-    text: 'Raigrasreicher Bestand im Ähren-/Rispenschieben. Mähen um 10 Uhr, nachdem der Tau abgetrocknet ist, mit Walzenaufbereiter und Breitablage. Einmal zetten, um 15 Uhr schwaden, um 17 Uhr ins Flachsilo.',
-    plan: { ...GRUNDPLAN, bestand: 'graeser', maehen: 10, zetten: [11], schwaden: 15, ernte: 17 },
+    text: 'Raigrasreicher Bestand im Ähren-/Rispenschieben. Mähen um 9 Uhr, nachdem der Tau abgetrocknet ist, mit Walzenaufbereiter und Breitablage. Einmal zetten, um 17 Uhr schwaden, um 18 Uhr ins Flachsilo.',
+    plan: { ...GRUNDPLAN, bestand: 'graeser' },
   },
   {
     id: 'tiefgemaeht', name: 'Tief gemäht, dann Gewitter', wetter: 'gewitter',
     text: 'Kleereicher Bestand, mit 5 cm Schnitthöhe am Morgen um 7 Uhr gemäht, mit Zinkenaufbereiter in die Schwade. Zetter und Schwader sind zu tief eingestellt, auf der Wiese hat es Maulwurfshaufen. Gezettet wird am Tag 2 um 9 Uhr; das Futter liegt breit, als am Nachmittag das Gewitter kommt. Schwaden am Tag 3 um 10 Uhr, einfahren um 12 Uhr ins Flachsilo.',
     plan: { ...GRUNDPLAN, bestand: 'klee', schnitthoehe: 5, maehen: 7, aufbereiter: 'zinken', breit: false, boden: 'maulwurf',
-      zetten: [33], zetterHoehe: 'tief', schwaden: 58, schwaderHoehe: 'tief', ernte: 60 },
+      zetten: [33], zetterHoehe: 1, schwaden: 58, schwaderHoehe: 0.5, ernte: 60 },
   },
   {
     id: 'foehn', name: 'Föhn und Rundballen', wetter: 'foehn',

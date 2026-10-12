@@ -16,17 +16,23 @@ export const STADIEN = {
   4: { name: 'Beginn Blüte', nel: 5.5, rp: 130, ts: 21 },
 };
 
+// Trocknungsfaktoren gelten erst für die zweite, langsame Phase (nach dem Schliessen der Stomata);
+// kutikula = wie stark Regen/Tau eindringen und auswaschen; broeckel = Blattverlust bei Klee
 export const AUFBEREITER = {
-  ohne: { name: 'ohne Aufbereiter', gras: 0.85, klee: 0.85, kutikula: 1.0 },
-  zinken: { name: 'Zinkenaufbereiter', gras: 1.18, klee: 1.05, kutikula: 1.6 },
-  walzen: { name: 'Walzenaufbereiter', gras: 1.12, klee: 1.25, kutikula: 1.3 },
+  ohne: { name: 'ohne Aufbereiter', gras: 0.85, klee: 0.85, kutikula: 1.0, broeckel: 0 },
+  zinken: { name: 'Zinkenaufbereiter', gras: 1.18, klee: 1.05, kutikula: 1.6, broeckel: 1.5 },
+  walzen: { name: 'Walzenaufbereiter', gras: 1.12, klee: 1.25, kutikula: 1.3, broeckel: 0.3 },
+  doppel: { name: 'Doppelrotor-Aufbereiter', gras: 1.3, klee: 1.12, kutikula: 2.0, broeckel: 2.5, breit: true },
 };
 
-export const HOEHEN = {
-  tief: { name: 'Zinken 1 cm über Boden', cm: '1 cm', asche: 6, verlust: 0, wirkung: 1.0 },
-  richtig: { name: 'Zinken 3 cm über Boden', cm: '3 cm', asche: 2, verlust: 0, wirkung: 1.0 },
-  hoch: { name: 'Zinken 6 cm über Boden', cm: '6 cm', asche: 0.5, verlust: 1.5, wirkung: 0.7 },
-};
+// Arbeitshöhe der Zinken (cm über Boden, stufenlos): Erde, liegen gelassenes Futter, Wirkung
+export function zinken(cm) {
+  return {
+    asche: cm >= 4 ? 0.5 : 1 + 10 * clamp((2.5 - cm) / 2.5, 0, 1) ** 1.5,
+    verlust: Math.max(0, cm - 4) * 0.8,
+    wirkung: clamp(1 - Math.max(0, cm - 4) * 0.1, 0.5, 1),
+  };
+}
 
 export const SILOARTEN = {
   flachsilo: { name: 'Flachsilo (Ladewagen)', ziel: [30, 40], ernteverlust: 1.0, gaerverlust: 6 },
@@ -36,7 +42,8 @@ export const SILOARTEN = {
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 
 // Zusätzliche Rohasche (g/kg TS) durch die Schnitthöhe und Ertragsfaktor (Ertrag bezieht sich auf 7 cm)
-const SCHNITT = { 4: [30, 1.09], 5: [18, 1.06], 6: [8, 1.03], 7: [2, 1.0], 8: [0, 0.96], 9: [0, 0.92] };
+const SCHNITT = { 4: [30, 1.09], 5: [18, 1.06], 6: [8, 1.03], 7: [2, 1.0], 8: [0, 0.96], 9: [0, 0.92], 10: [0, 0.88], 11: [0, 0.84], 12: [0, 0.8] };
+export const SCHNITTHOEHEN = Object.keys(SCHNITT).map(Number);
 
 // Ein Feld, das Stunde für Stunde weiterläuft. Arbeitsgänge wirken zu Beginn der
 // aktuellen Stunde, danach rechnet `stunde()` das Wetter dieser Stunde.
@@ -81,7 +88,7 @@ export class Feld {
   erde(art, hoehe) {
     const nass = this.sm > 45 ? 1.6 : 1;
     const stoppel = this.p.schnitthoehe <= 5 ? 1.5 : 1;
-    const zusatz = HOEHEN[hoehe].asche * this.bodenF * nass * stoppel;
+    const zusatz = zinken(hoehe).asche * this.bodenF * nass * stoppel;
     this.asche += this.dm * zusatz / 1000;
     this.bodenAsche.push({ art, t: this.t, zusatz, nass: nass > 1, stoppel: stoppel > 1 });
   }
@@ -94,17 +101,17 @@ export class Feld {
     this.zucker = this.dm * b.zucker / 1000;
     this.asche = this.dm * (b.asche + this.schnittAsche * this.bodenF) / 1000;
     this.tsMahd = this.ts(); this.woMahd = this.wo; this.maehZeit = this.t;
-    this.sd = p.breit ? 1.0 : 1.7; // Schwadfaktor: g TS je m² Schwad / g TS je m² Feld
+    this.sd = p.breit || this.auf.breit ? 1.0 : 1.7; // Schwadfaktor: g TS je m² Schwad / g TS je m² Feld
     this.locker = 1; // Lockerungsbonus nach Zetten
     this.phase = 'gemaeht';
-    this.verliere('broeckel', this.dm * (1 + (p.aufbereiter === 'zinken' ? this.leg * 1.5 : 0)) / 100, 0);
+    this.verliere('broeckel', this.dm * (1 + this.leg * this.auf.broeckel) / 100, 0);
     this.ereignisse.push({ t: this.t, art: 'maehen', text: 'Mähen', ts: this.tsMahd });
     return true;
   }
 
   zettenJetzt() {
     if (this.phase !== 'gemaeht') return false;
-    const h = HOEHEN[this.p.zetterHoehe], leg = this.leg;
+    const h = zinken(this.p.zetterHoehe), leg = this.leg;
     const tsi = 100 * this.tsInnen();
     const f = clamp((tsi - 35) / 25, 0, 1);
     this.verliere('broeckel', this.dm * (0.8 + leg * 6 * f + (1 - leg) * f) / 100, 0.1);
@@ -118,7 +125,7 @@ export class Feld {
 
   schwaden() {
     if (this.phase !== 'gemaeht') return false;
-    const h = HOEHEN[this.p.schwaderHoehe];
+    const h = zinken(this.p.schwaderHoehe);
     const f = clamp((100 * this.tsInnen() - 35) / 25, 0, 1);
     this.verliere('broeckel', this.dm * (0.6 + this.leg * 4 * f + 0.5 * f) / 100, 0.1);
     if (h.verlust) this.verliere('liegen', this.dm * h.verlust / 100, 0);
@@ -166,9 +173,15 @@ export class Feld {
     const tag1 = this.t - this.maehZeit < 24 ? 1 : 0;
     const SD = this.dm * sd;
     let dr = (w.rad + 43.8 * w.vpd) / (61.4 * this.sm + SD * (1.82 - 0.83 * tag1) * 1.68 + 2767);
-    dr *= ((1 - leg) * auf.gras + leg * auf.klee) * this.locker;
-    // Kalibrierung: dichte Schwade und Wind (bei Rotz & Chen nicht enthalten)
-    dr *= 0.85 * sd ** -0.3 * (1 + 0.05 * (w.wind - 2));
+    // Aufbereiter wirkt erst, wenn die Stomata zu sind und das Wasser durch Kutikula und Stängel muss
+    const phase2 = clamp((this.tsInnen() - 0.22) / 0.08, 0, 1);
+    dr *= 1 + (((1 - leg) * auf.gras + leg * auf.klee) - 1) * phase2;
+    dr *= this.locker;
+    // Kalibrierung (Rotz & Chen kennt weder Schwadbreite noch Wind): Breitablage erreicht bei
+    // gutem Wetter 35 % TS in rund 8–10 h, eine schmale Schwade erst am Folgetag (Univ. Wisconsin)
+    dr *= 0.6 * sd ** -0.75 * (1 + 0.05 * (w.wind - 2));
+    // Hohe Stoppeln: Futter liegt luftiger
+    dr *= 1 + Math.max(0, this.p.schnitthoehe - 7) * 0.02;
     dr *= Math.max(0.2, 1 - this.wo / (0.3 * this.dm));
     const we = this.dm * (0.1 + 0.25 * (w.rh / 100) ** 4); // Gleichgewicht (Trockenbasis)
     this.wi -= (this.wi - we) * (1 - Math.exp(-dr));
@@ -313,12 +326,12 @@ function erklaere(r, c) {
 
   f.push({
     id: 'schnitthoehe', titel: 'Schnitthöhe', wert: `${p.schnitthoehe} cm`,
-    stufe: stufe(p.schnitthoehe >= 7 && p.schnitthoehe <= 8, p.schnitthoehe === 6 || p.schnitthoehe === 9),
+    stufe: stufe(p.schnitthoehe >= 7 && p.schnitthoehe <= 8, p.schnitthoehe === 6 || (p.schnitthoehe >= 9 && p.schnitthoehe <= 10)),
     text: `Bei ${p.schnitthoehe} cm kommen ${z(c.schnittAsche * c.bodenF, 0)} g Rohasche/kg TS durch Erde dazu` +
       (c.bodenF > 1 ? ' (Maulwurfshaufen verstärken das stark)' : '') +
       `. Der Ertrag ist ${c.ertragsF >= 1 ? 'um ' + z((c.ertragsF - 1) * 100, 0) + ' % höher' : 'um ' + z((1 - c.ertragsF) * 100, 0) + ' % tiefer'} als bei 7 cm. ` +
       (p.schnitthoehe <= 5 ? 'Tiefe Stoppeln tragen das Schwad nicht: Zetter und Schwader greifen in den Boden, jeder Arbeitsgang bringt so mehr Erde ins Futter. Zudem fehlen Reservestoffe für den Wiederaustrieb. ' : '') +
-      (p.schnitthoehe >= 8 ? 'Hohe Stoppeln schonen die Grasnarbe und lassen das Futter darauf belüftet liegen, kosten aber Ertrag. ' : '') +
+      (p.schnitthoehe >= 8 ? 'Hohe Stoppeln schonen die Grasnarbe, tragen das Schwad und lassen es luftig liegen, sodass es etwas schneller trocknet. Jeder Zentimeter über 7 cm kostet aber rund 4 % Ertrag. ' : '') +
       'Erde bringt Clostridien-Sporen ins Silo: Diese Bakterien bilden Buttersäure und gefährden die Käsereitauglichkeit der Milch.',
   });
 
@@ -332,18 +345,20 @@ function erklaere(r, c) {
 
   f.push({
     id: 'aufbereiter', titel: 'Aufbereitung', wert: c.auf.name,
-    stufe: stufe(p.aufbereiter !== 'ohne' && !(p.aufbereiter === 'zinken' && c.leg > 0.4), p.aufbereiter === 'zinken'),
+    stufe: stufe(p.aufbereiter !== 'ohne' && !(c.auf.broeckel > 1 && c.leg > 0.4), p.aufbereiter !== 'ohne'),
     text: 'Nach dem Schnitt schliessen sich die Spaltöffnungen (Stomata) innerhalb etwa einer Stunde, sobald die Pflanze Wasser verliert. Danach muss das Wasser durch die Wachsschicht (Kutikula) und über die Stängel nach aussen. ' +
       'Der Aufbereiter verletzt Wachsschicht und Stängel. Das beschleunigt genau diese zweite, langsame Phase; die Stomata hält er nicht offen. ' +
       (p.aufbereiter === 'ohne' ? 'Ohne Aufbereiter dauert das Anwelken deutlich länger.' :
         `Die Kehrseite: Die verletzte Oberfläche nimmt Regen und Tau schneller auf, und mehr Zucker wird ausgewaschen (Faktor ${z(c.auf.kutikula)} gegenüber unbehandelt). ` +
-        (p.aufbereiter === 'zinken' && c.leg > 0.3 ? 'Bei kleereichem Futter schlägt der Zinkenaufbereiter Blätter ab; ein Walzenaufbereiter ist schonender.' : '')),
+        (p.aufbereiter === 'doppel' ? 'Der Doppelrotor bearbeitet das Futter besonders intensiv und verteilt es breit. Er trocknet am schnellsten, ist bei Regen aber am empfindlichsten. ' : '') +
+        (c.auf.broeckel > 1 && c.leg > 0.3 ? 'Bei kleereichem Futter schlagen Zinken die Blätter ab; ein Walzenaufbereiter ist schonender.' : '')) +
+      ' In der ersten Phase direkt nach dem Mähen hilft der Aufbereiter wenig; die Breitablage ist wichtiger.',
   });
 
   f.push({
-    id: 'breit', titel: 'Ablage', wert: p.breit ? 'Breitablage' : 'Schwadablage',
-    stufe: stufe(p.breit || c.zetten.length > 0 && c.zetten[0] - p.maehen <= 2, c.zetten.length > 0),
-    text: p.breit
+    id: 'breit', titel: 'Ablage', wert: p.breit || c.auf.breit ? 'Breitablage' : 'Schwadablage',
+    stufe: stufe(p.breit || c.auf.breit || c.zetten.length > 0 && c.zetten[0] - p.maehen <= 2, c.zetten.length > 0),
+    text: p.breit || c.auf.breit
       ? 'Das Futter liegt über die ganze Fläche verteilt. Sonne und Wind erreichen mehr Futter, deshalb ist die Trocknung am ersten Tag am schnellsten. So ist Silage oft am gleichen Tag erntereif.'
       : 'In der Mähschwade liegt das Futter dicht. Die Trocknung wird gebremst, bis gezettet wird. Wird erst spät gezettet, geht wertvolle Trocknungszeit am ersten Tag verloren.',
   });
@@ -365,7 +380,7 @@ function erklaere(r, c) {
     text: `Sauberes Futter hat etwa ${c.b.asche} g Rohasche/kg TS; alles darüber ist meistens Erde. ` +
       (ba ? `Über die Arbeitsgänge kam dazu: ${ba} (g/kg TS). ` : '') +
       (r.bodenAsche.some((x) => x.nass) ? 'Der Boden war nass, darum blieb mehr Erde haften. ' : '') +
-      'Zetter und Schwader sollen das Futter heben und nicht den Boden kratzen. Faustregel: Die Zinken berühren die Grasnarbe gerade nicht. ' +
+      `Zinkenhöhe: Zetter ${z(p.zetterHoehe)} cm, Schwader ${z(p.schwaderHoehe)} cm über Boden. Zetter und Schwader sollen das Futter heben und nicht den Boden kratzen. Unter etwa 2 cm reissen die Zinken Erde mit; über 4 cm bleibt Futter liegen. ` +
       'Ab etwa 100 g/kg TS steigt die Gefahr einer Buttersäuregärung deutlich, besonders bei nassem Futter unter 35 % TS.',
   });
 

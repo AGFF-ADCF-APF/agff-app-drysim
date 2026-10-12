@@ -128,6 +128,22 @@ button, input, select { font: inherit; color: inherit; }
 .code, .name { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
 .code input, .name input { padding: .45rem .7rem; border: 2px solid var(--linie); border-radius: 10px; background: var(--bg); flex: 1 1 12rem; }
 
+/* Maschinen */
+.maschinen { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.maschine { background: var(--bg); border-radius: 14px; padding: 12px 14px; min-width: 0; }
+.maschine h3 { margin: 0 0 6px; font-size: 1rem; }
+.maschine .bild { background: var(--karte); border-radius: 10px; margin-bottom: 8px; }
+.maschinenbild { width: 100%; height: auto; display: block; }
+.wahl.bilder { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); margin: 0; }
+.wahl.bilder .wahlkarte { background: var(--karte); justify-items: center; text-align: center; }
+.symbol.gross { width: 100%; max-width: 120px; height: auto; }
+.regler.zinken output { min-width: 8rem; }
+.regler.zinken.leer output { color: var(--rot); }
+.regler.zinken.leer input { accent-color: var(--linie); }
+.regler.zinken.leer input::-webkit-slider-thumb { opacity: 0; }
+.regler.zinken.leer input::-moz-range-thumb { opacity: 0; }
+.fehler { color: var(--rot); font-weight: 700; text-align: center; min-height: 1.2em; margin: 0; }
+
 /* Spiel */
 .spielfeld { display: grid; gap: 12px; }
 .hud-oben { display: flex; gap: 12px 20px; align-items: center; flex-wrap: wrap; background: var(--karte); border-radius: var(--radius); padding: 10px 16px; box-shadow: var(--schatten); }

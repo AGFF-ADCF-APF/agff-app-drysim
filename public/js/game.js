@@ -1,6 +1,6 @@
 // Spielablauf: Die Uhr läuft, die Spieler lösen die Arbeitsgänge aus (oder im
 // Zeitraffer der vorgegebene Plan). Anzeigen, Ticker und Szene werden jede Stunde nachgeführt.
-import { Feld, SILOARTEN, HOEHEN, AUFBEREITER } from './model.js';
+import { Feld, SILOARTEN, AUFBEREITER } from './model.js';
 import { stundenwetter } from './weather.js';
 import { Szene } from './scene.js';
 import { wetterSymbol, stundenSymbol, AKTION } from './icons.js';
@@ -145,9 +145,9 @@ export class Spiel {
   baueKnoepfe() {
     const s = this.setup;
     const info = {
-      maehen: `${s.schnitthoehe} cm · ${AUFBEREITER[s.aufbereiter].name}${s.breit ? ' · breit' : ''}`,
-      zetten: `Zinken ${HOEHEN[s.zetterHoehe].cm}`,
-      schwaden: `Zinken ${HOEHEN[s.schwaderHoehe].cm}`,
+      maehen: `${s.schnitthoehe} cm · ${AUFBEREITER[s.aufbereiter].name}${s.breit || AUFBEREITER[s.aufbereiter].breit ? ' · breit' : ''}`,
+      zetten: `Zinken ${z(s.zetterHoehe, 1)} cm`,
+      schwaden: `Zinken ${z(s.schwaderHoehe, 1)} cm`,
       ernte: SILOARTEN[s.siloart].name,
     };
     const namen = { maehen: 'Mähen', zetten: 'Zetten', schwaden: 'Schwaden', ernte: 'Einfahren' };
