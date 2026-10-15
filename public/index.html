@@ -62,15 +62,20 @@
       </div>
       <div class="karte">
         <h2>2 · Die Wiese</h2>
-        <div class="wahl" data-feld="bestand"></div>
-        <div class="zeile">
-          <span>Stadium</span><div class="chips" data-feld="stadium"></div>
-        </div>
-        <div class="zeile">
-          <span>Ertrag</span><label class="regler"><input type="range" name="ertrag" min="20" max="45" step="1" value="30"><output name="ertragAus">30 dt TS/ha</output></label>
-        </div>
-        <div class="zeile">
-          <span>Boden</span><div class="chips" data-feld="boden"></div>
+        <h3 class="unter">Was wächst?</h3>
+        <div class="wahl bilder wiese" data-feld="bestand"></div>
+        <h3 class="unter">Wie weit ist das Gras?</h3>
+        <div class="wahl bilder stadien" data-feld="stadium"></div>
+        <div class="wiese-unten">
+          <div>
+            <h3 class="unter">Wie viel steht?</h3>
+            <div class="bild" id="bild-ertrag"></div>
+            <label class="regler"><input type="range" name="ertrag" min="20" max="45" step="1" value="30" aria-label="Ertrag in dt TS pro ha"><output name="ertragAus">30 dt TS/ha</output></label>
+          </div>
+          <div>
+            <h3 class="unter">Wie ist der Boden?</h3>
+            <div class="wahl bilder" data-feld="boden"></div>
+          </div>
         </div>
       </div>
       <div class="karte">
@@ -79,7 +84,19 @@
           <div class="maschine">
             <h3>Mähwerk – Schnitthöhe</h3>
             <div class="bild" id="bild-schnitt"></div>
-            <div class="chips" data-feld="schnitthoehe"></div>
+            <label class="regler pflicht leer"><input type="range" name="schnitthoehe" min="4" max="12" step="0.5" aria-label="Schnitthöhe in cm"><output name="schnittAus">bitte einstellen</output></label>
+          </div>
+          <div class="maschine">
+            <h3>Kreiselzetter – Zinkenhöhe</h3>
+            <div class="bild" id="bild-zetter"></div>
+            <label class="regler pflicht leer"><input type="range" name="zetterHoehe" min="0" max="8" step="0.5" aria-label="Zinkenhöhe Kreiselzetter in cm"><output name="zetterAus">bitte einstellen</output></label>
+            <small class="hinweis">Einstellmass ab festem, ebenem Boden. Auf dem Feld sinken die Räder ein; das Schwad liegt auf den Stoppeln (gestrichelt: Unterseite).</small>
+          </div>
+          <div class="maschine">
+            <h3>Schwader – Zinkenhöhe</h3>
+            <div class="bild" id="bild-schwader"></div>
+            <label class="regler pflicht leer"><input type="range" name="schwaderHoehe" min="0" max="8" step="0.5" aria-label="Zinkenhöhe Schwader in cm"><output name="schwaderAus">bitte einstellen</output></label>
+            <small class="hinweis">Einstellmass ab festem, ebenem Boden. Auf dem Feld sinken die Räder ein; das Schwad liegt auf den Stoppeln (gestrichelt: Unterseite).</small>
           </div>
           <div class="maschine">
             <h3>Aufbereiter</h3>
@@ -88,18 +105,6 @@
           <div class="maschine">
             <h3>Ablage</h3>
             <div class="wahl bilder" data-feld="breit"></div>
-          </div>
-          <div class="maschine">
-            <h3>Kreiselzetter – Zinkenhöhe</h3>
-            <div class="bild" id="bild-zetter"></div>
-            <label class="regler zinken leer"><input type="range" name="zetterHoehe" min="0" max="8" step="0.5" aria-label="Zinkenhöhe Kreiselzetter in cm"><output name="zetterAus">bitte einstellen</output></label>
-            <small class="hinweis">Einstellmass ab festem, ebenem Boden. Auf dem Feld sinken die Räder ein; das Schwad liegt auf den Stoppeln (gestrichelt: Unterseite).</small>
-          </div>
-          <div class="maschine">
-            <h3>Schwader – Zinkenhöhe</h3>
-            <div class="bild" id="bild-schwader"></div>
-            <label class="regler zinken leer"><input type="range" name="schwaderHoehe" min="0" max="8" step="0.5" aria-label="Zinkenhöhe Schwader in cm"><output name="schwaderAus">bitte einstellen</output></label>
-            <small class="hinweis">Einstellmass ab festem, ebenem Boden. Auf dem Feld sinken die Räder ein; das Schwad liegt auf den Stoppeln (gestrichelt: Unterseite).</small>
           </div>
         </div>
       </div>

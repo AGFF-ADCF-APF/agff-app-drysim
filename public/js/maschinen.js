@@ -36,21 +36,25 @@ const staub = (x, y) => [0, 1, 2, 3, 4, 5, 6].map((i) =>
   `<circle cx="${x + Math.cos(i) * (6 + i * 3)}" cy="${y - Math.abs(Math.sin(i * 1.3)) * (4 + i * 2)}" r="${2.6 - i * 0.25}" fill="#8b5e34"/>`).join('');
 
 // Mähwerk von der Seite: Stoppeln in der gewählten Höhe, Messerteller, Lineal
-export function schnittBild(cm) {
+export function schnittBild(wert) {
+  const leer = wert == null, cm = leer ? 7 : wert;
   const y = BODEN - cm * PX;
-  const erde = cm <= 5;
-  return `<svg viewBox="0 0 260 150" class="maschinenbild" role="img" aria-label="Mähwerk, Schnitthöhe ${cm} cm">
+  const erde = !leer && cm <= 5;
+  return `<svg viewBox="0 0 260 150" class="maschinenbild" role="img" aria-label="Mähwerk, Schnitthöhe ${leer ? 'nicht eingestellt' : fmt(cm) + ' cm'}">
     ${boden()}
     ${stoppeln(8, 120, cm)}
     ${stoppeln(150, 214, 20, '#4f8f32').replace(/stroke-width="2.4"/g, 'stroke-width="2"')}
+    <g opacity="${leer ? 0.3 : 1}">
     <rect x="118" y="${y - 30}" width="44" height="22" rx="4" fill="#c62828"/>
     <path d="M140 ${y - 30} V${y - 50} H190" stroke="#555" stroke-width="5" fill="none"/>
     <ellipse cx="140" cy="${y - 4}" rx="30" ry="6" fill="#444"/>
     <path d="M110 ${y - 3} l-10 3 M170 ${y - 3} l10 3" stroke="#bbb" stroke-width="3"/>
+    </g>
     ${erde ? staub(120, BODEN - 2) + `<text x="8" y="20" font-size="12" font-weight="700" fill="var(--rot)">Erde im Futter!</text>` : ''}
-    ${cm >= 10 ? `<text x="8" y="20" font-size="12" font-weight="700" fill="var(--gelb-dunkel)">Ertrag bleibt stehen</text>` : ''}
-    ${lineal(228, 12, cm)}
-    <text x="228" y="16" font-size="13" font-weight="700" fill="var(--text)" text-anchor="middle">${cm} cm</text>
+    ${!leer && cm >= 10 ? `<text x="8" y="20" font-size="12" font-weight="700" fill="var(--gelb-dunkel)">Ertrag bleibt stehen</text>` : ''}
+    ${leer ? `<text x="110" y="18" font-size="13" font-weight="700" fill="var(--leise)" text-anchor="middle">Schnitthöhe einstellen ↓</text>` : ''}
+    ${lineal(228, 12, leer ? null : cm)}
+    <text x="228" y="16" font-size="13" font-weight="700" fill="var(--text)" text-anchor="middle">${leer ? '?' : fmt(cm) + ' cm'}</text>
   </svg>`;
 }
 

@@ -1,5 +1,6 @@
 import { stundenwetter, zufallswetter } from './weather.js';
-import { BESTAENDE, STADIEN, AUFBEREITER, SILOARTEN, SCHNITTHOEHEN } from './model.js';
+import { BESTAENDE, STADIEN, AUFBEREITER, SILOARTEN } from './model.js';
+import { bestandBild, stadiumBild, ertragBild, bodenBild } from './wiese.js';
 import { schnittBild, aufbereiterBild, ablageBild, zinkenBild } from './maschinen.js';
 import { WETTER, PROGNOSEN, GRUNDPLAN } from './scenarios.js';
 import { Szene } from './scene.js';
@@ -33,14 +34,20 @@ document.addEventListener('click', (ev) => {
 }
 
 // ---------- Einsatz planen: Auswahlkarten und Chips
-// Zinkenhöhen ohne Vorgabe: die Spieler müssen sie selbst einstellen
-const wahl = { ...GRUNDPLAN, wetter: 'hoch', zetterHoehe: null, schwaderHoehe: null };
+// Schnitt- und Zinkenhöhen ohne Vorgabe: die Spieler müssen sie selbst einstellen
+const PFLICHT = { schnitthoehe: 'cm', zetterHoehe: 'cm über Boden', schwaderHoehe: 'cm über Boden' };
+const wahl = { ...GRUNDPLAN, wetter: 'hoch', schnitthoehe: null, zetterHoehe: null, schwaderHoehe: null };
 const setup = $('#setupform');
 const BESCHREIBUNG = {
   bestand: {
-    graeser: 'Viel Zucker – siliert sich leicht.',
-    ausgewogen: 'Gräser, Klee und Kräuter gemischt.',
-    klee: 'Eiweissreich, wenig Zucker, Blätter bröckeln.',
+    graeser: 'Fast nur Gräser – süss und gutmütig.',
+    ausgewogen: 'Gräser, Klee und Blumen – die typische Naturwiese.',
+    klee: 'Viel Klee – eiweissreich, aber heikel.',
+  },
+  stadium: {
+    2: 'Junges Gras: viel Energie, wenig Futter.',
+    3: 'Die Ähren kommen: guter Mittelweg.',
+    4: 'Es blüht: viel Futter, weniger Energie.',
   },
   aufbereiter: {
     ohne: 'Schonend, aber langsames Anwelken.',
@@ -56,14 +63,43 @@ const BESCHREIBUNG = {
 const OPTIONEN = {
   wetter: [...WETTER.map((w) => ({ wert: w.id, titel: w.name, text: w.info, extra: `<span class="wetterreihe">${w.tage.map(wetterSymbol).join('')}</span>` })),
     { wert: 'zufall', titel: 'Überraschung', text: 'Zufallswetter – mit Code für die ganze Klasse gleich.' }],
-  bestand: Object.entries(BESTAENDE).map(([k, v]) => ({ wert: k, titel: v.name, text: BESCHREIBUNG.bestand[k] })),
+  bestand: Object.entries(BESTAENDE).map(([k, v]) => ({
+    wert: k, titel: { graeser: 'Gräserreich', ausgewogen: 'Ausgewogen', klee: 'Kleereich' }[k], text: BESCHREIBUNG.bestand[k],
+    extra: bestandBild(k) + merkmale({ graeser: [3, 1, 3], ausgewogen: [2, 2, 2], klee: [1, 3, 1] }[k]),
+  })),
   aufbereiter: Object.entries(AUFBEREITER).map(([k, v]) => ({ wert: k, titel: v.name.replace(/^./, (c) => c.toUpperCase()), text: BESCHREIBUNG.aufbereiter[k], extra: aufbereiterBild(k) })),
   siloart: Object.entries(SILOARTEN).map(([k, v]) => ({ wert: k, titel: v.name, text: `${BESCHREIBUNG.siloart[k]} Ziel ${v.ziel[0]}–${v.ziel[1]} % TS.` })),
-  stadium: Object.entries(STADIEN).map(([k, v]) => ({ wert: Number(k), titel: v.name })),
-  boden: [{ wert: 'eben', titel: 'eben' }, { wert: 'maulwurf', titel: 'Maulwurfshaufen' }],
-  schnitthoehe: SCHNITTHOEHEN.map((h) => ({ wert: h, titel: `${h} cm` })),
+  stadium: Object.entries(STADIEN).map(([k, v]) => ({ wert: Number(k), titel: v.name, text: BESCHREIBUNG.stadium[k], extra: stadiumBild(Number(k)) })),
+  boden: [{ wert: 'eben', titel: 'Eben und sauber', extra: bodenBild('eben') }, { wert: 'maulwurf', titel: 'Maulwurfshaufen', extra: bodenBild('maulwurf') }],
   breit: [{ wert: true, titel: 'Breitablage', text: 'über die ganze Fläche', extra: ablageBild(true) }, { wert: false, titel: 'Mähschwade', text: 'schmaler Streifen', extra: ablageBild(false) }],
 };
+
+// Kleine Punkteskala für Zucker, Eiweiss und Silierbarkeit
+function merkmale([zucker, eiweiss, leicht]) {
+  const p = (n) => `<i>${'●'.repeat(n)}<b>${'●'.repeat(3 - n)}</b></i>`;
+  return `<span class="merkmale"><span>Zucker</span>${p(zucker)}<span>Eiweiss</span>${p(eiweiss)}<span>Silieren</span>${p(leicht)}</span>`;
+}
+
+// Jeder Schieberegler bekommt − und + Knöpfe
+function plusMinus(input) {
+  const knopf = (zeichen, richtung) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'plusminus'; b.textContent = zeichen;
+    b.setAttribute('aria-label', richtung > 0 ? 'mehr' : 'weniger');
+    b.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      const min = Number(input.min), max = Number(input.max), step = Number(input.step) || 1;
+      const leer = input.closest('.regler')?.classList.contains('leer');
+      const basis = leer ? Math.round((min + max) / 2 / step) * step : Number(input.value);
+      input.value = Math.min(max, Math.max(min, basis + (leer ? 0 : richtung * step)));
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    return b;
+  };
+  input.before(knopf('−', -1));
+  input.after(knopf('+', 1));
+}
+document.querySelectorAll('input[type=range]').forEach(plusMinus);
 
 function baueWahl(box, feld, ziel = wahl, onChange) {
   const ops = OPTIONEN[feld] ?? feld;
@@ -83,22 +119,24 @@ function baueWahl(box, feld, ziel = wahl, onChange) {
   }));
 }
 function maschinenBilder() {
+  const stoppel = wahl.schnitthoehe ?? 7;
   $('#bild-schnitt').innerHTML = schnittBild(wahl.schnitthoehe);
-  $('#bild-zetter').innerHTML = zinkenBild(wahl.zetterHoehe, 'zetten', wahl.schnitthoehe);
-  $('#bild-schwader').innerHTML = zinkenBild(wahl.schwaderHoehe, 'schwaden', wahl.schnitthoehe);
+  $('#bild-zetter').innerHTML = zinkenBild(wahl.zetterHoehe, 'zetten', stoppel);
+  $('#bild-schwader').innerHTML = zinkenBild(wahl.schwaderHoehe, 'schwaden', stoppel);
+  $('#bild-ertrag').innerHTML = ertragBild(Number(setup.ertrag.value));
 }
 const nachWahl = () => {
   $('.code', setup).hidden = wahl.wetter !== 'zufall';
   maschinenBilder();
 };
 setup.querySelectorAll('[data-feld]').forEach((box) => baueWahl(box, box.dataset.feld, wahl, nachWahl));
-for (const feld of ['zetterHoehe', 'schwaderHoehe']) {
+for (const [feld, einheit] of Object.entries(PFLICHT)) {
   const regler = setup[feld];
   // auch ein Klick genau auf die Mitte (Startwert des Reglers) zählt als Einstellung
   const setze = () => {
     wahl[feld] = Number(regler.value);
     regler.closest('.regler').classList.remove('leer');
-    regler.nextElementSibling.value = `${z(wahl[feld])} cm über Boden`;
+    regler.closest('.regler').querySelector('output').value = `${z(wahl[feld])} ${einheit}`;
     $('#setupfehler').textContent = '';
     maschinenBilder();
   };
@@ -107,7 +145,7 @@ for (const feld of ['zetterHoehe', 'schwaderHoehe']) {
   regler.addEventListener('keyup', (e) => { if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End') setze(); });
 }
 maschinenBilder();
-setup.ertrag.addEventListener('input', () => { setup.ertragAus.value = `${setup.ertrag.value} dt TS/ha`; });
+setup.ertrag.addEventListener('input', () => { setup.ertragAus.value = `${setup.ertrag.value} dt TS/ha`; maschinenBilder(); });
 
 // Wetter aus der Adresse (Lehrperson verschickt z.B. ?wetter=gewitter oder ?code=KLASSE3)
 {
@@ -138,9 +176,11 @@ function starteSpiel({ einstellungen, sz, plan = null, tipp = null }) {
 
 setup.addEventListener('submit', (ev) => {
   ev.preventDefault();
-  if (wahl.zetterHoehe == null || wahl.schwaderHoehe == null) {
-    $('#setupfehler').textContent = 'Stell zuerst die Zinkenhöhe von Kreiselzetter und Schwader ein.';
-    setup.querySelector('.regler.zinken.leer')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const fehlt = Object.keys(PFLICHT).filter((k) => wahl[k] == null);
+  if (fehlt.length) {
+    const namen = { schnitthoehe: 'Schnitthöhe', zetterHoehe: 'Zinkenhöhe Kreiselzetter', schwaderHoehe: 'Zinkenhöhe Schwader' };
+    $('#setupfehler').textContent = `Noch einstellen: ${fehlt.map((k) => namen[k]).join(', ')}.`;
+    setup.querySelector('.regler.leer')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
   const einstellungen = { ...wahl, ertrag: Number(setup.ertrag.value), name: setup.name.value.trim() };

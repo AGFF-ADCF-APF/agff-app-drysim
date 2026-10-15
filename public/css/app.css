@@ -137,11 +137,30 @@ button, input, select { font: inherit; color: inherit; }
 .wahl.bilder { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); margin: 0; }
 .wahl.bilder .wahlkarte { background: var(--karte); justify-items: center; text-align: center; }
 .symbol.gross { width: 100%; max-width: 120px; height: auto; }
-.regler.zinken output { min-width: 8rem; }
-.regler.zinken.leer output { color: var(--rot); }
-.regler.zinken.leer input { accent-color: var(--linie); }
-.regler.zinken.leer input::-webkit-slider-thumb { opacity: 0; }
-.regler.zinken.leer input::-moz-range-thumb { opacity: 0; }
+.regler.pflicht output { min-width: 8rem; }
+.maschine .regler { flex-wrap: wrap; }
+.maschine .regler input { min-width: 8rem; }
+.maschine .regler output { flex-basis: 100%; text-align: center; }
+.regler.leer output { color: var(--rot); }
+.regler.leer input { accent-color: var(--linie); }
+.regler.leer input::-webkit-slider-thumb { opacity: 0; }
+.regler.leer input::-moz-range-thumb { opacity: 0; }
+.regler .plusminus { flex: none; width: 2.2rem; height: 2.2rem; border-radius: 50%; border: 2px solid var(--linie); background: var(--karte); font-size: 1.2rem; font-weight: 800; line-height: 1; cursor: pointer; color: var(--gruen-dunkel); }
+.regler .plusminus:active { transform: scale(.92); }
+/* Wiese */
+h3.unter { font-size: .95rem; margin: 12px 0 6px; color: var(--leise); }
+.wahl.wiese, .wahl.stadien { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 640px) { .wahl.wiese { grid-template-columns: 1fr; } .wahl.stadien { grid-template-columns: repeat(3, 1fr); gap: 6px; } }
+.wahl.stadien .wahlkarte b { hyphens: manual; overflow-wrap: anywhere; }
+.wiesenbild { width: 100%; height: auto; display: block; border-radius: 8px; }
+.pflanzenbild { width: 90px; height: auto; }
+.wiese-unten { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+@media (max-width: 700px) { .wiese-unten { grid-template-columns: 1fr; } }
+.wiese-unten .bild { margin-bottom: 6px; max-width: 460px; }
+.wiese-unten .wahl.bilder { grid-template-columns: repeat(2, minmax(120px, 180px)); }
+.merkmale { display: grid; grid-template-columns: auto auto; gap: 1px 8px; justify-content: center; font-size: .78rem; color: var(--leise); margin-top: 4px; }
+.merkmale i { font-style: normal; letter-spacing: 1px; color: var(--gruen); }
+.merkmale i b { color: var(--linie); font-weight: 400; }
 .fehler { color: var(--rot); font-weight: 700; text-align: center; min-height: 1.2em; margin: 0; }
 
 /* Spiel */

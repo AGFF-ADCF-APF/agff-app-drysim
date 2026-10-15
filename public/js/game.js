@@ -78,7 +78,7 @@ export class Spiel {
     this.knoepfeAktiv();
     await this.szene.traktor(art, dauer);
     const t = `Tag ${Math.floor(f.t / 24) + 1}, ${zeit(f.t)}`;
-    if (art === 'maehen') { f.maehen(); this.melde(`${t}: Gemäht mit ${this.setup.schnitthoehe} cm Schnitthöhe${this.vorher.nass > 0.1 ? ', das Gras war noch nass' : ''}.`); }
+    if (art === 'maehen') { f.maehen(); this.melde(`${t}: Gemäht mit ${String(this.setup.schnitthoehe).replace('.', ',')} cm Schnitthöhe${this.vorher.nass > 0.1 ? ', das Gras war noch nass' : ''}.`); }
     if (art === 'zetten') { f.zettenJetzt(); this.melde(`${t}: Gezettet bei ${z(f.ts())} % TS.`); }
     if (art === 'schwaden') { f.schwaden(); this.melde(`${t}: Geschwadet bei ${z(f.ts())} % TS.`); }
     this.beschaeftigt = false;
@@ -145,7 +145,7 @@ export class Spiel {
   baueKnoepfe() {
     const s = this.setup;
     const info = {
-      maehen: `${s.schnitthoehe} cm · ${AUFBEREITER[s.aufbereiter].name}${s.breit || AUFBEREITER[s.aufbereiter].breit ? ' · breit' : ''}`,
+      maehen: `${String(s.schnitthoehe).replace('.', ',')} cm · ${AUFBEREITER[s.aufbereiter].name}${s.breit || AUFBEREITER[s.aufbereiter].breit ? ' · breit' : ''}`,
       zetten: `Zinken ${z(s.zetterHoehe, 1)} cm`,
       schwaden: `Zinken ${z(s.schwaderHoehe, 1)} cm`,
       ernte: SILOARTEN[s.siloart].name,

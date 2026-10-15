@@ -12,7 +12,7 @@ export const BESTAENDE = {
 
 export const STADIEN = {
   2: { name: 'Schossen', nel: 6.6, rp: 190, ts: 15 },
-  3: { name: 'Ähren-/Rispenschieben', nel: 6.1, rp: 160, ts: 18 },
+  3: { name: 'Ähren-/Rispen\u00ADschieben', nel: 6.1, rp: 160, ts: 18 },
   4: { name: 'Beginn Blüte', nel: 5.5, rp: 130, ts: 21 },
 };
 
@@ -49,8 +49,15 @@ export const SILOARTEN = {
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 
 // Zusätzliche Rohasche (g/kg TS) durch die Schnitthöhe und Ertragsfaktor (Ertrag bezieht sich auf 7 cm)
-const SCHNITT = { 4: [30, 1.09], 5: [18, 1.06], 6: [8, 1.03], 7: [2, 1.0], 8: [0, 0.96], 9: [0, 0.92], 10: [0, 0.88], 11: [0, 0.84], 12: [0, 0.8] };
-export const SCHNITTHOEHEN = Object.keys(SCHNITT).map(Number);
+// Stützpunkte [cm, Rohasche-Zuschlag g/kg TS, Ertragsfaktor], dazwischen linear (stufenlos 4–12 cm)
+const SCHNITT = [[4, 30, 1.09], [5, 18, 1.06], [6, 8, 1.03], [7, 2, 1.0], [8, 0, 0.96], [12, 0, 0.8]];
+export function schnitt(cm) {
+  const h = clamp(cm, 4, 12);
+  const i = Math.max(1, SCHNITT.findIndex(([x]) => x >= h));
+  const [x0, a0, e0] = SCHNITT[i - 1], [x1, a1, e1] = SCHNITT[i];
+  const f = (h - x0) / (x1 - x0);
+  return [a0 + (a1 - a0) * f, e0 + (e1 - e0) * f];
+}
 
 // Ein Feld, das Stunde für Stunde weiterläuft. Arbeitsgänge wirken zu Beginn der
 // aktuellen Stunde, danach rechnet `stunde()` das Wetter dieser Stunde.
@@ -60,7 +67,7 @@ export class Feld {
     this.b = BESTAENDE[setup.bestand]; this.st = STADIEN[setup.stadium];
     this.auf = AUFBEREITER[setup.aufbereiter]; this.silo = SILOARTEN[setup.siloart];
     this.leg = this.b.leg;
-    [this.schnittAsche, this.ertragsF] = SCHNITT[setup.schnitthoehe];
+    [this.schnittAsche, this.ertragsF] = schnitt(setup.schnitthoehe);
     this.bodenF = setup.boden === 'maulwurf' ? 1.8 : 1;
     this.phase = 'stehend'; // stehend → gemaeht → schwad → geerntet
     this.wo = 0; this.sm = 25;
@@ -331,11 +338,12 @@ function erklaere(r, c) {
   const p = r.plan, e = r.ernte, s = r.silage, v = r.verlust;
   const stufe = (gut, mittel) => (gut ? 'gut' : mittel ? 'mittel' : 'schlecht');
   const z = (x, d = 1) => x.toFixed(d).replace('.', ',');
+  const zahl = (x) => String(x).replace('.', ',');
 
   f.push({
-    id: 'schnitthoehe', titel: 'Schnitthöhe', wert: `${p.schnitthoehe} cm`,
-    stufe: stufe(p.schnitthoehe >= 7 && p.schnitthoehe <= 8, p.schnitthoehe === 6 || (p.schnitthoehe >= 9 && p.schnitthoehe <= 10)),
-    text: `Bei ${p.schnitthoehe} cm kommen ${z(c.schnittAsche * c.bodenF, 0)} g Rohasche/kg TS durch Erde dazu` +
+    id: 'schnitthoehe', titel: 'Schnitthöhe', wert: `${zahl(p.schnitthoehe)} cm`,
+    stufe: stufe(p.schnitthoehe >= 6.5 && p.schnitthoehe <= 8.5, p.schnitthoehe >= 5.5 && p.schnitthoehe <= 10.5),
+    text: `Bei ${zahl(p.schnitthoehe)} cm kommen ${z(c.schnittAsche * c.bodenF, 0)} g Rohasche/kg TS durch Erde dazu` +
       (c.bodenF > 1 ? ' (Maulwurfshaufen verstärken das stark)' : '') +
       `. Der Ertrag ist ${c.ertragsF >= 1 ? 'um ' + z((c.ertragsF - 1) * 100, 0) + ' % höher' : 'um ' + z((1 - c.ertragsF) * 100, 0) + ' % tiefer'} als bei 7 cm. ` +
       (p.schnitthoehe <= 5 ? 'Tiefe Stoppeln tragen das Schwad nicht: Zetter und Schwader greifen in den Boden, jeder Arbeitsgang bringt so mehr Erde ins Futter. Zudem fehlen Reservestoffe für den Wiederaustrieb. ' : '') +
@@ -388,7 +396,7 @@ function erklaere(r, c) {
     text: `Sauberes Futter hat etwa ${c.b.asche} g Rohasche/kg TS; alles darüber ist meistens Erde. ` +
       (ba ? `Über die Arbeitsgänge kam dazu: ${ba} (g/kg TS). ` : '') +
       (r.bodenAsche.some((x) => x.nass) ? 'Der Boden war nass, darum blieb mehr Erde haften. ' : '') +
-      `Zinkenhöhe (gemessen auf festem Boden): Zetter ${z(p.zetterHoehe)} cm, Schwader ${z(p.schwaderHoehe)} cm. Auf dem Feld sinken die Räder ein, auf nassem Boden stärker – die Zinken laufen tiefer als eingestellt. Unter etwa 2 cm reissen sie Erde mit. Das Schwad liegt auf den Stoppeln: Bei ${p.schnitthoehe} cm Schnitthöhe bleibt ab etwa ${z(zinken(0, p.schnitthoehe).schwelle)} cm Zinkenhöhe Futter liegen. Hohe Stoppeln erlauben also eine höhere, sauberere Einstellung. ` +
+      `Zinkenhöhe (gemessen auf festem Boden): Zetter ${z(p.zetterHoehe)} cm, Schwader ${z(p.schwaderHoehe)} cm. Auf dem Feld sinken die Räder ein, auf nassem Boden stärker – die Zinken laufen tiefer als eingestellt. Unter etwa 2 cm reissen sie Erde mit. Das Schwad liegt auf den Stoppeln: Bei ${zahl(p.schnitthoehe)} cm Schnitthöhe bleibt ab etwa ${z(zinken(0, p.schnitthoehe).schwelle)} cm Zinkenhöhe Futter liegen. Hohe Stoppeln erlauben also eine höhere, sauberere Einstellung. ` +
       'Ab etwa 100 g/kg TS steigt die Gefahr einer Buttersäuregärung deutlich, besonders bei nassem Futter unter 35 % TS.',
   });
 
