@@ -23,7 +23,8 @@ function seite({ pfad, tiefe, titel, beschreibung, krumen, h1, inhalt }) {
   <title>${esc(titel)}</title>
   <meta name="description" content="${esc(beschreibung)}">
   <link rel="canonical" href="${BASIS}${pfad}">
-  <meta name="theme-color" content="#1d5a21">
+  <meta name="theme-color" content="#1d5a21" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1f10" media="(prefers-color-scheme: dark)">
   <meta name="color-scheme" content="light dark">
   <meta property="og:type" content="article">
   <meta property="og:locale" content="de_CH">
@@ -35,6 +36,7 @@ function seite({ pfad, tiefe, titel, beschreibung, krumen, h1, inhalt }) {
   <link rel="icon" href="${hoch}img/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="${hoch}img/icon-192.png">
   <link rel="stylesheet" href="${hoch}css/app.css">
+  <script src="${hoch}js/boot.js"></script>
 </head>
 <body>
   <a class="skip" href="#inhalt">Zum Inhalt</a>
@@ -43,6 +45,7 @@ function seite({ pfad, tiefe, titel, beschreibung, krumen, h1, inhalt }) {
       <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="14" width="22" height="28" rx="3" fill="#2e7d32"/><path d="M8 14 Q19 2 30 14Z" fill="#8a3b2a"/><ellipse cx="36" cy="38" rx="10" ry="5" fill="#a3a843"/></svg>
       <span><b>Silage-Simulator</b><small>Lernspiel Futterkonservierung</small></span>
     </a>
+    <div class="kopf-knoepfe"><button type="button" class="icon-btn" id="modus"></button></div>
   </header>
   <nav class="pfad" aria-label="Pfad"><ol>${kr}</ol></nav>
   <main class="seite" id="inhalt">
@@ -59,6 +62,7 @@ ${inhalt}
       <a href="https://www.agff.ch" rel="noopener">AGFF</a>
     </nav>
   </footer>
+  <script type="module" src="${hoch}js/modus.js"></script>
 </body>
 </html>
 `;

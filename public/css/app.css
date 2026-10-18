@@ -323,7 +323,6 @@ input[type=range]::-moz-range-thumb { width: 26px; height: 26px; border-radius: 
 /* Kopf, Pfad, Schritte */
 .kopf { flex-wrap: wrap; gap: 8px 16px; }
 .kopf-knoepfe { display: flex; gap: 8px; flex-wrap: wrap; }
-.kopf .leise-knopf[aria-pressed="true"] { background: #fff; color: #000; border-color: #fff; }
 .pfad { max-width: 1180px; margin: 0 auto; padding: 8px 16px 0; }
 .pfad ol { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 0; }
 .pfad li + li::before { content: "›"; margin-right: 8px; color: var(--leise); }
@@ -415,16 +414,16 @@ dialog { max-height: calc(100vh - 32px); overflow: auto; }
 }
 
 /* Darstellung "Draussen": starker Kontrast für Sonnenlicht */
-:root[data-kontrast="hoch"] {
+:root[data-outdoor="1"] {
   --bg: #ffffff; --karte: #ffffff; --text: #000000; --leise: #1a1a1a; --linie: #4d4d4d;
   --gruen: #0b4d12; --gruen-dunkel: #063a0b; --gruen-text: #063a0b; --gelb: #ffd400; --gelb-dunkel: #5c4300;
   --rot: #8a0f00; --rot-hell: #ffe3df; --gruen-hell: #dff5dc; --gelb-hell: #fff0b3; --blau: #003a8c;
   --schatten: 0 0 0 2px #000;
 }
-:root[data-kontrast="hoch"] .gross-knopf.gelb { color: #000; }
-:root[data-kontrast="hoch"] .kopf { background: #063a0b; }
-:root[data-kontrast="hoch"] .chip[aria-pressed="true"], :root[data-kontrast="hoch"] .wahlkarte[aria-pressed="true"] { outline: 4px solid #000; outline-offset: -2px; }
-:root[data-kontrast="hoch"] .faktor { border: 2px solid #000; border-top-width: 8px; }
+:root[data-outdoor="1"] .gross-knopf.gelb { color: #000; }
+:root[data-outdoor="1"] .kopf { background: #063a0b; }
+:root[data-outdoor="1"] .chip[aria-pressed="true"], :root[data-outdoor="1"] .wahlkarte[aria-pressed="true"] { outline: 4px solid #000; outline-offset: -2px; }
+:root[data-outdoor="1"] .faktor { border: 2px solid #000; border-top-width: 8px; }
 
 @media (prefers-reduced-motion: reduce) { .aktion.wackelt { animation: none; } .aktion.haelt::after { transition: none; } }
 a.logo { text-decoration: none; color: inherit; display: flex; gap: .6rem; align-items: center; min-height: 48px; }
@@ -449,3 +448,16 @@ a.logo small { opacity: .85; font-size: .95rem; }
   .kopf .logo small { display: none; }
 }
 .logo { min-height: 48px; }
+
+/* Darstellungsumschalter (Normal / Draussen / Nacht) wie in Futter v2 */
+.icon-btn { width: 48px; height: 48px; display: inline-grid; place-items: center; border-radius: 12px; border: 1px solid rgba(255, 255, 255, .45); background: transparent; color: #fff; cursor: pointer; flex: none; }
+.icon-btn:hover { background: rgba(255, 255, 255, .15); }
+.icon-btn svg { width: 24px; height: 24px; }
+.icon-btn:active { transform: scale(.95); }
+.toast { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 60; max-width: calc(100vw - 32px); background: var(--text); color: var(--bg); padding: .7rem 1.1rem; border-radius: 12px; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); text-align: center; }
+.toast[hidden] { display: none; }
+:root[data-outdoor="1"] body { font-size: 18px; }
+:root[data-outdoor="1"] .chip, :root[data-outdoor="1"] .tempo button, :root[data-outdoor="1"] .leise-knopf, :root[data-outdoor="1"] .faktor, :root[data-outdoor="1"] .wahlkarte { min-height: 56px; }
+:root[data-outdoor="1"] .regler .plusminus, :root[data-outdoor="1"] .icon-btn { width: 56px; height: 56px; }
+:root[data-outdoor="1"] .gross-knopf { min-height: 64px; }
+:root[data-outdoor="1"] .aktion { min-height: 72px; }

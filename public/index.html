@@ -6,7 +6,8 @@
   <title>Silage-Simulator – Lernspiel Futterkonservierung</title>
   <meta name="description" content="Lernspiel Futterkonservierung: Mähen, Zetten, Schwaden und Einfahren bei wechselndem Wetter – und wie das die Silagequalität verändert.">
   <link rel="canonical" href="https://apps.graswachstum.ch/drysim/">
-  <meta name="theme-color" content="#1d5a21">
+  <meta name="theme-color" content="#1d5a21" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1f10" media="(prefers-color-scheme: dark)">
   <meta name="color-scheme" content="light dark">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="de_CH">
@@ -20,6 +21,7 @@
   <link rel="apple-touch-icon" href="img/icon-192.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="css/app.css">
+  <script src="js/boot.js"></script>
   <script type="application/ld+json">
   {"@context":"https://schema.org","@type":"WebApplication","name":"Silage-Simulator","url":"https://apps.graswachstum.ch/drysim/",
    "description":"Lernspiel zur Futterkonservierung für die höhere Berufsbildung: Silage bereiten bei wechselndem Wetter.",
@@ -36,7 +38,7 @@
     </button>
     <div class="kopf-knoepfe">
       <button type="button" class="leise-knopf" id="begriffe-auf">Begriffe</button>
-      <button type="button" class="leise-knopf" id="kontrast" aria-pressed="false" title="Starker Kontrast für Sonnenlicht">Draussen</button>
+      <button type="button" class="icon-btn" id="modus"></button>
       <button type="button" class="leise-knopf" data-gehe="start" id="zum-menu" hidden>Zum Startmenü</button>
     </div>
   </header>
@@ -283,6 +285,7 @@
       <a href="https://github.com/AGFF-ADCF-APF/agff-app-drysim" rel="noopener">Quellcode</a>
     </nav>
   </footer>
+  <script type="module" src="js/modus.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

@@ -75,16 +75,6 @@ function dialogOeffnen(d) {
   s.zeige({ phase: 'stehend', ts: 18, nass: 0.25, asche: 90 }, { h: 8, sonne: 0.85, regen: 0 }, 0);
 }
 
-// ---------- Darstellung "Draussen" (starker Kontrast für Sonnenlicht)
-function setzeKontrast(an) {
-  const r = document.documentElement;
-  if (an) { r.dataset.kontrast = 'hoch'; r.dataset.theme = 'light'; } else { delete r.dataset.kontrast; delete r.dataset.theme; }
-  $('#kontrast').setAttribute('aria-pressed', String(an));
-  schreib(localStorage, 'drysim-kontrast', an);
-}
-$('#kontrast').addEventListener('click', () => setzeKontrast($('#kontrast').getAttribute('aria-pressed') !== 'true'));
-setzeKontrast(lies(localStorage, 'drysim-kontrast') === true);
-
 // ---------- Begriffe
 $('#begriffe-liste').innerHTML = BEGRIFFE.map((b) => `<dt>${esc(b.begriff)} <small>${esc(b.lang)}</small></dt><dd>${esc(b.text)}</dd>`).join('');
 $('#begriffe-auf').addEventListener('click', () => dialogOeffnen($('#begriffe')));

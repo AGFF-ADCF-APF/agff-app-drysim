@@ -1,6 +1,6 @@
 // Automatisch erzeugt von tools/seiten.mjs – nicht von Hand ändern
-const CACHE = 'drysim-2026-10-18-25';
-const DATEIEN = ['./', 'css/app.css', 'img/icon-192.png', 'img/icon-512.png', 'img/icon.svg', 'img/og.png', 'img/og.svg', 'index.html', 'js/app.js', 'js/begriffe.js', 'js/chart.js', 'js/game.js', 'js/icons.js', 'js/maschinen.js', 'js/model.js', 'js/scenarios.js', 'js/scene.js', 'js/weather.js', 'js/wiese.js', 'lernen.html', 'manifest.webmanifest', 'sitemap.xml', 'szenario/bilderbuch.html', 'szenario/foehn.html', 'szenario/ohneaufbereiter.html', 'szenario/tiefgemaeht.html'];
+const CACHE = 'drysim-2026-10-18-27';
+const DATEIEN = ['./', 'css/app.css', 'img/icon-192.png', 'img/icon-512.png', 'img/icon.svg', 'img/og.png', 'img/og.svg', 'index.html', 'js/app.js', 'js/begriffe.js', 'js/boot.js', 'js/chart.js', 'js/game.js', 'js/icons.js', 'js/maschinen.js', 'js/model.js', 'js/modus.js', 'js/scenarios.js', 'js/scene.js', 'js/weather.js', 'js/wiese.js', 'lernen.html', 'manifest.webmanifest', 'sitemap.xml', 'szenario/bilderbuch.html', 'szenario/foehn.html', 'szenario/ohneaufbereiter.html', 'szenario/tiefgemaeht.html'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(DATEIEN)).then(() => self.skipWaiting()));

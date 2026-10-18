@@ -47,7 +47,7 @@ Umgesetzt nach zwei UX-Gutachten (Handy/Beamer, Lesbarkeit/SEO):
 - **Tastatur (Beamer):** Leertaste Pause, `1`–`3` Tempo, `+` eine Stunde weiter, `M` `Z` `S` `E` Arbeitsgänge.
 - **Datensicherheit:** Die Runde wird als Protokoll der Arbeitsgänge im Browser gesichert (12 h) und lässt sich exakt nachspielen („Runde fortsetzen“). Einstellungen bleiben pro Sitzung erhalten. Beim Wechsel in den Hintergrund pausiert das Spiel.
 - **Ruhiger Modus:** Die Zeit läuft nur auf Knopfdruck (+1 h, +3 h), ohne Zeitdruck.
-- **Lesbarkeit:** Schrift mindestens 15 px, Kontraste mindestens WCAG AA, Symbole zusätzlich zur Farbe, Modus «Draussen» mit starkem Kontrast, Erklärkarten als Aussage / Gründe / Tipp, Fachbegriffe mit Erklärung.
+- **Lesbarkeit:** Schrift mindestens 15 px, Kontraste mindestens WCAG AA, Symbole zusätzlich zur Farbe, Darstellungsumschalter wie in Futter v2 (ein Knopf mit Symbol schaltet reihum Normal → Draussen mit starkem Kontrast und grossen Zielen → Nacht; gemerkt im Browser unter `drysimTheme`/`drysimOutdoor`, gesetzt von `js/boot.js` vor dem ersten Zeichnen), Erklärkarten als Aussage / Gründe / Tipp, Fachbegriffe mit Erklärung.
 - **Orientierung:** Browser-Verlauf (Zurück-Knopf bleibt in der App), Titel und Pfad je Bildschirm, Schrittband mit Sprungmarken, Zähler offener Einstellungen.
 - **Suchmaschinen:** Lernseite und Szenarioseiten als eigene Adressen (`lernen.html`, `szenario/<id>.html`), Meta-Daten, Open-Graph-Vorschau, Sitemap. Nach Änderungen an Szenarien oder Begriffen neu erzeugen:
 
