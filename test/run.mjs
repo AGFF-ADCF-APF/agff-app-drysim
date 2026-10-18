@@ -22,3 +22,17 @@ for (const [name, p] of [['breit+walzen+zetten', {}], ['schwad ohne zetten', { b
   const r = simuliere({ ...GRUNDPLAN, maehen: 9, zetten: [10], schwaden: 70, ernte: 71, ...p, ...(p.zetten ? { zetten: p.zetten } : {}) }, stundenwetter(WETTER[0]));
   console.log(name.padEnd(22), r.verlauf.filter((x, i) => i % 2 === 1).slice(0, 18).map(x => `${x.t % 24}h:${x.ts.toFixed(0)}`).join(' '));
 }
+// Nachspielen: Stand aus dem Protokoll muss dem direkt gespielten Stand entsprechen
+import { Feld, spieleNach } from '../public/js/model.js';
+{
+  const wt = stundenwetter(WETTER[1]);
+  const setup = { ...GRUNDPLAN, bestand: 'klee', aufbereiter: 'buerste' };
+  const log = [{ t: 12, art: 'maehen' }, { t: 14, art: 'zetten' }, { t: 14, art: 'schwaden' }];
+  const a = new Feld(setup, wt, 5);
+  while (a.t < 30) { for (const x of log.filter((l) => l.t === a.t)) ({ maehen: () => a.maehen(), zetten: () => a.zettenJetzt(), schwaden: () => a.schwaden() })[x.art](); a.stunde(); }
+  const b = spieleNach(setup, wt, log, 30);
+  const ok = Math.abs(a.ts() - b.ts()) < 1e-9 && a.t === b.t && Math.abs(a.dm - b.dm) < 1e-9;
+  console.log('Nachspielen identisch:', ok, a.t, a.ts().toFixed(2), b.ts().toFixed(2));
+  const res = simuliere(GRUNDPLAN, stundenwetter(WETTER[0]));
+  console.log('Tipps vorhanden:', res.faktoren.every((f) => f.tipp), res.faktoren.length);
+}

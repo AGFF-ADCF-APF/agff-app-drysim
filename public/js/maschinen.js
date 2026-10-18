@@ -52,7 +52,7 @@ export function schnittBild(wert) {
     </g>
     ${erde ? staub(120, BODEN - 2) + `<text x="8" y="20" font-size="12" font-weight="700" fill="var(--rot)">Erde im Futter!</text>` : ''}
     ${!leer && cm >= 10 ? `<text x="8" y="20" font-size="12" font-weight="700" fill="var(--gelb-dunkel)">Ertrag bleibt stehen</text>` : ''}
-    ${leer ? `<text x="110" y="18" font-size="13" font-weight="700" fill="var(--leise)" text-anchor="middle">Schnitthöhe einstellen ↓</text>` : ''}
+    ${leer ? `<text x="8" y="18" font-size="13" font-weight="700" fill="var(--leise)">Höhe einstellen ↓</text>` : ''}
     ${lineal(228, 12, leer ? null : cm)}
     <text x="228" y="16" font-size="13" font-weight="700" fill="var(--text)" text-anchor="middle">${leer ? '?' : fmt(cm) + ' cm'}</text>
   </svg>`;

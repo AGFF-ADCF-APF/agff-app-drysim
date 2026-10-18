@@ -345,7 +345,7 @@ function erklaere(r, c) {
     stufe: stufe(p.schnitthoehe >= 6.5 && p.schnitthoehe <= 8.5, p.schnitthoehe >= 5.5 && p.schnitthoehe <= 10.5),
     text: `Bei ${zahl(p.schnitthoehe)} cm kommen ${z(c.schnittAsche * c.bodenF, 0)} g Rohasche/kg TS durch Erde dazu` +
       (c.bodenF > 1 ? ' (Maulwurfshaufen verstärken das stark)' : '') +
-      `. Der Ertrag ist ${c.ertragsF >= 1 ? 'um ' + z((c.ertragsF - 1) * 100, 0) + ' % höher' : 'um ' + z((1 - c.ertragsF) * 100, 0) + ' % tiefer'} als bei 7 cm. ` +
+      (Math.abs(c.ertragsF - 1) < 0.005 ? `. Der Ertrag entspricht dem Normalwert bei 7 cm. ` : `. Der Ertrag ist ${c.ertragsF >= 1 ? 'um ' + z((c.ertragsF - 1) * 100, 0) + ' % höher' : 'um ' + z((1 - c.ertragsF) * 100, 0) + ' % tiefer'} als bei 7 cm. `) +
       (p.schnitthoehe <= 5 ? 'Tiefe Stoppeln tragen das Schwad nicht: Zetter und Schwader greifen in den Boden, jeder Arbeitsgang bringt so mehr Erde ins Futter. Zudem fehlen Reservestoffe für den Wiederaustrieb. ' : '') +
       (p.schnitthoehe >= 8 ? 'Hohe Stoppeln schonen die Grasnarbe, tragen das Schwad und lassen es luftig liegen, sodass es etwas schneller trocknet. Jeder Zentimeter über 7 cm kostet aber rund 4 % Ertrag. ' : '') +
       'Erde bringt Clostridien-Sporen ins Silo: Diese Bakterien bilden Buttersäure und gefährden die Käsereitauglichkeit der Milch.',
@@ -454,6 +454,45 @@ function erklaere(r, c) {
     text: `Gemäht: ${z(r.dm0 / 10)} dt TS/ha (Stadium ${c.st.name}, ${z(c.st.nel)} MJ NEL). Im Trog: ${z(r.tsTrog / 10)} dt TS/ha mit ${z(r.nel, 2)} MJ NEL und ${z(r.rp, 0)} g RP/kg TS = ${z(r.nelHa / 1000, 1)} GJ NEL/ha. ` +
       `Verluste: Atmung ${z(v.atmung)} %, Auswaschung ${z(v.auswaschung)} %, Bröckeln ${z(v.broeckel)} %, liegen gelassen ${z(v.liegen)} %, Silo ${z(s.siloverlust)} %.`,
   });
+  // Ein Tipp je Karte: was beim nächsten Mal anders sein könnte
+  const tipps = {
+    schnitthoehe: p.schnitthoehe < 6 ? 'Stell das Mähwerk höher ein. Ab etwa 7 cm kommt kaum noch Erde ins Futter.'
+      : p.schnitthoehe > 10 ? 'So hoch bleibt viel Ertrag stehen. 7 bis 8 cm sind meist ein guter Kompromiss.'
+        : 'Gut gewählt: 7 bis 8 cm sind meist ein guter Kompromiss aus Ertrag und Sauberkeit.',
+    tau: r.woMahd > 0.1 * r.dm0 ? 'Warte mit dem Mähen, bis der Tau abgetrocknet ist. Am Morgen ist das oft erst gegen 9 bis 10 Uhr.' : 'Weiter so: Mähe erst, wenn der Tau weg ist.',
+    aufbereiter: c.auf.broeckel > 1 && c.leg > 0.4 ? 'Bei viel Klee den Walzenaufbereiter wählen. Er schont die Blätter.'
+      : p.aufbereiter === 'ohne' ? 'Mit Aufbereiter wird das Futter in der zweiten Trocknungsphase schneller trocken, besonders bei Gras.'
+        : 'Der Aufbereiter hilft erst nach dem ersten Anwelken. Am Anfang bringt die Breitablage mehr.',
+    breit: p.breit || c.auf.breit ? 'Bleib bei der Breitablage, wenn du am gleichen Tag einfahren willst.' : 'Wähle die Breitablage oder zette gleich nach dem Mähen. Sonst bremst die dichte Schwade.',
+    zetten: !c.zetten.length && !(p.breit || c.auf.breit) ? 'Zette einmal früh am Tag, damit auch die feuchte Unterseite abtrocknet.'
+      : v.broeckel > 5 ? 'Zette nur, solange das Futter noch feucht ist (unter etwa 40 % TS). Trocken bröckelt es.' : 'Ein früher Durchgang genügt meist.',
+    asche: e.asche > 100 ? 'Stell die Zinken höher ein (mindestens 3 cm) und mähe nicht tiefer als 6 cm. Auf nassem Boden besonders vorsichtig sein.' : 'Sauber gearbeitet: Die Zinken haben den Boden kaum berührt.',
+    wetter: e.regenFeld > 0 ? 'Schau den Wetterbericht an: Mähe später oder fahre früher ein, wenn Regen kommt.'
+      : e.tauNaechte > 0 ? 'Fahre wenn möglich am gleichen Tag ein, dann liegt das Futter keine Nacht im Tau.' : 'Gutes Wetterfenster genutzt.',
+    atmung: v.atmung >= 2 ? 'Verkürze die Feldliegezeit: früh mähen, breit ablegen und am Abend einfahren.' : 'Kurze Feldliegezeit: Der Zucker blieb erhalten.',
+    ts: e.ts < zmin ? 'Lass das Futter noch ein paar Stunden liegen oder zette einmal mehr.' : e.ts > zmax ? 'Fahre früher ein, sobald der Feuchtemesser den Zielbereich zeigt.' : 'Genau getroffen. Merke dir die Uhrzeit für das nächste Mal.',
+    fk: s.fk < 45 ? 'Welke stärker an und schone den Zucker mit einer kurzen Feldliegezeit.' : 'Gute Voraussetzung für eine saubere Gärung.',
+    gaerung: s.note > 2 ? 'Schau bei den roten Karten nach: Meistens liegt die Ursache bei Erde, zu nassem Futter oder zu wenig Zucker.' : 'Prima Gärung: Die Arbeitsschritte haben gepasst.',
+    siloverlust: s.siloverlust > 8 ? 'Achte auf gute Verdichtung und triff den TS-Zielbereich des Silos.' : 'Niedrige Verluste im Silo.',
+    bilanz: r.verlustTotal >= 15 ? 'Die grössten Verluste stehen oben in der Aufstellung. Dort lohnt sich die Verbesserung zuerst.' : 'Wenig Verlust vom Feld bis in den Trog.',
+  };
+  for (const x of f) x.tipp = tipps[x.id];
+  return f;
+}
+
+// Spielstand aus dem Protokoll der Arbeitsgänge wiederherstellen. Das Modell ist
+// deterministisch: gleiche Einstellungen, gleiches Wetter, gleiche Arbeitsgänge ergeben denselben Stand.
+export function spieleNach(setup, wetter, log, tEnde, start = 5) {
+  const f = new Feld(setup, wetter, start);
+  for (;;) {
+    for (const a of log.filter((x) => x.t === f.t)) {
+      if (a.art === 'maehen') f.maehen();
+      else if (a.art === 'zetten') f.zettenJetzt();
+      else if (a.art === 'schwaden') f.schwaden();
+    }
+    if (f.t >= tEnde || f.ende) break;
+    f.stunde();
+  }
   return f;
 }
 

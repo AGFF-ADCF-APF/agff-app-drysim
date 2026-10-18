@@ -3,25 +3,52 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Silage-Simulator</title>
-  <meta name="description" content="Lernspiel Futterkonservierung: vom Mähen bis ins Silo">
+  <title>Silage-Simulator – Lernspiel Futterkonservierung</title>
+  <meta name="description" content="Lernspiel Futterkonservierung: Mähen, Zetten, Schwaden und Einfahren bei wechselndem Wetter – und wie das die Silagequalität verändert.">
+  <link rel="canonical" href="https://apps.graswachstum.ch/drysim/">
+  <meta name="theme-color" content="#1d5a21">
+  <meta name="color-scheme" content="light dark">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="de_CH">
+  <meta property="og:title" content="Silage-Simulator – Schaffst du die perfekte Silage?">
+  <meta property="og:description" content="Lernspiel Futterkonservierung: Du entscheidest, wann gemäht, gezettet, geschwadet und eingefahren wird. Das Wetter macht, was es will.">
+  <meta property="og:url" content="https://apps.graswachstum.ch/drysim/">
+  <meta property="og:image" content="https://apps.graswachstum.ch/drysim/img/og.png">
+  <meta property="og:image:alt" content="Traktor mit Mähwerk auf einer Wiese vor einem Hof">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="img/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="img/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="css/app.css">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"WebApplication","name":"Silage-Simulator","url":"https://apps.graswachstum.ch/drysim/",
+   "description":"Lernspiel zur Futterkonservierung für die höhere Berufsbildung: Silage bereiten bei wechselndem Wetter.",
+   "applicationCategory":"EducationalApplication","operatingSystem":"Alle (Webbrowser)","inLanguage":"de-CH","isAccessibleForFree":true,
+   "audience":{"@type":"EducationalAudience","educationalRole":"student"}}
+  </script>
 </head>
 <body>
+  <a class="skip" href="#inhalt">Zum Inhalt</a>
   <header class="kopf">
-    <button type="button" class="logo" data-gehe="start" aria-label="Zum Start">
+    <button type="button" class="logo" data-gehe="start" aria-label="Silage-Simulator, zum Startmenü">
       <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="14" width="22" height="28" rx="3" fill="#2e7d32"/><path d="M8 14 Q19 2 30 14Z" fill="#8a3b2a"/><ellipse cx="36" cy="38" rx="10" ry="5" fill="#a3a843"/></svg>
       <span><b>Silage-Simulator</b><small>Lernspiel Futterkonservierung</small></span>
     </button>
-    <button type="button" class="leise-knopf" data-gehe="start" id="zum-menu" hidden>Menü</button>
+    <div class="kopf-knoepfe">
+      <button type="button" class="leise-knopf" id="begriffe-auf">Begriffe</button>
+      <button type="button" class="leise-knopf" id="kontrast" aria-pressed="false" title="Starker Kontrast für Sonnenlicht">Draussen</button>
+      <button type="button" class="leise-knopf" data-gehe="start" id="zum-menu" hidden>Zum Startmenü</button>
+    </div>
   </header>
+  <nav class="pfad" aria-label="Pfad" id="pfadnav" hidden><ol id="pfad"></ol></nav>
 
+  <main id="inhalt">
   <!-- Start -->
-  <section id="start" class="bildschirm">
+  <section id="start" class="bildschirm" aria-labelledby="start-titel">
     <div class="held">
-      <div class="szene-box" id="startszene"></div>
+      <div class="szene-box" id="startszene" role="img" aria-label="Wiese mit Hof am frühen Morgen"></div>
       <div class="held-text">
-        <h1>Schaffst du die perfekte Silage?</h1>
+        <h1 id="start-titel" tabindex="-1">Schaffst du die perfekte Silage?</h1>
         <p>Mähen, zetten, schwaden, einfahren – du entscheidest wann und wie. Das Wetter macht, was es will.</p>
         <div class="start-knoepfe">
           <button type="button" class="gross-knopf gruen" data-gehe="setup">
@@ -31,6 +58,16 @@
             <b>Prognose-Wette</b><small>Szenario lesen, Ergebnis tippen, Zeitraffer schauen</small>
           </button>
         </div>
+      </div>
+    </div>
+    <div class="karte fortsetzen" id="fortsetzen" hidden>
+      <div>
+        <h2>Du hast eine Runde angefangen</h2>
+        <p id="fortsetzen-text"></p>
+      </div>
+      <div class="knopfreihe">
+        <button type="button" class="gross-knopf gruen" id="fortsetzen-los"><b>Runde fortsetzen</b></button>
+        <button type="button" class="leise-knopf" id="fortsetzen-weg">Verwerfen</button>
       </div>
     </div>
     <div class="unter-held">
@@ -49,18 +86,34 @@
         <p class="hinweis">Für den Wettkampf in der Klasse: Alle wählen dasselbe Wetter oder denselben Wettercode.</p>
       </div>
     </div>
+    <div class="karte">
+      <h2>Worum geht es bei der Futterkonservierung?</h2>
+      <ul class="lerntext">
+        <li><b>Anwelken:</b> Gemähtes Gras soll auf dem Feld in wenigen Stunden auf rund 30 bis 40 % <abbr title="Trockensubstanz">TS</abbr> abtrocknen. Eine breite Ablage wirkt dabei stärker als der Aufbereiter.</li>
+        <li><b>Sauber arbeiten:</b> Wer zu tief mäht oder die Zinken über den Boden schleift, bringt Erde ins Futter. Das fördert Buttersäurebakterien.</li>
+        <li><b>Zucker schonen:</b> Je länger das Futter liegt, desto mehr Zucker verbraucht die Atmung. Regen wäscht zusätzlich Zucker aus.</li>
+        <li><b>Gärqualität:</b> Aus Wetter, Arbeitsgängen und Futter ergibt sich, ob die Silage gut oder schlecht wird.</li>
+      </ul>
+      <p><a class="knopflink" href="lernen.html">Begriffe und Hintergründe nachlesen</a></p>
+    </div>
   </section>
 
   <!-- Einsatz planen -->
-  <section id="setup" class="bildschirm" hidden>
-    <form id="setupform" autocomplete="off">
-      <h1>Dein Einsatz</h1>
-      <div class="karte">
+  <section id="setup" class="bildschirm" hidden aria-labelledby="setup-titel">
+    <form id="setupform" autocomplete="off" novalidate>
+      <h1 id="setup-titel" tabindex="-1">Dein Einsatz</h1>
+      <nav class="schritte" aria-label="Schritte im Einsatz">
+        <button type="button" data-sprung="s-wetter"><span>1</span> Wetter</button>
+        <button type="button" data-sprung="s-wiese"><span>2</span> Wiese</button>
+        <button type="button" data-sprung="s-maschinen" id="schritt-maschinen"><span>3</span> Maschinen</button>
+        <button type="button" data-sprung="s-silo"><span>4</span> Silo</button>
+      </nav>
+      <div class="karte" id="s-wetter">
         <h2>1 · Wetterbericht</h2>
         <div class="wahl" data-feld="wetter"></div>
-        <label class="code" hidden>Wettercode <input name="code" maxlength="12" placeholder="z.B. KLASSE3"></label>
+        <label class="code" hidden>Wettercode <input name="code" maxlength="12" placeholder="z.B. KLASSE3" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done" autocomplete="off"></label>
       </div>
-      <div class="karte">
+      <div class="karte" id="s-wiese">
         <h2>2 · Die Wiese</h2>
         <h3 class="unter">Was wächst?</h3>
         <div class="wahl bilder wiese" data-feld="bestand"></div>
@@ -78,24 +131,24 @@
           </div>
         </div>
       </div>
-      <div class="karte">
+      <div class="karte" id="s-maschinen">
         <h2>3 · Maschinen einstellen</h2>
         <div class="maschinen">
           <div class="maschine">
             <h3>Mähwerk – Schnitthöhe</h3>
             <div class="bild" id="bild-schnitt"></div>
-            <label class="regler pflicht leer"><input type="range" name="schnitthoehe" min="4" max="12" step="0.5" aria-label="Schnitthöhe in cm"><output name="schnittAus">bitte einstellen</output></label>
+            <label class="regler pflicht leer"><input type="range" name="schnitthoehe" min="4" max="12" step="0.5" aria-label="Schnitthöhe in cm" aria-valuetext="nicht eingestellt"><output name="schnittAus">bitte einstellen</output></label>
           </div>
           <div class="maschine">
             <h3>Kreiselzetter – Zinkenhöhe</h3>
             <div class="bild" id="bild-zetter"></div>
-            <label class="regler pflicht leer"><input type="range" name="zetterHoehe" min="0" max="8" step="0.5" aria-label="Zinkenhöhe Kreiselzetter in cm"><output name="zetterAus">bitte einstellen</output></label>
+            <label class="regler pflicht leer"><input type="range" name="zetterHoehe" min="0" max="8" step="0.5" aria-label="Zinkenhöhe Kreiselzetter in cm" aria-valuetext="nicht eingestellt"><output name="zetterAus">bitte einstellen</output></label>
             <small class="hinweis">Einstellmass ab festem, ebenem Boden. Auf dem Feld sinken die Räder ein; das Schwad liegt auf den Stoppeln (gestrichelt: Unterseite).</small>
           </div>
           <div class="maschine">
             <h3>Schwader – Zinkenhöhe</h3>
             <div class="bild" id="bild-schwader"></div>
-            <label class="regler pflicht leer"><input type="range" name="schwaderHoehe" min="0" max="8" step="0.5" aria-label="Zinkenhöhe Schwader in cm"><output name="schwaderAus">bitte einstellen</output></label>
+            <label class="regler pflicht leer"><input type="range" name="schwaderHoehe" min="0" max="8" step="0.5" aria-label="Zinkenhöhe Schwader in cm" aria-valuetext="nicht eingestellt"><output name="schwaderAus">bitte einstellen</output></label>
             <small class="hinweis">Einstellmass ab festem, ebenem Boden. Auf dem Feld sinken die Räder ein; das Schwad liegt auf den Stoppeln (gestrichelt: Unterseite).</small>
           </div>
           <div class="maschine">
@@ -108,38 +161,46 @@
           </div>
         </div>
       </div>
-      <div class="karte">
+      <div class="karte" id="s-silo">
         <h2>4 · Wohin mit dem Futter?</h2>
         <div class="wahl" data-feld="siloart"></div>
-        <label class="name">Name oder Team <input name="name" maxlength="30" placeholder="für die Rangliste"></label>
+        <h3 class="unter">Wie willst du spielen?</h3>
+        <div class="chips" data-feld="modus"></div>
+        <label class="name">Name oder Team <input name="name" maxlength="30" placeholder="für die Rangliste" autocomplete="nickname" autocapitalize="words" enterkeyhint="done"></label>
       </div>
-      <p class="fehler" id="setupfehler" role="alert"></p>
-      <div class="los"><button class="gross-knopf gruen"><b>Ab aufs Feld!</b></button></div>
+      <div class="startleiste">
+        <p class="offen" id="offen" role="status"></p>
+        <p class="fehler" id="setupfehler" role="alert"></p>
+        <button class="gross-knopf gruen" id="startknopf"><b>Ab aufs Feld!</b></button>
+      </div>
     </form>
   </section>
 
   <!-- Spiel -->
-  <section id="spiel" class="bildschirm" hidden>
+  <section id="spiel" class="bildschirm" hidden aria-labelledby="spiel-titel">
+    <h1 class="sr-only" id="spiel-titel" tabindex="-1">Auf dem Feld</h1>
     <div class="spielfeld">
       <div class="hud-oben">
-        <div class="uhrzeit"></div>
+        <div class="uhrzeit" role="timer"></div>
         <div class="jetzt"></div>
-        <div class="tempo" role="group" aria-label="Tempo">
-          <button type="button" data-tempo="0" title="Pause">❚❚</button>
-          <button type="button" data-tempo="1" title="Normal">▶</button>
-          <button type="button" data-tempo="2" title="Schnell">▶▶</button>
-          <button type="button" data-tempo="3" title="Sehr schnell">▶▶▶</button>
+        <div class="tempo" role="group" aria-label="Zeit steuern">
+          <button type="button" data-tempo="0" title="Pause (Leertaste)" aria-label="Pause">❚❚</button>
+          <button type="button" data-tempo="1" title="Normal (1)" aria-label="Normal">▶</button>
+          <button type="button" data-tempo="2" title="Schnell (2)" aria-label="Schnell">▶▶</button>
+          <button type="button" data-tempo="3" title="Sehr schnell (3)" aria-label="Sehr schnell">▶▶▶</button>
+          <button type="button" data-schritt="1" title="Eine Stunde weiter (+)" aria-label="Eine Stunde weiter">+1 h</button>
+          <button type="button" data-schritt="3" title="Drei Stunden weiter" aria-label="Drei Stunden weiter">+3 h</button>
         </div>
         <span class="zeitraffer-label">Zeitraffer</span>
       </div>
-      <div class="szene-box"></div>
+      <div class="szene-box" role="img" aria-label="Feld mit Wetter und Futter"></div>
       <div class="messer-reihe">
-        <div class="messer ts"><span>Feuchtemesser (TS)</span><strong></strong><div class="skala"><div class="ziel"></div><div class="nadel"></div></div><small></small></div>
+        <div class="messer ts"><span>Feuchtemesser (<abbr title="Trockensubstanz">TS</abbr>)</span><strong></strong><div class="skala"><div class="ziel"></div><div class="nadel"></div></div><small></small></div>
         <div class="messer zucker"><span>Zucker</span><strong></strong><div class="balken"><i></i></div><small>Futter für die Milchsäurebakterien</small></div>
         <div class="messer erde"><span>Rohasche (Erde)</span><strong></strong><div class="balken"><i></i></div><small>über 100 g/kg: Clostridien-Gefahr</small></div>
         <div class="messer verlust"><span>Verluste bisher</span><strong></strong><div class="balken"><i></i></div><small>Atmung, Bröckeln, Regen</small></div>
       </div>
-      <div class="aktionen"></div>
+      <div class="aktionen" role="group" aria-label="Arbeitsgänge"></div>
       <div class="unten">
         <div class="bericht"></div>
         <ul class="ticker" aria-live="polite"></ul>
@@ -148,10 +209,11 @@
   </section>
 
   <!-- Silo öffnen -->
-  <section id="ergebnis" class="bildschirm" hidden>
+  <section id="ergebnis" class="bildschirm" hidden aria-labelledby="ergebnis-titel">
+    <h1 class="sr-only" id="ergebnis-titel" tabindex="-1">Silo geöffnet: dein Ergebnis</h1>
     <div class="silo-kopf karte">
       <p class="ueber">Sechs Wochen später – das Silo wird geöffnet …</p>
-      <div class="sterne" id="sterne"></div>
+      <div class="sterne" id="sterne" role="img"></div>
       <div class="punkte"><strong id="punkte">0</strong><span>Punkte</span></div>
       <p id="urteil" class="urteil"></p>
       <div id="tipp-vergleich"></div>
@@ -160,7 +222,7 @@
     </div>
     <div class="karte">
       <h2>Was ist passiert?</h2>
-      <p class="hinweis">Tippe auf eine Karte. Grün = gut gemacht, gelb = geht besser, rot = hier lag das Problem.</p>
+      <p class="hinweis">Tippe auf eine Karte. ✓ = gut gemacht, ! = geht besser, ✗ = hier lag das Problem.</p>
       <div class="faktoren" id="faktoren"></div>
     </div>
     <div class="karte">
@@ -169,13 +231,13 @@
     </div>
     <div class="los">
       <button type="button" class="gross-knopf gruen" id="nochmals"><b>Nochmals versuchen</b></button>
-      <button type="button" class="gross-knopf" data-gehe="start"><b>Zum Menü</b></button>
+      <button type="button" class="gross-knopf" data-gehe="start"><b>Zum Startmenü</b></button>
     </div>
   </section>
 
   <!-- Prognose-Wette -->
-  <section id="wetten" class="bildschirm" hidden>
-    <h1>Prognose-Wette</h1>
+  <section id="wetten" class="bildschirm" hidden aria-labelledby="wetten-titel">
+    <h1 id="wetten-titel" tabindex="-1">Prognose-Wette</h1>
     <p class="hinweis">Lies das Szenario und tippe, wie die Silage wird. Dann läuft die Simulation im Zeitraffer.</p>
     <div class="szenarien" id="szenarien"></div>
     <form id="tippform" class="karte" hidden>
@@ -185,22 +247,42 @@
       <div class="tipps">
         <label class="regler"><span>TS beim Einfahren</span><input type="range" name="ts" min="15" max="70" value="35"><output name="tsAus"></output></label>
         <label class="regler"><span>Rohasche</span><input type="range" name="asche" min="80" max="200" step="5" value="100"><output name="ascheAus"></output></label>
-        <div><span>Gärqualität</span><div class="chips" data-feld="note"></div></div>
+        <div><span id="note-label">Gärqualität</span><div class="chips" data-feld="note" role="group" aria-labelledby="note-label"></div></div>
       </div>
       <div class="los"><button class="gross-knopf gelb"><b>Wette abgeben &amp; Zeitraffer starten</b></button></div>
     </form>
   </section>
+  </main>
 
-  <dialog id="detail">
+  <dialog id="detail" aria-labelledby="detail-titel">
     <form method="dialog">
-      <h3 id="detail-titel"></h3>
+      <h2 id="detail-titel"></h2>
       <p class="wert" id="detail-wert"></p>
-      <p id="detail-text"></p>
+      <div id="detail-text"></div>
       <button class="gross-knopf gruen"><b>Verstanden</b></button>
     </form>
   </dialog>
 
-  <footer class="fuss">Lehrmodell: Trocknung nach Rotz &amp; Chen (1985), Vergärbarkeit nach Weissbach, Gärbewertung angelehnt an den DLG-Schlüssel. Für den Unterricht vereinfacht, keine Prognose für den Betrieb.</footer>
+  <dialog id="begriffe" aria-labelledby="begriffe-titel">
+    <form method="dialog">
+      <h2 id="begriffe-titel">Begriffe kurz erklärt</h2>
+      <dl id="begriffe-liste"></dl>
+      <p><a href="lernen.html" class="knopflink">Mehr dazu auf der Lernseite</a></p>
+      <button class="gross-knopf gruen"><b>Schliessen</b></button>
+    </form>
+  </dialog>
+
+  <footer class="fuss">
+    <p>Lehrmodell: Trocknung nach Rotz &amp; Chen (1985), Vergärbarkeit nach Weissbach, Gärbewertung angelehnt an den DLG-Schlüssel. Für den Unterricht vereinfacht, keine Prognose für den Betrieb.</p>
+    <nav aria-label="Weiterführende Links">
+      <a href="lernen.html">Begriffe und Hintergründe</a>
+      <a href="szenario/bilderbuch.html">Szenarien</a>
+      <a href="../futter/v2/">Futterrechner</a>
+      <a href="../drywatch/">Heutrocknung</a>
+      <a href="https://www.agff.ch" rel="noopener">AGFF</a>
+      <a href="https://github.com/AGFF-ADCF-APF/agff-app-drysim" rel="noopener">Quellcode</a>
+    </nav>
+  </footer>
   <script type="module" src="js/app.js"></script>
 </body>
 </html>

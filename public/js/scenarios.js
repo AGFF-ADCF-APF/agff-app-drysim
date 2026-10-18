@@ -21,7 +21,7 @@ export const WETTER = [
     ],
   },
   {
-    id: 'foehn', name: 'Föhn, September', monat: 9, info: 'Warmer Föhnwind, trockene Luft, kein Tau',
+    id: 'foehn', lernziel: 'Zu trocken ist auch nicht gut: Was passiert bei Föhn mit Rundballen und mit dem Blattverlust?', name: 'Föhn, September', monat: 9, info: 'Warmer Föhnwind, trockene Luft, kein Tau',
     tage: [
       { tmin: 14, tmax: 25, rhmax: 75, sonne: 0.9, wind: 5 },
       { tmin: 15, tmax: 26, rhmax: 70, sonne: 0.9, wind: 6 },
@@ -49,12 +49,12 @@ export const GRUNDPLAN = {
 
 export const PROGNOSEN = [
   {
-    id: 'bilderbuch', name: 'Bilderbuch', wetter: 'hoch',
+    id: 'bilderbuch', lernziel: 'So sieht eine gelungene Silage aus: nach dem Abtrocknen mähen, breit ablegen, kurz liegen lassen und am Abend einfahren.', name: 'Bilderbuch', wetter: 'hoch',
     text: 'Raigrasreicher Bestand im Ähren-/Rispenschieben. Mähen um 9 Uhr, nachdem der Tau abgetrocknet ist, mit Walzenaufbereiter und Breitablage. Einmal zetten, um 17 Uhr schwaden, um 18 Uhr ins Flachsilo.',
     plan: { ...GRUNDPLAN, bestand: 'graeser' },
   },
   {
-    id: 'tiefgemaeht', name: 'Tief gemäht, dann Gewitter', wetter: 'gewitter',
+    id: 'tiefgemaeht', lernziel: 'Erde, wenig Zucker und Regen: wie schnell kippt die Gärung, wenn mehrere Fehler zusammenkommen?', name: 'Tief gemäht, dann Gewitter', wetter: 'gewitter',
     text: 'Kleereicher Bestand, mit 5 cm Schnitthöhe am Morgen um 7 Uhr gemäht, mit Zinkenaufbereiter in die Schwade. Zetter und Schwader sind zu tief eingestellt, auf der Wiese hat es Maulwurfshaufen. Gezettet wird am Tag 2 um 9 Uhr; das Futter liegt breit, als am Nachmittag das Gewitter kommt. Schwaden am Tag 3 um 10 Uhr, einfahren um 12 Uhr ins Flachsilo.',
     plan: { ...GRUNDPLAN, bestand: 'klee', schnitthoehe: 5, maehen: 7, aufbereiter: 'zinken', breit: false, boden: 'maulwurf',
       zetten: [33], zetterHoehe: 1, schwaden: 58, schwaderHoehe: 0.5, ernte: 60 },
@@ -65,7 +65,7 @@ export const PROGNOSEN = [
     plan: { ...GRUNDPLAN, stadium: 4, maehen: 9, zetten: [10, 14], schwaden: 35, ernte: 37, siloart: 'ballen' },
   },
   {
-    id: 'ohneaufbereiter', name: 'Nass gemäht, über Nacht', wetter: 'wechselhaft',
+    id: 'ohneaufbereiter', lernziel: 'Nass gemäht, schmale Schwade, Nacht im Tau: wie lange dauert das Anwelken ohne Aufbereiter?', name: 'Nass gemäht, über Nacht', wetter: 'wechselhaft',
     text: 'Ausgewogener Bestand, am Morgen um 7 Uhr in den Tau gemäht, ohne Aufbereiter in die Schwade, nie gezettet. Am Tag 2 um 13 Uhr schwaden, um 15 Uhr ins Flachsilo.',
     plan: { ...GRUNDPLAN, maehen: 7, aufbereiter: 'ohne', breit: false, zetten: [], schwaden: 37, ernte: 39 },
   },

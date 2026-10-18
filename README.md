@@ -21,11 +21,15 @@ Ablauf im Spiel: Start → Einsatz planen (Wetter, Wiese, Maschinen, Silo) → S
 |---|---|
 | `public/js/weather.js` | Stündliches Wetter aus Tageswerten (tmin/tmax, Tau über rhmax, Sonne, Wind, Regen); Zufallswetter mit Code |
 | `public/js/model.js` | `Feld` (Stunde für Stunde, Arbeitsgänge), `simuliere` (ganzer Plan), Silierung, Punkte, Erklärtexte |
-| `public/js/game.js` | Spielablauf: Takt, Arbeitsgänge, Ticker-Meldungen, Anzeigen |
+| `public/js/game.js` | Spielablauf: Takt, Arbeitsgänge (Halten zum Bestätigen), Tastenkürzel, Autopause, Sicherung und Fortsetzen, ruhiger Modus |
 | `public/js/scene.js` | SVG-Feldszene: Himmel im Tagesverlauf, Sonne/Mond, Wolken, Regen, Tau, Futterfarbe nach TS, Erde, Traktor |
 | `public/js/icons.js` | Wetter- und Maschinensymbole |
 | `public/js/chart.js` | Rückblick-Diagramm Wetter + TS-Verlauf |
-| `public/js/app.js` | Bildschirme, Einsatz-Auswahl, Silo öffnen, Wette, lokale Rangliste |
+| `public/js/app.js` | Bildschirme mit Browser-Verlauf und Titeln, Einsatz-Auswahl (gespeichert pro Sitzung), Silo öffnen, Wette, lokale Rangliste, Kontrastmodus |
+| `public/js/begriffe.js` | Fachbegriffe für Tipp-Erklärungen und Begriffe-Dialog (auch Quelle der Lernseite) |
+| `public/js/wiese.js`, `maschinen.js` | Bilder für Wiese, Maschinen und Einstellungen |
+| `tools/seiten.mjs` | Erzeugt `lernen.html`, `szenario/*.html`, `sitemap.xml` und `sw.js` aus den Spieldaten |
+| `public/manifest.webmanifest`, `img/` | Installierbare App, Symbole, Vorschaubild für Links |
 | `public/js/scenarios.js` | Wetterlagen, Grundplan, Prognose-Szenarien |
 | `test/run.mjs` | Modell-Durchlauf aller Szenarien auf der Konsole |
 
@@ -33,6 +37,26 @@ Ablauf im Spiel: Start → Einsatz planen (Wetter, Wiese, Maschinen, Silo) → S
 docker compose up -d --build
 docker run --rm -v "$PWD":/app -w /app node:22-alpine node test/run.mjs
 ```
+
+## Bedienung, Zugänglichkeit und Suchmaschinen
+
+Umgesetzt nach zwei UX-Gutachten (Handy/Beamer, Lesbarkeit/SEO):
+
+- **Handy:** feste Daumenleiste unten mit den vier Arbeitsgängen, dichte Anzeigen, Touch-Ziele mindestens 48 px, grosse Regler-Griffe mit +/−-Knöpfen.
+- **Fehltipps:** Mähen und Einfahren sind nicht umkehrbar und müssen 0,7 s gedrückt gehalten werden (Tastatur: zweimal drücken innert 2 s).
+- **Tastatur (Beamer):** Leertaste Pause, `1`–`3` Tempo, `+` eine Stunde weiter, `M` `Z` `S` `E` Arbeitsgänge.
+- **Datensicherheit:** Die Runde wird als Protokoll der Arbeitsgänge im Browser gesichert (12 h) und lässt sich exakt nachspielen („Runde fortsetzen“). Einstellungen bleiben pro Sitzung erhalten. Beim Wechsel in den Hintergrund pausiert das Spiel.
+- **Ruhiger Modus:** Die Zeit läuft nur auf Knopfdruck (+1 h, +3 h), ohne Zeitdruck.
+- **Lesbarkeit:** Schrift mindestens 15 px, Kontraste mindestens WCAG AA, Symbole zusätzlich zur Farbe, Modus «Draussen» mit starkem Kontrast, Erklärkarten als Aussage / Gründe / Tipp, Fachbegriffe mit Erklärung.
+- **Orientierung:** Browser-Verlauf (Zurück-Knopf bleibt in der App), Titel und Pfad je Bildschirm, Schrittband mit Sprungmarken, Zähler offener Einstellungen.
+- **Suchmaschinen:** Lernseite und Szenarioseiten als eigene Adressen (`lernen.html`, `szenario/<id>.html`), Meta-Daten, Open-Graph-Vorschau, Sitemap. Nach Änderungen an Szenarien oder Begriffen neu erzeugen:
+
+```
+docker run --rm -v "$PWD":/app -w /app node:22-alpine node tools/seiten.mjs
+```
+
+- **Offline:** Service Worker (aus `tools/seiten.mjs`) lädt alle Dateien vorab; die App startet auch ohne Netz.
+- `sitemap.xml` liegt unter `/drysim/`. Ein `robots.txt` müsste auf `apps.graswachstum.ch` im Wurzelverzeichnis liegen (gehört nicht zu dieser App).
 
 ## Modell (Lehrmodell, vereinfacht)
 
@@ -51,7 +75,7 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine node test/run.mjs
 - [ ] Parameter mit Fachleuten kalibrieren: Trocknung mit Schweizer Messreihen (Gras statt Luzerne, Agroscope/AGFF) prüfen, Atmung, Bröckelverluste, Buttersäure-Ansatz; Werte des Aufbereiters mit Zinken und Bürste mit Versuchsdaten abgleichen
 - [ ] DLG-Punktetabelle mit dem Originalschlüssel 2006 abgleichen (Essigsäure- und pH-Stufen sind vereinfacht); evtl. Schweizer Sinnenprüfung als zweite Sicht
 - [ ] Aufbereiter vs. Wachsschicht: Im Modell beschleunigt er die kutikuläre Phase (Stomata sind nach ca. 1 h ohnehin zu), dafür nimmt das Futter mehr Wasser auf und es wird mehr ausgewaschen. Konkrete Maschine (Werbeaussage „zerstört Wachsschicht“) mit Versuchsdaten prüfen
-- [ ] Wettkampf über mehrere Geräte: Rangliste ist nur lokal im Browser → Klassenraum mit Code auf dem Server (z.B. über Konto/Kurs aus Futter v2)
+- [ ] Wettkampf über mehrere Geräte: Rangliste ist nur lokal im Browser → Klassenraum mit Code auf dem Server (z.B. über Konto/Kurs aus Futter v2). Offene Entscheidung: Datenschutz (Namen), Missbrauchsschutz bei öffentlichem Schreibzugriff, Aufbewahrung
 - [ ] Weitere Entscheidungen: Häcksellänge, Verdichtung, Siliermittel, Zudecken; Schwadbreite
 - [ ] Wetter: echte Vorhersage/Messdaten (MeteoSchweiz) als Szenario-Quelle
 - [ ] Grafik: Illustrationen (Feld, Maschinen) – derzeit nur SVG-Diagramm; KI-Bilder oder Grafiker
