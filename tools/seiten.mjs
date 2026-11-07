@@ -2,6 +2,7 @@
 // public/lernen.html, public/szenario/<id>.html und public/sitemap.xml
 //   docker run --rm -v "$PWD":/app -w /app node:22-alpine node tools/seiten.mjs
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { WETTER, PROGNOSEN } from '../public/js/scenarios.js';
 import { BESTAENDE, SILOARTEN, STADIEN, AUFBEREITER } from '../public/js/model.js';
 import { BEGRIFFE } from '../public/js/begriffe.js';
@@ -79,8 +80,8 @@ const QUELLEN = [
 ];
 const lernen = seite({
   pfad: 'lernen.html', tiefe: 0,
-  titel: 'Futterkonservierung verstehen: Anwelken, Atmung, Erde und Gärqualität – Heureka',
-  beschreibung: 'Wie gute Silage entsteht: Anwelken auf 30 bis 40 % TS, Breitablage, Zucker schonen, sauber arbeiten und die Gärqualität bewerten. Mit Begriffserklärungen.',
+  titel: 'Futterkonservierung verstehen: Anwelken, Atmung, Erde, Gärqualität und Heu – Heureka',
+  beschreibung: 'Wie gute Silage und gutes Heu entstehen: Anwelken auf 30 bis 40 % TS, Heu ab 85 % TS lagern, Belüftung, Breitablage, Blätter schonen, sauber arbeiten. Mit Begriffserklärungen.',
   krumen: [['Start', './'], ['Lernen']],
   h1: 'Futterkonservierung verstehen',
   inhalt: `
@@ -93,6 +94,7 @@ const lernen = seite({
       <li><a href="#sauber">Sauber arbeiten: Schnitthöhe, Zinken und Erde</a></li>
       <li><a href="#zetten">Zetten und Schwaden: Blätter schonen</a></li>
       <li><a href="#gaerung">Gärqualität bewerten: Labor oder Prozess?</a></li>
+      <li><a href="#heu">Heu: Bodenheu, Heuballen oder Belüftung</a></li>
       <li><a href="#begriffe">Begriffe kurz erklärt</a></li>
       <li><a href="#quellen">Quellen</a></li>
     </ul></nav>
@@ -134,6 +136,19 @@ const lernen = seite({
     <h2 id="gaerung">Gärqualität bewerten: Labor oder Prozess?</h2>
     <p>Der DLG-Schlüssel bewertet Silage im Nachhinein mit Laborwerten: Buttersäure, Essigsäure und pH-Wert ergeben bis 100 Punkte. In der Schweizer Beratung steht häufiger der Prozess im Vordergrund: Wurde alles richtig gemacht, damit die Silage gut werden musste? Vorbeugen ist besser als Korrigieren, und bei guten Bedingungen sind Siliermittel meist nicht nötig. Das Spiel zeigt beides: Am Schluss steht die Note, und die Erklär-Karten zeigen die Arbeitsschritte, die dazu geführt haben.</p>
 
+    <h2 id="heu">Heu: Bodenheu, Heuballen oder Belüftung</h2>
+    <p>Heu wird nicht vergoren, sondern so weit getrocknet, dass Bakterien und Pilze nicht mehr arbeiten können. Bis dahin muss viel mehr Wasser weg als bei Silage: von rund 20 % TS beim Mähen auf über 85 %. Dafür braucht es meist zwei bis drei schöne Tage.</p>
+    <ul>
+      <li><strong>Bodenheu:</strong> trocknet ganz auf dem Feld und kommt mit mindestens ${SILOARTEN.bodenheu.ziel[0]} % TS auf den Heustock.</li>
+      <li><strong>Heuballen:</strong> ebenfalls ab ${SILOARTEN.heuballen.ziel[0]} % TS. Dicht gepresste Ballen geben Wärme schlecht ab und schimmeln, wenn sie zu feucht sind.</li>
+      <li><strong>Belüftungsheu:</strong> wird schon ab etwa ${SILOARTEN.belueftung.ziel[0]} % TS eingeführt. Ein Gebläse trocknet es im Heustock mit Aussenluft fertig. Das spart einen Feldtag, verringert das Wetterrisiko und schont die Blätter. Wie lange das dauert, hängt davon ab, wie trocken die Luft ist (siehe die App <a href="../drywatch/">Heutrocknung</a>).</li>
+    </ul>
+    <p><strong>Blätter schonen:</strong> Am ersten Tag wird fleissig gezettet, solange das Futter feucht ist. Ab etwa 60 % TS werden die Blätter spröde und brechen beim Zetten, Schwaden und Pressen ab. Dann nur noch schonend arbeiten, am besten am Morgen mit etwas Restfeuchte. Bei Klee sind die Verluste besonders hoch, und es gehen vor allem die eiweissreichen Blätter verloren.</p>
+    <p><strong>Tau und Nachtschwad:</strong> Über Nacht nimmt das Heu wieder Feuchtigkeit auf. Ein Nachtschwad (am Abend schwaden, am Morgen wieder breit streuen) verringert das. Eingefahren wird am Nachmittag, nie mit Tau.</p>
+    <p><strong>Erwärmung und Brandgefahr:</strong> Zu feucht eingelagertes Heu erwärmt sich, wird muffig und schimmlig. Ein Heustock kann sich sogar selbst entzünden. Darum wird frisches Heu in den ersten Wochen regelmässig mit der Heusonde gemessen: ab 45 °C täglich, ab 60 °C die Feuerwehr verständigen.</p>
+    <p><strong>Sonne und Regen:</strong> Trockenes Heu, das lange in der Sonne liegt, bleicht aus und verliert Carotin. Regen auf fast trockenes Heu laugt es aus. Gutes Heu riecht aromatisch, ist grünlich, blattreich und sauber. Das Spiel bewertet Heu nach Geruch, Farbe, Gefüge (Blätter) und Verunreinigung, angelehnt an die Sinnenprüfung und vereinfacht.</p>
+    <div class="infobox"><p><strong>Im Spiel:</strong> Bei Hochdruck ist Bodenheu am Nachmittag des dritten Tages lagerfähig. Reicht das Wetterfenster nicht, rettet die Belüftung das Futter.</p></div>
+
     <h2 id="begriffe">Begriffe kurz erklärt</h2>
     <dl>
 ${BEGRIFFE.map((b) => `      <dt>${esc(b.begriff)} <small>(${esc(b.lang)})</small></dt>\n      <dd>${esc(b.text)}</dd>`).join('\n')}
@@ -160,10 +175,11 @@ fs.mkdirSync(new URL('../public/szenario/', import.meta.url), { recursive: true 
 const sonne = (s) => (s >= 0.8 ? 'sonnig' : s >= 0.45 ? 'wechselnd bewölkt' : 'bewölkt');
 for (const p of PROGNOSEN) {
   const w = WETTER.find((x) => x.id === p.wetter);
+  const heu = SILOARTEN[p.plan.siloart].art === 'heu';
   const mm = (t) => (t.regen ?? []).reduce((a, r) => a + r.mm, 0);
   const html = seite({
     pfad: `szenario/${p.id}.html`, tiefe: 1,
-    titel: `Szenario «${p.name}»: Wie wird die Silage? – Heureka`,
+    titel: `Szenario «${p.name}»: Wie wird ${heu ? 'das Heu' : 'die Silage'}? – Heureka`,
     beschreibung: `${p.lernziel} Lies das Szenario, tippe das Ergebnis und schau den Zeitraffer an.`,
     krumen: [['Start', '../'], ['Lernen', '../lernen.html'], [`Szenario ${p.name}`]],
     h1: `Szenario «${p.name}»`,
@@ -174,7 +190,7 @@ for (const p of PROGNOSEN) {
     <ul>
       <li><strong>Wiese:</strong> ${esc(BESTAENDE[p.plan.bestand].name)}, Stadium ${esc(STADIEN[p.plan.stadium].name)}, ${p.plan.ertrag} dt TS/ha</li>
       <li><strong>Maschinen:</strong> ${esc(AUFBEREITER[p.plan.aufbereiter].name)}, Schnitthöhe ${zahl(p.plan.schnitthoehe)} cm, ${p.plan.breit || AUFBEREITER[p.plan.aufbereiter].breit ? 'Breitablage' : 'Mähschwade'}</li>
-      <li><strong>Ziel:</strong> ${esc(SILOARTEN[p.plan.siloart].name)}, ${SILOARTEN[p.plan.siloart].ziel[0]} bis ${SILOARTEN[p.plan.siloart].ziel[1]} % TS</li>
+      <li><strong>Ziel:</strong> ${esc(SILOARTEN[p.plan.siloart].name)}, ${heu && SILOARTEN[p.plan.siloart].ziel[1] >= 95 ? `ab ${SILOARTEN[p.plan.siloart].ziel[0]}` : `${SILOARTEN[p.plan.siloart].ziel[0]} bis ${SILOARTEN[p.plan.siloart].ziel[1]}`} % TS</li>
     </ul>
     <h2>Wetter: ${esc(w.name)}</h2>
     <p>${esc(w.info)}.</p>
@@ -182,7 +198,7 @@ for (const p of PROGNOSEN) {
 ${w.tage.map((t, i) => `      <li><strong>Tag ${i + 1}:</strong> ${Math.round(t.tmin)} bis ${Math.round(t.tmax)} °C, ${sonne(t.sonne)}, ${mm(t) > 0 ? `${Math.round(mm(t))} mm Regen` : 'kein Regen'}</li>`).join('\n')}
     </ul>
     <h2>Was du tippst</h2>
-    <p>Wie hoch ist die TS beim Einfahren? Wie viel Rohasche steckt im Futter? Und welche Gärqualität (Note 1 bis 5) hat die Silage nach sechs Wochen? Danach läuft das Szenario im Zeitraffer, und die Erklär-Karten zeigen, warum das Ergebnis so ausfällt.</p>
+    <p>Wie hoch ist die TS beim Einfahren? Wie viel Rohasche steckt im Futter? Und welche ${heu ? 'Heuqualität (Note 1 bis 5) hat das Heu' : 'Gärqualität (Note 1 bis 5) hat die Silage'} nach sechs Wochen? Danach läuft das Szenario im Zeitraffer, und die Erklär-Karten zeigen, warum das Ergebnis so ausfällt.</p>
     <p><a class="knopflink" href="../?szenario=${p.id}">Szenario tippen und im Zeitraffer ansehen</a></p>
     <h2>Weitere Szenarien</h2>
     <ul>
@@ -213,7 +229,10 @@ const dateien = [];
   }
 })(wurzel, '');
 dateien.sort();
-const version = `drysim-${HEUTE}-${dateien.length}`;
+// Version aus dem Inhalt aller Dateien: jede Änderung lädt den Cache neu, auch mehrmals am selben Tag
+const hash = crypto.createHash('sha256');
+for (const d of dateien) hash.update(d).update(fs.readFileSync(new URL(d, wurzel)));
+const version = `drysim-${HEUTE}-${hash.digest('hex').slice(0, 10)}`;
 fs.writeFileSync(new URL('sw.js', wurzel), `// Automatisch erzeugt von tools/seiten.mjs – nicht von Hand ändern
 const CACHE = '${version}';
 const DATEIEN = ['./', ${dateien.map((d) => `'${d}'`).join(', ')}];

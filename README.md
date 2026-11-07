@@ -1,7 +1,7 @@
 # Heureka – Lernspiel Futterkonservierung (früher «Silage-Simulator», Pfad /drysim)
 
 Lernspiel zur Futterkonservierung für die höhere Berufsschule und die höhere Fachschule.
-Läuft unter <https://apps.graswachstum.ch/heureka/>. Der Start ist die Silagebereitung, Heu kommt später dazu.
+Läuft unter <https://apps.graswachstum.ch/heureka/>. Spielbar sind Silage (Flachsilo, Rundballen) und Heu (Belüftungsheu, Bodenheu, Heuballen).
 
 ## Idee (Gespräch vom 12.10.2026)
 
@@ -68,7 +68,18 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine node tools/seiten.mjs
 - **Bröckelverluste** je Arbeitsgang, steigen mit TS und Kleeanteil.
 - **Rohasche**: Grundgehalt je Bestand + Schnitthöhe + Arbeitsgänge (Zinkenhöhe). Verstärkt durch Maulwurfshaufen, nassen Boden und tiefe Stoppeln.
 - **Silierung**: Vergärbarkeitskoeffizient FK = TS + 8·Z/PK (Weissbach). Buttersäure aus FK-Defizit, Nässe und Erde; pH gegen kritischen pH (0,0257·TS + 3,71). Gärbewertung angelehnt an den DLG-Schlüssel 2006, Siloverluste (Gärung, Nacherwärmung, Sickersaft).
-- **Punkte** = MJ NEL/ha im Trog × Gärfaktor (Note 1–5) × Abzug für TS ausserhalb des Zielbereichs, geteilt durch 100.
+- **Punkte** = MJ NEL/ha im Trog × Gärfaktor bzw. Heufaktor (Note 1–5) × Abzug für TS ausserhalb des Zielbereichs, geteilt durch 100.
+
+### Heu (seit 7.11.2026)
+
+- **Lagerarten**: Belüftungsheu (Einführen ab 60 % TS, Ziel 60–80 %), Bodenheu und Heuballen (ab 85 % TS). In der Einsatzplanung unter «4 · Silage oder Heu?».
+- **Trocknung**: Ab 55 % TS innen trocknet das lockere Futter schneller (Faktor bis 2 bei 70 %). Kalibriert: Bodenheu bei Hochdruck nach rund 2½ Tagen lagerfähig. Nachts nimmt Heu über Tau und Gleichgewichtsfeuchte wieder Wasser auf.
+- **Nachtschwad**: Zetten ist auch aus dem Schwad möglich (Knopf heisst dann «Breit streuen»). Im Schwad fällt weniger Tau an. Pläne dürfen mehrere Schwadzeiten haben (`schwaden: [19, 62]`).
+- **Bröckeln**: Zusätzlicher Verlust ab 60 % TS beim Zetten, Schwaden und Pressen, bei Klee stark. Tau oder Restfeuchte auf der Oberfläche halbiert die Sprödigkeit.
+- **Regen und Sonne**: Auswaschung bei über 60 % TS doppelt. Sonne auf Futter über 50 % TS bleicht (MJ/m², im Schwad ein Drittel).
+- **Lager** (`lagereHeu`): TS-Defizit unter der Grenze → Erwärmung (Temperatur im Stock), Schimmel, Lagerverlust und Energieabzug. Belüftung: Dauer aus dem Restwasser und dem Dampfdruckdefizit der Folgetage; über 3 Tage gibt es Abzüge. Ab 70 °C Note 5.
+- **Heuqualität**: 100 Punkte minus Abzüge für Geruch (Defizit, Temperatur, lange Belüftung), Farbe (Bleiche über 35 MJ/m², Regen auf trockenes Futter), Gefüge (Bröckeln über 9 %) und Erde. Angelehnt an die Sinnenprüfung, Punkte vereinfacht. Notenstufen wie bei der Silage.
+- **Szenarien**: Wetterlage «Heuwetter, Juli»; Prognosen Bodenheu wie im Bilderbuch, Heu am Morgen eingefahren, Föhn mit Belüftung vor dem Regen, Kleeheu zu oft gezettet.
 
 ## Offen / im Büro weiterentwickeln
 
@@ -79,4 +90,5 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine node tools/seiten.mjs
 - [ ] Weitere Entscheidungen: Häcksellänge, Verdichtung, Siliermittel, Zudecken; Schwadbreite
 - [ ] Wetter: echte Vorhersage/Messdaten (MeteoSchweiz) als Szenario-Quelle
 - [ ] Grafik: Illustrationen (Feld, Maschinen) – derzeit nur SVG-Diagramm; KI-Bilder oder Grafiker
-- [ ] Heu als zweites Modul (Belüftung → Bezug zu drywatch)
+- [x] Heu als zweites Modul (Belüftungsheu, Bodenheu, Heuballen; Nachtschwad; Lager und Heuqualität)
+- [ ] Heu-Parameter mit Fachleuten prüfen: Trocknungsschub ab 55 % TS, Bröckelverluste nach TS und Kleeanteil, Erwärmung und Lagerverluste, Punkteschema der Heuqualität (Sinnenprüfung). Belüftung mit drywatch verknüpfen (Energie, Warmbelüftung, Entfeuchter)

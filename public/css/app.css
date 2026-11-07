@@ -117,6 +117,8 @@ button, input, select { font: inherit; color: inherit; }
 .wahlkarte b { font-size: 1rem; }
 .wahlkarte small { color: var(--leise); font-size: .95rem; }
 .wahlkarte .wetterreihe { display: flex; gap: 2px; }
+.art-marke { justify-self: start; font-size: .85rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--gruen-hell); color: var(--gruen-text, var(--gruen)); border: 1px solid currentColor; }
+.art-marke.heu { background: var(--gelb-hell); color: var(--gelb-dunkel); }
 .wahlkarte .wetterreihe .symbol { width: 30px; height: 30px; }
 .zeile { display: grid; grid-template-columns: 8rem 1fr; gap: 10px; align-items: center; margin: 10px 0; }
 @media (max-width: 560px) { .zeile { grid-template-columns: 1fr; gap: 4px; } }

@@ -4,14 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Heureka – Lernspiel Futterkonservierung</title>
-  <meta name="description" content="Lernspiel Futterkonservierung: Mähen, Zetten, Schwaden und Einfahren bei wechselndem Wetter – und wie das die Silagequalität verändert.">
+  <meta name="description" content="Lernspiel Futterkonservierung: Mähen, Zetten, Schwaden und Einfahren bei wechselndem Wetter – und wie das die Qualität von Silage und Heu verändert.">
   <link rel="canonical" href="https://apps.graswachstum.ch/heureka/">
   <meta name="theme-color" content="#1d5a21" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0f1f10" media="(prefers-color-scheme: dark)">
   <meta name="color-scheme" content="light dark">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="de_CH">
-  <meta property="og:title" content="Heureka – Schaffst du die perfekte Silage?">
+  <meta property="og:title" content="Heureka – Schaffst du perfekte Silage und bestes Heu?">
   <meta property="og:description" content="Lernspiel Futterkonservierung: Du entscheidest, wann gemäht, gezettet, geschwadet und eingefahren wird. Das Wetter macht, was es will.">
   <meta property="og:url" content="https://apps.graswachstum.ch/heureka/">
   <meta property="og:image" content="https://apps.graswachstum.ch/heureka/img/og.png">
@@ -24,7 +24,7 @@
   <script src="js/boot.js"></script>
   <script type="application/ld+json">
   {"@context":"https://schema.org","@type":"WebApplication","name":"Heureka","url":"https://apps.graswachstum.ch/heureka/",
-   "description":"Lernspiel zur Futterkonservierung für die höhere Berufsbildung: Silage bereiten bei wechselndem Wetter.",
+   "description":"Lernspiel zur Futterkonservierung für die höhere Berufsbildung: Silage und Heu bereiten bei wechselndem Wetter.",
    "applicationCategory":"EducationalApplication","operatingSystem":"Alle (Webbrowser)","inLanguage":"de-CH","isAccessibleForFree":true,
    "audience":{"@type":"EducationalAudience","educationalRole":"student"}}
   </script>
@@ -50,11 +50,11 @@
     <div class="held">
       <div class="szene-box" id="startszene" role="img" aria-label="Wiese mit Hof am frühen Morgen"></div>
       <div class="held-text">
-        <h1 id="start-titel" tabindex="-1">Schaffst du die perfekte Silage?</h1>
+        <h1 id="start-titel" tabindex="-1">Schaffst du perfekte Silage und bestes Heu?</h1>
         <p>Mähen, zetten, schwaden, einfahren – du entscheidest wann und wie. Das Wetter macht, was es will.</p>
         <div class="start-knoepfe">
           <button type="button" class="gross-knopf gruen" data-gehe="setup">
-            <b>Selber silieren</b><small>Plane deinen Einsatz und spiel gegen die Uhr</small>
+            <b>Selber spielen</b><small>Silage oder Heu: Plane deinen Einsatz und spiel gegen die Uhr</small>
           </button>
           <button type="button" class="gross-knopf gelb" data-gehe="wetten">
             <b>Prognose-Wette</b><small>Szenario lesen, Ergebnis tippen, Zeitraffer schauen</small>
@@ -83,7 +83,7 @@
         <ol class="anleitung">
           <li><b>Einsatz planen:</b> Wetter, Wiese und Maschinen wählen.</li>
           <li><b>Aufs Feld:</b> Die Uhr läuft. Du drückst Mähen, Zetten, Schwaden und Einfahren, wenn du es für richtig hältst.</li>
-          <li><b>Silo öffnen:</b> Nach sechs Wochen zeigt sich, wie die Silage geworden ist und warum.</li>
+          <li><b>Silo öffnen oder Heu prüfen:</b> Nach sechs Wochen zeigt sich, wie das Futter geworden ist und warum.</li>
         </ol>
         <p class="hinweis">Für den Wettkampf in der Klasse: Alle wählen dasselbe Wetter oder denselben Wettercode.</p>
       </div>
@@ -95,6 +95,7 @@
         <li><b>Sauber arbeiten:</b> Wer zu tief mäht oder die Zinken über den Boden schleift, bringt Erde ins Futter. Das fördert Buttersäurebakterien.</li>
         <li><b>Zucker schonen:</b> Je länger das Futter liegt, desto mehr Zucker verbraucht die Atmung. Regen wäscht zusätzlich Zucker aus.</li>
         <li><b>Gärqualität:</b> Aus Wetter, Arbeitsgängen und Futter ergibt sich, ob die Silage gut oder schlecht wird.</li>
+        <li><b>Heu:</b> Bodenheu und Heuballen erst ab 85 % TS einlagern, sonst erwärmt sich der Stock. Mit Belüftung genügen 60 % TS beim Einführen. Ab etwa 60 % TS bröckeln die Blätter: Dann nur noch schonend zetten.</li>
       </ul>
       <p><a class="knopflink" href="lernen.html">Begriffe und Hintergründe nachlesen</a></p>
     </div>
@@ -108,7 +109,7 @@
         <button type="button" data-sprung="s-wetter"><span>1</span> Wetter</button>
         <button type="button" data-sprung="s-wiese"><span>2</span> Wiese</button>
         <button type="button" data-sprung="s-maschinen" id="schritt-maschinen"><span>3</span> Maschinen</button>
-        <button type="button" data-sprung="s-silo"><span>4</span> Silo</button>
+        <button type="button" data-sprung="s-silo"><span>4</span> Silage/Heu</button>
       </nav>
       <div class="karte" id="s-wetter">
         <h2>1 · Wetterbericht</h2>
@@ -164,7 +165,7 @@
         </div>
       </div>
       <div class="karte" id="s-silo">
-        <h2>4 · Wohin mit dem Futter?</h2>
+        <h2>4 · Silage oder Heu?</h2>
         <div class="wahl" data-feld="siloart"></div>
         <h3 class="unter">Wie willst du spielen?</h3>
         <div class="chips" data-feld="modus"></div>
@@ -275,7 +276,7 @@
   </dialog>
 
   <footer class="fuss">
-    <p>Lehrmodell: Trocknung nach Rotz &amp; Chen (1985), Vergärbarkeit nach Weissbach, Gärbewertung angelehnt an den DLG-Schlüssel. Für den Unterricht vereinfacht, keine Prognose für den Betrieb.</p>
+    <p>Lehrmodell: Trocknung nach Rotz &amp; Chen (1985), Vergärbarkeit nach Weissbach, Gärbewertung angelehnt an den DLG-Schlüssel, Heubewertung angelehnt an die Sinnenprüfung. Für den Unterricht vereinfacht, keine Prognose für den Betrieb.</p>
     <nav aria-label="Weiterführende Links">
       <a href="lernen.html">Begriffe und Hintergründe</a>
       <a href="szenario/bilderbuch.html">Szenarien</a>

@@ -105,6 +105,9 @@ const BESCHREIBUNG = {
   siloart: {
     flachsilo: 'Mit dem Ladewagen ins Silo, gut verdichten.',
     ballen: 'Pressen und wickeln, braucht trockeneres Futter.',
+    belueftung: 'Angewelkt einführen, die Kaltbelüftung trocknet im Heustock fertig.',
+    bodenheu: 'Auf dem Feld ganz trocknen, braucht zwei bis drei schöne Tage.',
+    heuballen: 'Quader- oder Rundballen pressen, nur ganz trockenes Heu.',
   },
 };
 const OPTIONEN = {
@@ -115,7 +118,10 @@ const OPTIONEN = {
     extra: bestandBild(k) + merkmale({ graeser: [3, 1, 3], ausgewogen: [2, 2, 2], klee: [1, 3, 1] }[k]),
   })),
   aufbereiter: Object.entries(AUFBEREITER).map(([k, v]) => ({ wert: k, titel: v.name.replace(/^./, (c) => c.toUpperCase()), text: BESCHREIBUNG.aufbereiter[k], extra: aufbereiterBild(k) })),
-  siloart: Object.entries(SILOARTEN).map(([k, v]) => ({ wert: k, titel: v.name, text: `${BESCHREIBUNG.siloart[k]} Ziel ${v.ziel[0]}–${v.ziel[1]} % TS.` })),
+  siloart: Object.entries(SILOARTEN).map(([k, v]) => ({
+    wert: k, titel: v.name, text: `${BESCHREIBUNG.siloart[k]} ${v.art === 'heu' && v.ziel[1] >= 95 ? `Ab ${v.ziel[0]}` : `Ziel ${v.ziel[0]}–${v.ziel[1]}`} % TS.`,
+    extra: `<span class="art-marke ${v.art}">${v.art === 'heu' ? 'Heu' : 'Silage'}</span>`,
+  })),
   stadium: Object.entries(STADIEN).map(([k, v]) => ({ wert: Number(k), titel: v.name, text: BESCHREIBUNG.stadium[k], extra: stadiumBild(Number(k)) })),
   boden: [{ wert: 'eben', titel: 'Eben und sauber', extra: bodenBild('eben') }, { wert: 'maulwurf', titel: 'Maulwurfshaufen', extra: bodenBild('maulwurf') }],
   breit: [{ wert: true, titel: 'Breitablage', text: 'über die ganze Fläche', extra: ablageBild(true) }, { wert: false, titel: 'Mähschwade', text: 'schmaler Streifen', extra: ablageBild(false) }],
@@ -310,21 +316,31 @@ $('#fortsetzen-weg').addEventListener('click', () => { vergissRunde(); zeigeFort
 // ---------- Silo öffnen
 const dialog = $('#detail');
 function sterne(res) {
-  const s = res.silage, [a, b] = SILOARTEN[res.plan.siloart].ziel, ts = res.ernte.ts;
-  if (s.note >= 5) return 0;
-  if (s.note <= 2 && ts >= a && ts <= b && res.verlustTotal < 15 && res.ernte.asche <= 105) return 3;
-  if (s.note <= 3 && res.verlustTotal < 22) return 2;
+  const [a, b] = SILOARTEN[res.plan.siloart].ziel, ts = res.ernte.ts, heu = res.art === 'heu';
+  const [v3, v2] = heu ? [22, 30] : [15, 22]; // Heu hat auf dem Feld unvermeidlich höhere Verluste
+  if (res.note >= 5) return 0;
+  if (res.note <= 2 && ts >= a && ts <= b && res.verlustTotal < v3 && res.ernte.asche <= 105) return 3;
+  if (res.note <= 3 && res.verlustTotal < v2) return 2;
   return 1;
 }
 function abzeichen(res) {
   const v = res.verlust, e = res.ernte, a = [];
   if (e.asche <= 100) a.push(['Saubere Sache', 'Kaum Erde im Futter']);
   if (v.atmung < 1.5) a.push(['Zuckerbewahrer', 'Wenig veratmet']);
-  if (e.stunden <= 12) a.push(['Blitzsilage', 'In unter 12 h im Silo']);
-  if (res.plan.bestand === 'klee' && v.broeckel < 4) a.push(['Kleeflüsterer', 'Blätter geschont']);
+  if (res.art === 'heu') {
+    const h = res.heu;
+    if (h.abzug.farbe < 1 && e.regenFeld === 0) a.push(['Grünes Heu', 'Nicht verregnet, nicht ausgebleicht']);
+    if (v.broeckel < (res.plan.bestand === 'klee' ? 10 : 8)) a.push(['Blattschoner', 'Wenig Bröckelverluste']);
+    if (res.plan.siloart === 'belueftung' && h.belueftTage <= 3 && res.ernte.ts >= 60) a.push(['Belüftungsprofi', 'Rechtzeitig und genug angewelkt eingeführt']);
+    if (h.temp >= 60) a.push(['Heustock heiss', 'Feuerwehr verständigen!', true]);
+    else if (h.schimmel !== 'kein') a.push(['Muffig', 'Zu feucht eingelagert', true]);
+  } else {
+    if (e.stunden <= 12) a.push(['Blitzsilage', 'In unter 12 h im Silo']);
+    if (res.plan.bestand === 'klee' && v.broeckel < 4) a.push(['Kleeflüsterer', 'Blätter geschont']);
+    if (res.silage.buttersaeure > 3) a.push(['Buttersäure-Alarm', '', true]);
+  }
   if (e.regenFeld > 2) a.push(['Vom Regen erwischt', '', true]);
-  if (e.asche > 120) a.push(['Erdsilage', '', true]);
-  if (res.silage.buttersaeure > 3) a.push(['Buttersäure-Alarm', '', true]);
+  if (e.asche > 120) a.push([res.art === 'heu' ? 'Staubiges Heu' : 'Erdsilage', 'Viel Erde im Futter', true]);
   return a;
 }
 
@@ -348,12 +364,20 @@ function zeigeDetail(f) {
 const STUFE_TEXT = { gut: 'Gut gemacht', mittel: 'Geht besser', schlecht: 'Problem' };
 
 function zeigeErgebnis(res, sz, tipp, einstellungen) {
-  PFAD.ergebnis = tipp ? [['Start', 'start'], ['Prognose-Wette', 'wetten'], ['Silo öffnen']] : [['Start', 'start'], ['Einsatz planen', 'setup'], ['Silo öffnen']];
+  const heu = res.art === 'heu', schluss = heu ? 'Heustock prüfen' : 'Silo öffnen';
+  PFAD.ergebnis = tipp ? [['Start', 'start'], ['Prognose-Wette', 'wetten'], [schluss]] : [['Start', 'start'], ['Einsatz planen', 'setup'], [schluss]];
+  TITEL.ergebnis = `${schluss} – Heureka`;
   zeige('ergebnis');
+  $('#ergebnis-titel').textContent = heu ? 'Heustock geprüft: dein Ergebnis' : 'Silo geöffnet: dein Ergebnis';
+  $('#ergebnis .ueber').textContent = heu
+    ? (res.plan.siloart === 'belueftung' ? 'Sechs Wochen später – die Belüftung ist längst aus, das Heu wird geprüft …' : 'Sechs Wochen später – das Heu wird geprüft …')
+    : 'Sechs Wochen später – das Silo wird geöffnet …';
   const n = sterne(res);
   $('#sterne').innerHTML = [0, 1, 2].map((i) => STERN(i < n)).join('');
   $('#sterne').setAttribute('aria-label', `${n} von 3 Sternen`);
-  const urteile = ['Das Silo stinkt nach Buttersäure – das will keine Kuh fressen.', 'Geht so – da liegt mehr drin.', 'Gute Silage!', 'Perfekte Silage – die Kühe freuen sich!'];
+  const urteile = heu
+    ? [res.heu.temp >= 60 ? 'Der Heustock ist heiss geworden – Brandgefahr! Dieses Heu ist verdorben.' : 'Muffig und staubig – dieses Heu frisst keine Kuh gern.', 'Geht so – da liegt mehr drin.', 'Gutes Heu!', 'Duftendes, grünes Heu – die Kühe freuen sich!']
+    : ['Das Silo stinkt nach Buttersäure – das will keine Kuh fressen.', 'Geht so – da liegt mehr drin.', 'Gute Silage!', 'Perfekte Silage – die Kühe freuen sich!'];
   $('#urteil').textContent = urteile[n];
   // Punkte hochzählen
   const ziel = res.punkte, t0 = performance.now();
@@ -365,11 +389,14 @@ function zeigeErgebnis(res, sz, tipp, einstellungen) {
   requestAnimationFrame(zaehle);
   setTimeout(() => { $('#punkte').textContent = ziel; }, 1300); // auch wenn der Tab im Hintergrund drosselt
 
-  const e = res.ernte, s = res.silage;
-  $('#kennzahlen').innerHTML = [
+  const e = res.ernte;
+  $('#kennzahlen').innerHTML = (heu ? [
+    ['TS beim Einlagern', `${z(e.ts)} %`], ['Rohasche', `${z(e.asche, 0)} g/kg TS`], ['Heustock bis', `${z(res.heu.temp, 0)} °C`],
+    ['Heuqualität', `Note ${res.note} · ${NOTEN[res.note - 1]}`], ['Energie', `${z(res.nel, 2)} MJ NEL/kg TS`], ['Verlust Feld bis Trog', `${z(res.verlustTotal, 0)} %`],
+  ] : [
     ['TS beim Einfahren', `${z(e.ts)} %`], ['Rohasche', `${z(e.asche, 0)} g/kg TS`], ['Zucker', `${z(e.zucker, 0)} g/kg TS`],
-    ['Gärqualität', `Note ${s.note} · ${NOTEN[s.note - 1]}`], ['Energie', `${z(res.nel, 2)} MJ NEL/kg TS`], ['Verlust Feld bis Trog', `${z(res.verlustTotal, 0)} %`],
-  ].map(([a, b]) => `<div class="kennzahl"><span>${a}</span><strong>${b}</strong></div>`).join('');
+    ['Gärqualität', `Note ${res.note} · ${NOTEN[res.note - 1]}`], ['Energie', `${z(res.nel, 2)} MJ NEL/kg TS`], ['Verlust Feld bis Trog', `${z(res.verlustTotal, 0)} %`],
+  ]).map(([a, b]) => `<div class="kennzahl"><span>${a}</span><strong>${b}</strong></div>`).join('');
   $('#abzeichen').innerHTML = abzeichen(res).map(([t, d, minus]) => `<span class="${minus ? 'minus' : ''}" title="${esc(d)}">${minus ? '✗' : '★'} ${esc(t)}</span>`).join('');
 
   // Wette: Tipp gegen Ergebnis
@@ -378,7 +405,7 @@ function zeigeErgebnis(res, sz, tipp, einstellungen) {
     const zeilen = [
       ['TS beim Einfahren', `${tipp.ts} %`, `${z(e.ts)} %`, bewerte(Math.abs(tipp.ts - e.ts), 3, 7)],
       ['Rohasche', `${tipp.asche} g/kg`, `${z(e.asche, 0)} g/kg`, bewerte(Math.abs(tipp.asche - e.asche), 10, 25)],
-      ['Gärqualität', `Note ${tipp.note}`, `Note ${s.note}`, bewerte(Math.abs(tipp.note - s.note), 0, 1)],
+      [heu ? 'Heuqualität' : 'Gärqualität', `Note ${tipp.note}`, `Note ${res.note}`, bewerte(Math.abs(tipp.note - res.note), 0, 1)],
     ];
     const total = zeilen.reduce((a, r) => a + r[3], 0);
     $('#tipp-vergleich').innerHTML = `<h2>Deine Wette: ${total} von 9 Punkten</h2><table class="vergleich"><thead><tr><th></th><th>Tipp</th><th>Ergebnis</th><th>Punkte</th></tr></thead><tbody>
@@ -389,7 +416,7 @@ function zeigeErgebnis(res, sz, tipp, einstellungen) {
     $('.punkte', $('#ergebnis')).hidden = false;
     if (einstellungen.name) {
       const l = rangliste();
-      l.push({ name: einstellungen.name, punkte: res.punkte, wetter: sz.name, ts: e.ts, note: s.note, sterne: n });
+      l.push({ name: einstellungen.name, punkte: res.punkte, wetter: sz.name, ts: e.ts, note: res.note, sterne: n, art: res.art });
       speichereRangliste(l);
     }
   }
@@ -416,7 +443,7 @@ const speichereRangliste = (l) => schreib(localStorage, RL, l);
 function zeigeRangliste() {
   const l = rangliste().sort((a, b) => b.punkte - a.punkte).slice(0, 10);
   $('#rangliste').innerHTML = l.length
-    ? l.map((e) => `<li><span>${esc(e.name)}<small>${esc(e.wetter)} · ${z(e.ts, 0)} % TS · Note ${e.note}</small></span><strong>${e.punkte}</strong></li>`).join('')
+    ? l.map((e) => `<li><span>${esc(e.name)}<small>${e.art === 'heu' ? 'Heu' : 'Silage'} · ${esc(e.wetter)} · ${z(e.ts, 0)} % TS · Note ${e.note}</small></span><strong>${e.punkte}</strong></li>`).join('')
     : '<li class="leer">Noch niemand. Gib beim Einsatz einen Namen ein, dann erscheinst du hier.</li>';
 }
 $('#rangliste-leeren').addEventListener('click', () => {
@@ -439,6 +466,13 @@ function waehleSzenario(id) {
   const w = WETTER.find((x) => x.id === szenario.wetter);
   tippform.hidden = false;
   $('#szenario-titel').textContent = szenario.name;
+  const heu = SILOARTEN[szenario.plan.siloart].art === 'heu';
+  $('#note-label').textContent = heu ? 'Heuqualität' : 'Gärqualität';
+  tippform.ts.max = heu ? 95 : 70;
+  tippform.ts.min = heu ? 40 : 15;
+  if (heu && Number(tippform.ts.value) < 60) tippform.ts.value = 80;
+  if (!heu && Number(tippform.ts.value) > 70) tippform.ts.value = 35;
+  tippText();
   $('#szenario-text').textContent = szenario.text;
   $('#szenario-wetter').innerHTML = w.tage.map((d, i) => {
     const mm = (d.regen ?? []).reduce((a, r) => a + r.mm, 0);
@@ -451,12 +485,12 @@ $('#szenarien').addEventListener('click', (ev) => {
   if (b) waehleSzenario(b.dataset.id);
 });
 baueWahl($('[data-feld="note"]', tippform), [1, 2, 3, 4, 5].map((n) => ({ wert: n, titel: `${n} · ${NOTEN[n - 1]}` })), tipp);
-const tippText = () => {
+function tippText() {
   tippform.tsAus.value = `${tippform.ts.value} % TS`;
   tippform.ascheAus.value = `${tippform.asche.value} g/kg TS`;
   tippform.ts.setAttribute('aria-valuetext', tippform.tsAus.value);
   tippform.asche.setAttribute('aria-valuetext', tippform.ascheAus.value);
-};
+}
 tippform.addEventListener('input', tippText);
 tippText();
 tippform.addEventListener('submit', (ev) => {

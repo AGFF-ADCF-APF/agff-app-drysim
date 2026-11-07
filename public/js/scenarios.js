@@ -30,6 +30,15 @@ export const WETTER = [
     ],
   },
   {
+    id: 'sommer', name: 'Heuwetter, Juli', monat: 7, info: 'Drei heisse, trockene Tage, am Abend des 4. Tages Gewitter',
+    tage: [
+      { tmin: 13, tmax: 27, rhmax: 93, sonne: 0.95, wind: 2 },
+      { tmin: 14, tmax: 29, rhmax: 92, sonne: 0.95, wind: 2.5 },
+      { tmin: 16, tmax: 30, rhmax: 92, sonne: 0.9, wind: 2 },
+      { tmin: 17, tmax: 29, rhmax: 95, sonne: 0.6, wind: 2, regen: [{ h: 18, mm: 8 }, { h: 19, mm: 6 }, { h: 20, mm: 2 }] },
+    ],
+  },
+  {
     id: 'wechselhaft', name: 'Wechselhaft, Mai', monat: 5, info: 'Bewölkt, kühl, viel Tau, Schauer am Tag 3',
     tage: [
       { tmin: 6, tmax: 17, rhmax: 99, sonne: 0.45, wind: 2 },
@@ -46,6 +55,8 @@ export const GRUNDPLAN = {
   zetten: [10], zetterHoehe: 3, schwaden: 17, schwaderHoehe: 3,
   ernte: 18, siloart: 'flachsilo',
 };
+// Heu: späteres Stadium, Zinken etwas höher (trockenes Futter liegt locker)
+const HEUPLAN = { ...GRUNDPLAN, stadium: 4, zetterHoehe: 4, schwaderHoehe: 4, siloart: 'bodenheu' };
 
 export const PROGNOSEN = [
   {
@@ -60,7 +71,7 @@ export const PROGNOSEN = [
       zetten: [33], zetterHoehe: 1, schwaden: 58, schwaderHoehe: 0.5, ernte: 60 },
   },
   {
-    id: 'foehn', name: 'Föhn und Rundballen', wetter: 'foehn',
+    id: 'foehn', lernziel: 'Zu trocken ist auch nicht gut: Was passiert bei Föhn mit Rundballen und mit dem Blattverlust?', name: 'Föhn und Rundballen', wetter: 'foehn',
     text: 'Ausgewogener Bestand bei Beginn Blüte, Mähen um 9 Uhr mit Walzenaufbereiter und Breitablage. Zweimal zetten (10 und 14 Uhr), am nächsten Tag um 11 Uhr schwaden und um 13 Uhr Rundballen pressen.',
     plan: { ...GRUNDPLAN, stadium: 4, maehen: 9, zetten: [10, 14], schwaden: 35, ernte: 37, siloart: 'ballen' },
   },
@@ -68,5 +79,25 @@ export const PROGNOSEN = [
     id: 'ohneaufbereiter', lernziel: 'Nass gemäht, schmale Schwade, Nacht im Tau: wie lange dauert das Anwelken ohne Aufbereiter?', name: 'Nass gemäht, über Nacht', wetter: 'wechselhaft',
     text: 'Ausgewogener Bestand, am Morgen um 7 Uhr in den Tau gemäht, ohne Aufbereiter in die Schwade, nie gezettet. Am Tag 2 um 13 Uhr schwaden, um 15 Uhr ins Flachsilo.',
     plan: { ...GRUNDPLAN, maehen: 7, aufbereiter: 'ohne', breit: false, zetten: [], schwaden: 37, ernte: 39 },
+  },
+  {
+    id: 'heubilderbuch', lernziel: 'So gelingt Bodenheu: drei schöne Tage, fleissig zetten, solange das Futter feucht ist, und am Nachmittag des dritten Tages trocken einlagern.', name: 'Bodenheu wie im Bilderbuch', wetter: 'hoch',
+    text: 'Ausgewogener Bestand bei Beginn Blüte, gemäht um 9 Uhr mit Walzenaufbereiter und Breitablage. Gezettet am Tag 1 um 10 und 14 Uhr, am Tag 2 um 10 und 14 Uhr. Am Tag 3 um 14 Uhr schwaden, um 16 Uhr auf den Heustock.',
+    plan: { ...HEUPLAN, zetten: [10, 14, 34, 38], schwaden: 62, ernte: 64 },
+  },
+  {
+    id: 'heutau', lernziel: 'Fast trocken ist nicht trocken: Was passiert, wenn Heu am Morgen mit Tau eingefahren wird?', name: 'Heu am Morgen eingefahren', wetter: 'hoch',
+    text: 'Gleich wie das Bilderbuch-Heu, aber am Tag 3 soll es schnell gehen: Um 8 Uhr wird geschwadet und um 9 Uhr eingefahren, solange noch Tau liegt. Das Heu kommt auf den Heustock, ohne Belüftung.',
+    plan: { ...HEUPLAN, zetten: [10, 14, 34, 38], schwaden: 56, ernte: 57 },
+  },
+  {
+    id: 'heufoehn', lernziel: 'Wenn das Wetterfenster nicht für Bodenheu reicht: Wie rettet die Belüftung das Heu vor dem Regen?', name: 'Föhn: Belüftung vor dem Regen', wetter: 'foehn',
+    text: 'Ausgewogener Bestand bei Beginn Blüte, Mähen am Tag 1 um 9 Uhr mit Walzenaufbereiter und Breitablage. Zetten um 10 und 14 Uhr und am Tag 2 um 10 Uhr. Am Tag 3 kommt Regen, deshalb wird schon am Tag 2 um 16 Uhr geschwadet und um 18 Uhr in die Heubelüftung eingeführt.',
+    plan: { ...HEUPLAN, siloart: 'belueftung', zetten: [10, 14, 34], schwaden: 40, ernte: 42 },
+  },
+  {
+    id: 'kleeheu', lernziel: 'Die Blätter sind das Beste am Heu: Was kostet es, kleereiches Heu trocken und oft zu zetten?', name: 'Kleeheu zu oft gezettet', wetter: 'sommer',
+    text: 'Kleereicher Bestand bei Beginn Blüte, gemäht um 9 Uhr mit Zinkenaufbereiter und Breitablage. Gezettet wird jeden Tag mehrmals, auch über Mittag, wenn das Futter schon raschelt: am Tag 1 um 10 und 14 Uhr, am Tag 2 um 10, 13 und 16 Uhr und am Tag 3 um 11 Uhr. Schwaden am Tag 3 um 14 Uhr, Einfahren um 16 Uhr in den Heustock.',
+    plan: { ...HEUPLAN, bestand: 'klee', aufbereiter: 'zinken', zetten: [10, 14, 34, 37, 40, 59], schwaden: 62, ernte: 64 },
   },
 ];

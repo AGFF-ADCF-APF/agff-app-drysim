@@ -3,12 +3,13 @@
 const B = 960, H = 380, L = 44, R = 44;
 const O1 = 14, U1 = 150;   // Wetterfeld
 const O2 = 186, U2 = 340;  // TS-Feld
-const TS_MIN = 10, TS_MAX = 75;
+const TS_MIN = 10;
 
 const FARBEN = { maehen: 'var(--text)', zetten: 'var(--gelb)', schwaden: 'var(--blau)', ernte: 'var(--gruen)' };
 const KURZ = { maehen: 'Mähen', zetten: 'Zetten', schwaden: 'Schwaden', ernte: 'Einfahren' };
 
 export function zeichne(el, wetter, { aktionen = [], verlauf = [], ziel = null, bis = null } = {}) {
+  const TS_MAX = ziel && ziel[1] > 60 ? 95 : 75; // Heu braucht die Skala bis fast 100 %
   const n = wetter.length;
   const x = (t) => L + (t / n) * (B - L - R);
   const yT = (v) => U1 - (v / 35) * (U1 - O1);
@@ -53,7 +54,7 @@ export function zeichne(el, wetter, { aktionen = [], verlauf = [], ziel = null, 
   // TS-Feld
   if (ziel) s.push(`<rect x="${L}" y="${yTS(ziel[1])}" width="${B - L - R}" height="${yTS(ziel[0]) - yTS(ziel[1])}" fill="var(--ziel)"/>`,
     `<text x="${B - R + 6}" y="${(yTS(ziel[0]) + yTS(ziel[1])) / 2 + 4}" fill="var(--gruen)">Ziel</text>`);
-  for (const v of [20, 30, 40, 50, 60, 70]) {
+  for (const v of TS_MAX > 75 ? [20, 40, 60, 80] : [20, 30, 40, 50, 60, 70]) {
     s.push(`<line x1="${L}" x2="${B - R}" y1="${yTS(v)}" y2="${yTS(v)}" stroke="var(--linie)" stroke-dasharray="2 4"/>`);
     s.push(`<text x="${L - 6}" y="${yTS(v) + 4}" text-anchor="end">${v}%</text>`);
   }
@@ -67,7 +68,7 @@ export function zeichne(el, wetter, { aktionen = [], verlauf = [], ziel = null, 
     s.push(`<polyline points="${pts.join(' ')}" fill="none" stroke="var(--ts)" stroke-width="3" stroke-linejoin="round"/>`);
     const letzt = sichtbar[sichtbar.length - 1];
     s.push(`<circle cx="${x(letzt.t)}" cy="${yTS(Math.min(TS_MAX, letzt.ts))}" r="5" fill="var(--ts)"/>`,
-      `<text x="${x(letzt.t) + 8}" y="${yTS(Math.min(TS_MAX, letzt.ts)) - 8}" style="font-weight:700;fill:var(--text)">${letzt.ts.toFixed(0)} %</text>`);
+      `<text x="${x(letzt.t) + 8}" y="${yTS(Math.min(TS_MAX, letzt.ts)) + (letzt.ts > TS_MAX - 20 ? 20 : -8)}" style="font-weight:700;fill:var(--text)">${letzt.ts.toFixed(0)} %</text>`);
   }
 
   // Arbeitsgänge
@@ -75,7 +76,9 @@ export function zeichne(el, wetter, { aktionen = [], verlauf = [], ziel = null, 
     const xx = x(a.t);
     const farbe = FARBEN[a.art];
     s.push(`<line x1="${xx}" x2="${xx}" y1="${O1}" y2="${U2}" stroke="${farbe}" stroke-width="1.5" stroke-dasharray="5 3"/>`);
-    s.push(`<text x="${xx + 3}" y="${O2 + 12 + (k % 3) * 13}" style="fill:${farbe};font-weight:600">${KURZ[a.art]}</text>`);
+    // Heu: Die Kurve läuft oben, darum stehen die Namen der Arbeitsgänge unten
+    const y = TS_MAX > 75 ? U2 - 6 - (k % 3) * 13 : O2 + 12 + (k % 3) * 13;
+    s.push(`<text x="${xx + 3}" y="${y}" style="fill:${farbe};font-weight:600">${KURZ[a.art]}</text>`);
   });
   if (bis != null) s.push(`<line x1="${x(bis)}" x2="${x(bis)}" y1="${O1}" y2="${U2}" stroke="var(--text)" stroke-width="2"/>`);
 

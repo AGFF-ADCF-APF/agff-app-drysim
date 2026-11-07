@@ -3,7 +3,8 @@ import { simuliere } from '../public/js/model.js';
 import { WETTER, PROGNOSEN, GRUNDPLAN } from '../public/js/scenarios.js';
 const zeig = (name, r) => {
   if (r.fehler) return console.log(name, 'FEHLER', r.fehler);
-  const s = r.silage, e = r.ernte, v = r.verlust;
+  const s = r.silage, e = r.ernte, v = r.verlust, h = r.heu;
+  if (h) return console.log(`${name.padEnd(28)} TSmahd ${r.tsMahd.toFixed(1)} TS ${e.ts.toFixed(1)} Asche ${e.asche.toFixed(0)} Bleiche ${e.bleiche.toFixed(0)} HEU ${h.punkte} N${h.note} ${h.temp.toFixed(0)}°C Bel ${h.belueftTage.toFixed(1)} d | Atm ${v.atmung.toFixed(1)} Ausw ${v.auswaschung.toFixed(1)} Br ${v.broeckel.toFixed(1)} Lager ${r.lagerverlust.toFixed(1)} tot ${r.verlustTotal.toFixed(1)} NEL ${r.nel.toFixed(2)} Pkt ${r.punkte}`);
   console.log(`${name.padEnd(28)} TSmahd ${r.tsMahd.toFixed(1)} TS ${e.ts.toFixed(1)} Zucker ${e.zucker.toFixed(0)} Asche ${e.asche.toFixed(0)} FK ${s.fk.toFixed(0)} BS ${s.buttersaeure.toFixed(1)} pH ${s.pH.toFixed(2)} DLG ${s.dlg} N${s.note} | Atm ${v.atmung.toFixed(1)} Ausw ${v.auswaschung.toFixed(1)} Br ${v.broeckel.toFixed(1)} Silo ${s.siloverlust.toFixed(1)} tot ${r.verlustTotal.toFixed(1)} NEL ${r.nel.toFixed(2)} Pkt ${r.punkte}`);
 };
 for (const p of PROGNOSEN) zeig(p.name, simuliere(p.plan, stundenwetter(WETTER.find(w => w.id === p.wetter))));
@@ -35,4 +36,9 @@ import { Feld, spieleNach } from '../public/js/model.js';
   console.log('Nachspielen identisch:', ok, a.t, a.ts().toFixed(2), b.ts().toFixed(2));
   const res = simuliere(GRUNDPLAN, stundenwetter(WETTER[0]));
   console.log('Tipps vorhanden:', res.faktoren.every((f) => f.tipp), res.faktoren.length);
+  const heu = PROGNOSEN.filter((p) => p.plan.siloart !== 'flachsilo' && p.plan.siloart !== 'ballen').map((p) => simuliere(p.plan, stundenwetter(WETTER.find((w) => w.id === p.wetter))));
+  console.log('Heu-Tipps vorhanden:', heu.every((r) => r.faktoren.every((f) => f.tipp && f.text && !/undefined|NaN/.test(f.text + f.wert))));
+  // Nachtschwad: Schwad am Abend, am Morgen wieder breit streuen
+  const n = simuliere({ ...GRUNDPLAN, stadium: 4, siloart: 'bodenheu', zetterHoehe: 4, schwaderHoehe: 4, zetten: [10, 14, 33], schwaden: [19, 62], ernte: 64 }, stundenwetter(WETTER[0]));
+  zeig('Nachtschwad', n);
 }

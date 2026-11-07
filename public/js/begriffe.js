@@ -12,6 +12,11 @@ export const BEGRIFFE = [
   { begriff: 'Pufferkapazität', lang: 'Säure-Widerstand', text: 'Wie stark sich das Futter gegen das Absinken des pH-Werts wehrt. Klee hat viel davon, deshalb braucht er mehr Zucker oder mehr TS.' },
   { begriff: 'Siliermittel', lang: 'Zusatz zum Silieren', text: 'Zusätze, die die Gärung in eine gute Richtung lenken. Bei guten Bedingungen sind sie nicht nötig: Vorbeugen ist besser als Korrigieren.' },
   { begriff: 'Atmung', lang: 'Zuckerverbrauch auf dem Feld', text: 'Die gemähten Pflanzen leben noch eine Weile weiter und verbrauchen dabei Zucker. Je kürzer die Feldliegezeit, desto weniger geht verloren.' },
+  { begriff: 'Bodenheu', lang: 'auf dem Feld getrocknetes Heu', text: 'Heu, das ganz auf dem Feld trocknet und mit mindestens 85 % TS auf den Heustock kommt. Braucht zwei bis drei schöne Tage.' },
+  { begriff: 'Belüftungsheu', lang: 'Heu mit Heubelüftung', text: 'Angewelktes Heu (ab etwa 60 % TS) wird eingeführt und im Heustock mit einem Gebläse fertig getrocknet. Spart einen Feldtag und schont die Blätter.' },
+  { begriff: 'Nachtschwad', lang: 'Schwad über Nacht', text: 'Heu wird am Abend geschwadet, damit es weniger Tau aufnimmt, und am Morgen wieder breit gestreut.' },
+  { begriff: 'Bröckelverluste', lang: 'abgebrochene Blätter', text: 'Trockene Blätter brechen beim Zetten, Schwaden und Pressen ab und bleiben liegen. Bei Klee besonders viel; es fehlt dann vor allem Eiweiss.' },
+  { begriff: 'Heusonde', lang: 'Thermometer für den Heustock', text: 'Lange Messstange für die Temperatur im Heustock. Ab 45 °C täglich messen, ab 60 °C die Feuerwehr verständigen: Feuchtes Heu kann sich selbst entzünden.' },
   { begriff: 'Schwad', lang: 'Futterstreifen', text: 'Der Streifen, in den der Schwader das Futter zusammenlegt, damit der Ladewagen oder die Presse es aufnehmen kann.' },
 ];
 

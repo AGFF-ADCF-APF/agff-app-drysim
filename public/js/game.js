@@ -34,6 +34,8 @@ export class Spiel {
     this.log = resume ? resume.log.slice() : [];
     this.feld = resume ? spieleNach(setup, this.wetter, this.log, resume.t, START) : new Feld(setup, this.wetter, START);
     this.ziel = SILOARTEN[setup.siloart].ziel;
+    this.heu = SILOARTEN[setup.siloart].art === 'heu';
+    this.tsMax = this.heu ? 95 : 70; // Skala des Feuchtemessers
     this.szene = new Szene($('.szene-box', root), wetterSzenario.monat);
     this.ruhig = setup.modus === 'ruhig' && !plan;
     this.tempo = plan ? 3 : 1;
@@ -46,13 +48,16 @@ export class Spiel {
     root.classList.toggle('zeitraffer', !!plan);
     root.classList.toggle('ruhig', this.ruhig);
     $('.ticker', root).replaceChildren();
+    const mz = $('.messer.zucker', root);
+    mz.querySelector('span').textContent = this.heu ? 'Blätter verloren' : 'Zucker';
+    mz.querySelector('small').textContent = this.heu ? 'Bröckeln beim Zetten, Schwaden, Pressen' : 'Futter für die Milchsäurebakterien';
     this.baueWetterbericht();
     this.baueKnoepfe();
     this.baueTempo();
     this.bindeGlobal();
     const t0 = `Tag ${Math.floor(this.feld.t / 24) + 1}, ${zeit(this.feld.t)}`;
     if (resume) this.melde(`${t0}: Runde fortgesetzt. Weiter mit ▶ oder Leertaste.`);
-    else this.melde(`Tag 1, ${zeit(START)}: ${this.vorher.nass > 0.1 ? 'Tau liegt auf dem Gras.' : 'Der Tag beginnt.'} ${plan ? 'Zeitraffer läuft …' : this.ruhig ? 'Du bestimmst, wann die Zeit weiterläuft (+1 h).' : 'Wann mähst du?'}`);
+    else this.melde(`Tag 1, ${zeit(START)}: ${this.vorher.nass > 0.1 ? 'Tau liegt auf dem Gras.' : 'Der Tag beginnt.'} ${plan ? 'Zeitraffer läuft …' : this.ruhig ? 'Du bestimmst, wann die Zeit weiterläuft (+1 h).' : this.heu ? 'Heu braucht zwei bis drei schöne Tage. Wann mähst du?' : 'Wann mähst du?'}`);
     this.zeichne(0.01);
     this.lauf();
   }
@@ -109,7 +114,7 @@ export class Spiel {
 
   moeglich(art) {
     const p = this.feld.phase;
-    return { maehen: p === 'stehend', zetten: p === 'gemaeht', schwaden: p === 'gemaeht', ernte: p === 'schwad' }[art];
+    return { maehen: p === 'stehend', zetten: p === 'gemaeht' || p === 'schwad', schwaden: p === 'gemaeht', ernte: p === 'schwad' }[art];
   }
 
   // ---------- Takt
@@ -150,7 +155,7 @@ export class Spiel {
     const p = this.plan, t = this.feld.t;
     if (t === p.maehen) await this.aktion('maehen', 700);
     if (p.zetten.includes(t)) await this.aktion('zetten', 700);
-    if (t === p.schwaden) await this.aktion('schwaden', 700);
+    if ([].concat(p.schwaden).includes(t)) await this.aktion('schwaden', 700);
     if (t === p.ernte) await this.aktion('ernte', 700);
   }
 
@@ -169,8 +174,8 @@ export class Spiel {
     await this.szene.traktor(art, dauer);
     const t = `Tag ${Math.floor(f.t / 24) + 1}, ${zeit(f.t)}`;
     if (art === 'maehen') { f.maehen(); this.melde(`${t}: Gemäht mit ${String(this.setup.schnitthoehe).replace('.', ',')} cm Schnitthöhe${this.vorher.nass > 0.1 ? ', das Gras war noch nass' : ''}.`); }
-    if (art === 'zetten') { f.zettenJetzt(); this.melde(`${t}: Gezettet bei ${z(f.ts())} % TS.`); }
-    if (art === 'schwaden') { f.schwaden(); this.melde(`${t}: Geschwadet bei ${z(f.ts())} % TS.`); }
+    if (art === 'zetten') { const ausSchwad = f.phase === 'schwad'; f.zettenJetzt(); this.melde(`${t}: ${ausSchwad ? 'Schwad wieder breit gestreut' : 'Gezettet'} bei ${z(f.ts())} % TS.`); }
+    if (art === 'schwaden') { f.schwaden(); if (this.heu) this.gemeldet.add('nachtschwad'); this.melde(`${t}: Geschwadet bei ${z(f.ts())} % TS.`); }
     if (art !== 'ernte') this.log.push({ t: f.t, art });
     this.beschaeftigt = false;
     if (art === 'ernte') {
@@ -208,10 +213,13 @@ export class Spiel {
       einmal('regen' + f.t, `${t}: Regen zieht auf – ${z(w.regen, 1)} mm in dieser Stunde!`, true);
     }
     if (zs.phase === 'stehend' && alt.nass > 0.08 && zs.nass <= 0.08) einmal('tauweg' + w.tag, `${t}: Der Tau ist abgetrocknet.`);
-    if (zs.phase !== 'stehend' && w.h === 20) einmal('abend' + w.tag, `${t}: Es wird Abend. Über Nacht fällt Tau aufs Futter.`);
+    if (zs.phase !== 'stehend' && w.h === 20) einmal('abend' + w.tag, `${t}: Es wird Abend. Über Nacht fällt Tau aufs Futter.${this.heu && zs.phase === 'gemaeht' && !this.gemeldet.has('nachtschwad') ? ' Tipp: Ein Nachtschwad nimmt weniger Tau auf; am Morgen wieder zetten.' : ''}`);
+    if (this.heu && zs.phase === 'gemaeht' && w.h === 20) this.gemeldet.add('nachtschwad');
     if (zs.phase !== 'stehend') {
-      if (zs.ts >= this.ziel[0] && alt.ts < this.ziel[0]) einmal('ziel', `${t}: Feuchtemesser zeigt ${z(zs.ts)} % TS – Zielbereich erreicht!`, true);
-      if (zs.ts > this.ziel[1] && alt.ts <= this.ziel[1]) einmal('zutrocken', `${t}: Achtung, das Futter wird zu trocken (${z(zs.ts)} % TS).`, true);
+      const belueft = this.setup.siloart === 'belueftung';
+      if (zs.ts >= this.ziel[0] && alt.ts < this.ziel[0]) einmal('ziel', `${t}: Feuchtemesser zeigt ${z(zs.ts)} % TS – ${this.heu ? (belueft ? 'genug angewelkt für die Belüftung!' : 'das Heu ist lagerfähig!') : 'Zielbereich erreicht!'}`, true);
+      if (zs.ts > this.ziel[1] && alt.ts <= this.ziel[1]) einmal('zutrocken', this.heu ? `${t}: ${z(zs.ts)} % TS – trockener als nötig, die Blätter bröckeln jetzt leicht.` : `${t}: Achtung, das Futter wird zu trocken (${z(zs.ts)} % TS).`, !this.heu || belueft);
+      if (this.heu && !belueft && zs.ts >= 60 && alt.ts < 60) einmal('sproede', `${t}: ${z(zs.ts)} % TS – ab jetzt werden die Blätter spröde. Lieber am Morgen mit etwas Tau zetten.`);
     }
     if (f.t === this.wetter.length - 8) einmal('schluss', `${t}: Noch 8 Stunden bis Spielende!`, true);
     this.vorher = zs;
@@ -287,6 +295,9 @@ export class Spiel {
   knoepfeAktiv() {
     const frei = !this.beschaeftigt && !this.plan;
     this.root.querySelectorAll('.aktion').forEach((b) => { b.disabled = !(frei && this.moeglich(b.dataset.art)); });
+    // Aus dem Schwad heraus streut der Zetter das Futter wieder breit (Nachtschwad)
+    const zt = this.root.querySelector('.aktion.zetten b');
+    if (zt) zt.firstChild.textContent = this.feld.phase === 'schwad' ? 'Breit streuen ' : 'Zetten ';
   }
 
   // ---------- Anzeige
@@ -299,7 +310,7 @@ export class Spiel {
     this.root.querySelectorAll('.tageskarte').forEach((k) => k.classList.toggle('heute', Number(k.dataset.tag) === w.tag));
 
     const [a, b] = this.ziel;
-    const tsPos = (v) => `${Math.min(100, Math.max(0, (v - 10) / 60 * 100))}%`;
+    const tsPos = (v) => `${Math.min(100, Math.max(0, (v - 10) / (this.tsMax - 10) * 100))}%`;
     const ts = $('.messer.ts', this.root);
     ts.querySelector('strong').textContent = `${z(zs.ts)} %`;
     ts.querySelector('.ziel').style.left = tsPos(a);
@@ -315,7 +326,8 @@ export class Spiel {
       m.querySelector('i').style.width = `${Math.min(100, (wert / max) * 100)}%`;
       m.classList.toggle('warnung', schlecht);
     };
-    balken('.messer.zucker', zs.zucker, 200, `${z(zs.zucker)} g/kg`, zs.zucker < 60);
+    if (this.heu) balken('.messer.zucker', zs.broeckel ?? 0, 20, `${z(zs.broeckel ?? 0, 1)} %`, (zs.broeckel ?? 0) > 9);
+    else balken('.messer.zucker', zs.zucker, 200, `${z(zs.zucker)} g/kg`, zs.zucker < 60);
     balken('.messer.erde', Math.max(0, zs.asche - 70), 130, `${z(zs.asche)} g/kg`, zs.asche > 100);
     balken('.messer.verlust', zs.verlust, 25, `${z(zs.verlust, 1)} %`, zs.verlust > 10);
     this.knoepfeAktiv();
