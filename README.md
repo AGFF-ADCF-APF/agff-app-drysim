@@ -1,7 +1,7 @@
-# Silage-Simulator (drysim)
+# Heureka – Lernspiel Futterkonservierung (früher «Silage-Simulator», Pfad /drysim)
 
 Lernspiel zur Futterkonservierung für die höhere Berufsschule und die höhere Fachschule.
-Läuft unter <https://apps.graswachstum.ch/drysim/>. Der Start ist die Silagebereitung, Heu kommt später dazu.
+Läuft unter <https://apps.graswachstum.ch/heureka/>. Der Start ist die Silagebereitung, Heu kommt später dazu.
 
 ## Idee (Gespräch vom 12.10.2026)
 
@@ -9,7 +9,7 @@ Läuft unter <https://apps.graswachstum.ch/drysim/>. Der Start ist die Silageber
 - **Prognose**: Ein Szenario ist vorgegeben. Die Studierenden tippen zuerst TS, Rohasche und Gärnote, dann läuft die Simulation im Schnelldurchlauf und deckt das Ergebnis auf.
 - **Erklär-Knöpfe**: Beim Ergebnis erklärt jeder Faktor, was passiert ist (z.B. „5 cm Schnitthöhe → +18 g Rohasche → Clostridien → Buttersäure“). Das ist näher an der Schweizer Sicht („Hast du alles richtig gemacht, damit es gut werden musste?“). Die DLG-Laborbewertung wird nur als Ergebnis gezeigt.
 
-Für den Wettkampf bekommen alle dasselbe Wetter, entweder eine feste Wetterlage oder ein Zufallswetter mit Code: `…/drysim/?wetter=gewitter` oder `…/drysim/?code=KLASSE3`.
+Für den Wettkampf bekommen alle dasselbe Wetter, entweder eine feste Wetterlage oder ein Zufallswetter mit Code: `…/heureka/?wetter=gewitter` oder `…/heureka/?code=KLASSE3`.
 
 ## Aufbau
 
@@ -56,7 +56,7 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine node tools/seiten.mjs
 ```
 
 - **Offline:** Service Worker (aus `tools/seiten.mjs`) lädt alle Dateien vorab; die App startet auch ohne Netz.
-- `sitemap.xml` liegt unter `/drysim/`. Ein `robots.txt` müsste auf `apps.graswachstum.ch` im Wurzelverzeichnis liegen (gehört nicht zu dieser App).
+- `sitemap.xml` liegt unter `/heureka/`. Ein `robots.txt` müsste auf `apps.graswachstum.ch` im Wurzelverzeichnis liegen (gehört nicht zu dieser App).
 
 ## Modell (Lehrmodell, vereinfacht)
 

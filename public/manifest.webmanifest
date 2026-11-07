@@ -1,6 +1,6 @@
 {
-  "name": "Silage-Simulator",
-  "short_name": "Silage",
+  "name": "Heureka",
+  "short_name": "Heureka",
   "description": "Lernspiel Futterkonservierung: Silage bereiten bei wechselndem Wetter",
   "lang": "de-CH",
   "start_url": "./",

@@ -6,7 +6,7 @@ import { WETTER, PROGNOSEN } from '../public/js/scenarios.js';
 import { BESTAENDE, SILOARTEN, STADIEN, AUFBEREITER } from '../public/js/model.js';
 import { BEGRIFFE } from '../public/js/begriffe.js';
 
-const BASIS = 'https://apps.graswachstum.ch/drysim/';
+const BASIS = 'https://apps.graswachstum.ch/heureka/';
 const HEUTE = new Date().toISOString().slice(0, 10);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const zahl = (x) => String(x).replace('.', ',');
@@ -41,9 +41,9 @@ function seite({ pfad, tiefe, titel, beschreibung, krumen, h1, inhalt }) {
 <body>
   <a class="skip" href="#inhalt">Zum Inhalt</a>
   <header class="kopf">
-    <a class="logo" href="${hoch}" aria-label="Silage-Simulator, zum Spiel">
+    <a class="logo" href="${hoch}" aria-label="Heureka, zum Spiel">
       <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="8" y="14" width="22" height="28" rx="3" fill="#2e7d32"/><path d="M8 14 Q19 2 30 14Z" fill="#8a3b2a"/><ellipse cx="36" cy="38" rx="10" ry="5" fill="#a3a843"/></svg>
-      <span><b>Silage-Simulator</b><small>Lernspiel Futterkonservierung</small></span>
+      <span><b><span class="logo-heu">HEU</span>reka</b><small>Lernspiel Futterkonservierung</small></span>
     </a>
     <div class="kopf-knoepfe"><button type="button" class="icon-btn" id="modus"></button></div>
   </header>
@@ -79,12 +79,12 @@ const QUELLEN = [
 ];
 const lernen = seite({
   pfad: 'lernen.html', tiefe: 0,
-  titel: 'Futterkonservierung verstehen: Anwelken, Atmung, Erde und Gärqualität – Silage-Simulator',
+  titel: 'Futterkonservierung verstehen: Anwelken, Atmung, Erde und Gärqualität – Heureka',
   beschreibung: 'Wie gute Silage entsteht: Anwelken auf 30 bis 40 % TS, Breitablage, Zucker schonen, sauber arbeiten und die Gärqualität bewerten. Mit Begriffserklärungen.',
   krumen: [['Start', './'], ['Lernen']],
   h1: 'Futterkonservierung verstehen',
   inhalt: `
-    <p>Silage entsteht, wenn Milchsäurebakterien im luftdichten Silo den Zucker des Futters zu Milchsäure vergären. Der pH-Wert sinkt, und das Futter wird haltbar. Ob das gelingt, entscheidet sich zu einem grossen Teil schon auf dem Feld. Diese Seite erklärt, was im <a href="./">Silage-Simulator</a> passiert und warum.</p>
+    <p>Silage entsteht, wenn Milchsäurebakterien im luftdichten Silo den Zucker des Futters zu Milchsäure vergären. Der pH-Wert sinkt, und das Futter wird haltbar. Ob das gelingt, entscheidet sich zu einem grossen Teil schon auf dem Feld. Diese Seite erklärt, was im <a href="./">Lernspiel Heureka</a> passiert und warum.</p>
     <div class="infobox"><p><strong>Wichtig:</strong> Das Spiel rechnet mit einem vereinfachten Lehrmodell. Es zeigt Zusammenhänge und Grössenordnungen, ist aber keine Prognose für einen Betrieb.</p></div>
     <nav aria-label="Inhalt dieser Seite"><ul>
       <li><a href="#anwelken">Warum anwelken?</a></li>
@@ -146,7 +146,7 @@ ${QUELLEN.map(([t, u]) => `      <li><a href="${u}" rel="noopener">${esc(t)}</a>
     </ul>
 
     <h2>Jetzt ausprobieren</h2>
-    <p><a class="knopflink" href="./">Silage-Simulator starten</a></p>
+    <p><a class="knopflink" href="./">Heureka starten</a></p>
     <p>Oder zuerst ein Szenario ansehen:</p>
     <ul>
 ${PROGNOSEN.map((p) => `      <li><a href="szenario/${p.id}.html">${esc(p.name)}</a></li>`).join('\n')}
@@ -163,7 +163,7 @@ for (const p of PROGNOSEN) {
   const mm = (t) => (t.regen ?? []).reduce((a, r) => a + r.mm, 0);
   const html = seite({
     pfad: `szenario/${p.id}.html`, tiefe: 1,
-    titel: `Szenario «${p.name}»: Wie wird die Silage? – Silage-Simulator`,
+    titel: `Szenario «${p.name}»: Wie wird die Silage? – Heureka`,
     beschreibung: `${p.lernziel} Lies das Szenario, tippe das Ergebnis und schau den Zeitraffer an.`,
     krumen: [['Start', '../'], ['Lernen', '../lernen.html'], [`Szenario ${p.name}`]],
     h1: `Szenario «${p.name}»`,

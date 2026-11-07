@@ -20,11 +20,11 @@ const schreib = (speicher, key, wert) => { try { speicher.setItem(key, JSON.stri
 let spiel = null;
 let aktuell = 'start';
 const TITEL = {
-  start: 'Silage-Simulator – Lernspiel Futterkonservierung',
-  setup: 'Einsatz planen – Silage-Simulator',
-  spiel: 'Auf dem Feld – Silage-Simulator',
-  ergebnis: 'Silo öffnen – Silage-Simulator',
-  wetten: 'Prognose-Wette – Silage-Simulator',
+  start: 'Heureka – Lernspiel Futterkonservierung',
+  setup: 'Einsatz planen – Heureka',
+  spiel: 'Auf dem Feld – Heureka',
+  ergebnis: 'Silo öffnen – Heureka',
+  wetten: 'Prognose-Wette – Heureka',
 };
 const PFAD = {
   start: [],

@@ -461,3 +461,5 @@ a.logo small { opacity: .85; font-size: .95rem; }
 :root[data-outdoor="1"] .regler .plusminus, :root[data-outdoor="1"] .icon-btn { width: 56px; height: 56px; }
 :root[data-outdoor="1"] .gross-knopf { min-height: 64px; }
 :root[data-outdoor="1"] .aktion { min-height: 72px; }
+/* Name «Heureka»: Wortspiel Heu + Heureka sichtbar machen (heugelb auf dem grünen Kopf) */
+.logo-heu { color: #f5c84c; letter-spacing: .02em; }
