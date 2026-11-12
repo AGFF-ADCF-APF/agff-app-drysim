@@ -92,3 +92,11 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine node tools/seiten.mjs
 - [ ] Grafik: Illustrationen (Feld, Maschinen) – derzeit nur SVG-Diagramm; KI-Bilder oder Grafiker
 - [x] Heu als zweites Modul (Belüftungsheu, Bodenheu, Heuballen; Nachtschwad; Lager und Heuqualität)
 - [ ] Heu-Parameter mit Fachleuten prüfen: Trocknungsschub ab 55 % TS, Bröckelverluste nach TS und Kleeanteil, Erwärmung und Lagerverluste, Punkteschema der Heuqualität (Sinnenprüfung). Belüftung mit drywatch verknüpfen (Energie, Warmbelüftung, Entfeuchter)
+
+
+## Lizenz
+
+Code: © 2026 AGFF – Arbeitsgemeinschaft zur Förderung des Futterbaues, lizenziert unter der EUPL-1.2 (Datei `LICENSE`; amtliche
+Fassungen auch auf Deutsch, Französisch und Italienisch: https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12). Nicht unter
+die Lizenz fallen die Inhalte (Merkblätter, Zeichnungen, Fotos, Tabellen); die Rechte liegen bei der jeweiligen Quelle, meist bei der
+AGFF. Die Lizenz wird zentral gepflegt in `entwicklungsumgebung/lizenz`.
