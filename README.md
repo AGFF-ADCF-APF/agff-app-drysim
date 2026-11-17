@@ -167,4 +167,4 @@ docker run --rm --user 1000:1000 -v "$PWD":/app -w /app node:22-alpine node test
 Code: © 2026 AGFF – Arbeitsgemeinschaft zur Förderung des Futterbaues, lizenziert unter der EUPL-1.2 (Datei `LICENSE`; amtliche
 Fassungen auch auf Deutsch, Französisch und Italienisch: https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12). Nicht unter
 die Lizenz fallen die Inhalte (Merkblätter, Zeichnungen, Fotos, Tabellen); die Rechte liegen bei der jeweiligen Quelle, meist bei der
-AGFF. Die Lizenz wird zentral gepflegt in `entwicklungsumgebung/lizenz`.
+AGFF. Die Lizenz wird zentral gepflegt in `heimserver-werkzeuge/lizenz`.
