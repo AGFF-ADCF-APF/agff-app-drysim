@@ -70,23 +70,30 @@ ${inhalt}
 }
 
 // ---------- Lernseite
-const QUELLEN = [
+// Quellen: zuerst Fachunterlagen aus Österreich, der Schweiz und Deutschland (liegen in der App Heutrocknung), dann Versuche aus den USA.
+const DRY = '../drywatch/knowledge/files/';
+const QUELLEN_DACH = [
+  ['Galler, Kittl, Wirleitner (Landwirtschaftskammer Salzburg): Heutrocknung von A bis Z. Praxisratgeber (Österreich)', `${DRY}Heutrocknung_von_A-Z_Kittl+Galler_2020.pdf`],
+  ['Agroscope Transfer Nr. 38/2014: Richtlinien für Heubelüftungsanlagen (Autoren aus Schweiz, Österreich und Deutschland)', `${DRY}agroscope_transfer_38_2014_richtlinien_fuer_heubelueftungsanlagen.pdf`],
+  ['Baumgartner, J. (1982): ABC der Heubelüftung. Blätter für Landtechnik 216, FAT Tänikon (Schweiz)', `${DRY}Baumgartner_1982_ABC-der-Heubelueftung.pdf`],
+  ['LfL Bayern / AGGF 2016: Grassilage, TM-Gehalt (Pickert et al., PDF)', 'https://lfl.bayern.de/mam/cms07/ipz/dateien/aggf_2016_pickert_et_al.pdf'],
+  ['top agrar: Gras zügig trocken – geht das nur mit Aufbereiter? (Deutschland)', 'https://www.topagrar.com/technik/news/krone-maehwerke-gras-zuegig-trocken-geht-das-nur-mit-aufbereiter-12748796.html'],
+  ['Agrartechnik (Universität Hohenheim): Halmgutaufbereitung auf dem Feld (Deutschland)', 'https://440ejournals.uni-hohenheim.de/index.php/agrartechnik/article/view/2620/2352'],
+];
+const QUELLEN_USA = [
   ['UW–Madison Extension: Field drying forage for hay and haylage', 'https://dairy.extension.wisc.edu/articles/field-drying-forage-for-hay-and-haylage'],
   ['UW Forage: Swath Drying (Merkblatt, PDF)', 'https://fyi.extension.wisc.edu/forage/files/2014/01/SwathDrying-FOF.pdf'],
   ['Undersander: Harvest Strategies (Alfalfa Symposium 2013, PDF)', 'https://alfalfasymposium.ucdavis.edu/+symposium/proceedings/2013/13WAS-27_Undersander_HarvestStrategies.pdf'],
-  ['top agrar: Gras zügig trocken – geht das nur mit Aufbereiter?', 'https://www.topagrar.com/technik/news/krone-maehwerke-gras-zuegig-trocken-geht-das-nur-mit-aufbereiter-12748796.html'],
-  ['Agrartechnik (Universität Hohenheim): Halmgutaufbereitung auf dem Feld', 'https://440ejournals.uni-hohenheim.de/index.php/agrartechnik/article/view/2620/2352'],
-  ['LfL Bayern / AGGF 2016: Grassilage, TM-Gehalt (Pickert et al., PDF)', 'https://lfl.bayern.de/mam/cms07/ipz/dateien/aggf_2016_pickert_et_al.pdf'],
 ];
 const lernen = seite({
   pfad: 'lernen.html', tiefe: 0,
   titel: 'Futterkonservierung verstehen: Anwelken, Atmung, Erde, Gärqualität und Heu – Heureka',
-  beschreibung: 'Wie gute Silage und gutes Heu entstehen: Anwelken auf 30 bis 40 % TS, Heu ab 85 % TS lagern, Belüftung, Breitablage, Blätter schonen, sauber arbeiten. Mit Begriffserklärungen.',
+  beschreibung: 'Wie gute Silage und gutes Heu entstehen: Anwelken, Breitablage, Aufbereiter, Zetten, Heu ab 87 bis 88 % TS, Belüftung und Heustock-Kontrolle. Nach Unterlagen aus Österreich, der Schweiz und Deutschland.',
   krumen: [['Start', './'], ['Lernen']],
   h1: 'Futterkonservierung verstehen',
   inhalt: `
     <p>Silage entsteht, wenn Milchsäurebakterien im luftdichten Silo den Zucker des Futters zu Milchsäure vergären. Der pH-Wert sinkt, und das Futter wird haltbar. Ob das gelingt, entscheidet sich zu einem grossen Teil schon auf dem Feld. Diese Seite erklärt, was im <a href="./">Lernspiel Heureka</a> passiert und warum.</p>
-    <div class="infobox"><p><strong>Wichtig:</strong> Das Spiel rechnet mit einem vereinfachten Lehrmodell. Es zeigt Zusammenhänge und Grössenordnungen, ist aber keine Prognose für einen Betrieb.</p></div>
+    <div class="infobox"><p><strong>Woher die Zahlen kommen:</strong> Begriffe und Richtwerte stützen sich in erster Linie auf Fachunterlagen aus Österreich, der Schweiz und Deutschland: den Praxisratgeber «Heutrocknung von A bis Z» (<strong>LK Salzburg</strong>), die «Richtlinien für Heubelüftungsanlagen» (<strong>Agroscope 2014</strong>) und das «ABC der Heubelüftung» (<strong>FAT 1982</strong>). Versuche aus den USA ergänzen sie. Das Spiel selbst rechnet mit einem vereinfachten Lehrmodell: Es zeigt Zusammenhänge und Grössenordnungen, ist aber keine Prognose für einen Betrieb.</p></div>
     <nav aria-label="Inhalt dieser Seite"><ul>
       <li><a href="#anwelken">Warum anwelken?</a></li>
       <li><a href="#trocknung">Schnell trocknen: erst breit ablegen, dann aufbereiten</a></li>
@@ -100,12 +107,12 @@ const lernen = seite({
     </ul></nav>
 
     <h2 id="anwelken">Warum anwelken?</h2>
-    <p>Frisches Gras besteht zu über 80 % aus Wasser, also zu weniger als 20 % aus Trockensubstanz (<abbr title="Trockensubstanz">TS</abbr>). Zu nasses Futter siliert schlecht: Der Zucker ist verdünnt, es fliesst Sickersaft ab, und Buttersäurebakterien (Clostridien) haben leichtes Spiel. Zu trockenes Futter lässt sich dagegen schlecht verdichten. Dann bleibt Luft im Silo, es erwärmt sich und schimmelt.</p>
+    <p>Frisches Gras besteht zu rund 80 % aus Wasser. Erntereifes Futter hat je nach Nutzungszeitpunkt 18 bis 22 % Trockensubstanz (<abbr title="Trockensubstanz">TS</abbr>, in Deutschland und Österreich <abbr title="Trockenmasse">TM</abbr>), ältere Schweizer Unterlagen rechnen mit 15 % (LK Salzburg; FAT 1982). Zu nasses Futter siliert schlecht: Der Zucker ist verdünnt, es fliesst Sickersaft ab, und Buttersäurebakterien (Clostridien) haben leichtes Spiel. Zu trockenes Futter lässt sich dagegen schlecht verdichten. Dann bleibt Luft im Silo, es erwärmt sich und schimmelt.</p>
     <ul>
       <li><strong>Flachsilo:</strong> Ziel ${SILOARTEN.flachsilo.ziel[0]} bis ${SILOARTEN.flachsilo.ziel[1]} % TS</li>
       <li><strong>Rundballen:</strong> Ziel ${SILOARTEN.ballen.ziel[0]} bis ${SILOARTEN.ballen.ziel[1]} % TS</li>
     </ul>
-    <p>Die <abbr title="Landesanstalt für Landwirtschaft Bayern">LfL Bayern</abbr> nennt für Grassilage meist 30 bis 40 % TM als Optimum. Wie gut sich Futter silieren lässt, beschreibt der Vergärbarkeitskoeffizient <abbr title="Vergärbarkeitskoeffizient">FK</abbr>: Er verbindet TS, Zucker und Pufferkapazität. Ein FK über 45 gilt als gut silierbar. Klee hat viel Pufferkapazität und wenig Zucker, braucht deshalb mehr TS als Gras.</p>
+    <p>Die <abbr title="Landesanstalt für Landwirtschaft Bayern">LfL Bayern</abbr> nennt für Grassilage meist 30 bis 40 % TM als Optimum. Die Unterlagen zur Heutrocknung enthalten keine Zielwerte für Silage; die Silage-Werte im Spiel stützen sich auf die LfL Bayern und das Lehrmodell. Wie gut sich Futter silieren lässt, beschreibt der Vergärbarkeitskoeffizient <abbr title="Vergärbarkeitskoeffizient">FK</abbr>: Er verbindet TS, Zucker und Pufferkapazität. Ein FK über 45 gilt als gut silierbar. Klee hat viel Pufferkapazität und wenig Zucker, braucht deshalb mehr TS als Gras.</p>
 
     <h2 id="trocknung">Schnell trocknen: erst breit ablegen, dann aufbereiten</h2>
     <p>Das Anwelken läuft in zwei Phasen:</p>
@@ -113,40 +120,88 @@ const lernen = seite({
       <li><strong>Erste Phase (rund eine Stunde):</strong> Die Pflanze verdunstet Wasser über die Spaltöffnungen (<abbr title="Spaltöffnungen">Stomata</abbr>). Sie schliessen sich nach dem Schnitt aber schnell. Der Aufbereiter hält sie nicht offen.</li>
       <li><strong>Zweite Phase:</strong> Das Wasser muss durch die Wachsschicht (<abbr title="Wachsschicht">Kutikula</abbr>) und aus den Stängeln nach aussen. Hier hilft der Aufbereiter, weil er die Wachsschicht verletzt.</li>
     </ol>
-    <p>Wichtiger als der Aufbereiter ist die Ablage. In Versuchen der Universität Wisconsin erreichte Luzerne in Breitablage auf mehr als 70 % der Fläche nach rund 8 bis 10 Stunden etwa 65 % Feuchte, also rund 35 % TS. In einer schmalen Schwade war das Futter erst am Folgetag so weit. Die Beratung empfiehlt, das Futter auf 80 bis 100 % der Schnittbreite abzulegen. Die Versuche stammen aus den USA und von Luzerne, die Zeiten lassen sich nicht eins zu eins auf Gras in der Schweiz übertragen.</p>
+    <p><strong>Breit ablegen:</strong> Für ein rasches Trocknen wird das Futter sofort nach dem Mähen auf die volle Arbeitsbreite ausgebreitet, sofern der Mäher das aufbereitete Futter nicht schon breitflächig ablegt (LK Salzburg). Versuche der Universität Wisconsin (USA, Luzerne) zeigen den Effekt deutlich: Bei Breitablage auf mehr als 70 % der Fläche war das Futter nach rund 8 bis 10 Stunden bei etwa 65 % Feuchte, also rund 35 % TS. In einer schmalen Schwade war es erst am Folgetag so weit. Die Versuche stammen aus den USA, und die Zeiten lassen sich nicht eins zu eins auf Gras in der Schweiz übertragen.</p>
+    <p><strong>Aufbereiter:</strong> Ein Mähaufbereiter verkürzt die Trocknungszeit um 2 bis 4 Stunden und spart oft einen Zettvorgang samt den Bröckelverlusten (LK Salzburg). Bei grobstängeligem Futter sind es 1 bis 6 Stunden (Agroscope 2014). Zinken (Schlägel) passen zu Dauerwiese und Gräsern, Quetschwalzen zu Luzerne und Kleegras; Intensivaufbereiter haben eine Bürstenwalze und eine Breitstreuvorrichtung. Der Effekt sinkt mit der Fahrgeschwindigkeit (besser 7 bis 9 km/h als 11 bis 15 km/h), und das Gerät braucht rund 44 % mehr Leistung als das Mähwerk allein (LK Salzburg). In der ersten Phase direkt nach dem Mähen hilft er wenig, die Ablage ist wichtiger.</p>
     <p>In Deutschland gilt die «24-Stunden-Silage» mit rund 35 % TS als Ziel. Ältere Untersuchungen in der Zeitschrift Agrartechnik sehen den Effekt von Rotoraufbereitern bis etwa 60 % TS am grössten.</p>
+    <p><strong>Anwelkgrad schätzen (Stängelprobe):</strong> Stängel in die Handfläche legen und mit dem Daumennagel in Längsrichtung ausstreichen. Tritt am Stängelende kein Wasser mehr aus, sind es mehr als 65 % TS (Agroscope 2014).</p>
     <div class="infobox"><p><strong>Im Spiel:</strong> Breitablage und ein früher Zettdurchgang bringen das Futter am gleichen Tag in den Zielbereich. Eine dichte Mähschwade ohne Zetten braucht bis zum nächsten Tag.</p></div>
 
     <h2 id="zucker">Zucker schonen: Atmung, Tau und Regen</h2>
-    <p>Gemähte Pflanzen leben noch eine Weile weiter und veratmen dabei Zucker, bis sie etwa 60 % TS erreichen. Je wärmer es ist und je länger das Futter liegt, desto mehr Zucker geht verloren. Ziel ist eine kurze Feldliegezeit, am besten unter 24 Stunden. Der Zucker fehlt später den Milchsäurebakterien.</p>
+    <p>Gemähte Pflanzen leben noch eine Weile weiter und veratmen dabei Zucker (im Spiel, bis sie etwa 60 % TS erreichen). Je wärmer es ist und je länger das Futter liegt, desto mehr Zucker geht verloren. Bleibt das Futter länger als etwa 35 Stunden auf dem Feld oder wird es eingeregnet, sinkt der Zuckergehalt deutlich; zu langes Anwelken erhöht die Atmungs- und die Bröckelverluste (LK Salzburg). Der Zucker fehlt später den Milchsäurebakterien.</p>
+    <p><strong>Mähzeitpunkt:</strong> Gemäht wird frühestens, wenn der Tau abgetrocknet ist, normalerweise am späteren Vormittag. Mähen am Abend bringt keinen Vorteil: Der tagsüber gebildete Zucker wird in der Nacht wieder veratmet, und das Wetterrisiko steigt (LK Salzburg).</p>
     <p>Nachts nimmt das Futter Tau auf. Am Morgen muss dieses Wasser zuerst verdunsten, bevor die Pflanze selbst weiter trocknet. Regen macht den Trocknungsfortschritt zunichte und wäscht zusätzlich Zucker und Mineralstoffe aus. Aufbereitetes Futter mit verletzter Wachsschicht nimmt Wasser schneller auf und verliert mehr.</p>
+    <p>Die Konservierungsverluste vom Schnitt bis zum Trog setzen sich so zusammen (LK Salzburg):</p>
+    <div class="tabelle"><table class="zahlen">
+      <thead><tr><th>Verlustart</th><th>Grössenordnung</th><th>Hängt ab von</th></tr></thead>
+      <tbody>
+        <tr><td>Atmungsverluste</td><td>3 bis 10 % und mehr</td><td>Trocknungszeit</td></tr>
+        <tr><td>Bröckelverluste</td><td>3 bis 15 % und mehr</td><td>Zetten, Wenden, Kräuteranteil</td></tr>
+        <tr><td>Auswaschungsverluste</td><td>1 bis 5 % und mehr</td><td>Regen, Tau</td></tr>
+        <tr><td>Lagerverluste</td><td>2 bis 10 % und mehr</td><td>Restwasser, Nacherwärmung</td></tr>
+      </tbody>
+    </table></div>
+    <p>Das Ziel sind Konservierungsverluste möglichst unter 10 %. Bodenheu und Nasssilage liegen oft bei 20 bis 40 %, Anwelksilage und Kaltbelüftung bei 15 bis 25 %, Eintagessilage mit Warmbelüftung unter 10 % (LK Salzburg).</p>
 
     <h2 id="sauber">Sauber arbeiten: Schnitthöhe, Zinken und Erde</h2>
-    <p>Sauberes Futter hat etwa 90 g Rohasche je kg TS. Alles deutlich darüber ist meistens Erde. Ab etwa 100 g steigt die Gefahr einer Buttersäuregärung, besonders bei nassem Futter. Mit der Erde gelangen Clostridien-Sporen ins Silo. Diese Bakterien bilden Buttersäure. Das macht die Silage stinkend und gefährdet die Käsereitauglichkeit der Milch.</p>
+    <p>Sauberes Futter hat etwa 90 g Rohasche je kg TS. Alles deutlich darüber ist meistens Erde. Ab 10 % (100 g je kg TS) ist bei Silage mit einer explosionsartigen Vermehrung der Buttersäurebakterien zu rechnen, vor allem bei starker Verschmutzung und ungenügendem Anwelken (LK Salzburg). Die Sporen stammen aus dem Boden und gelangen mit jeder Futterverschmutzung ins Silo. Zu tiefes Mähen, lückige Bestände, Narbenverletzungen und sporenhaltige Humusteilchen sind die Hauptursachen. Clostridien bilden Buttersäure: Das macht die Silage stinkend, und sie gefährden die Hartkäseherstellung (Lochung, Risse im Teig). Gute Milch enthält unter 200 Sporen je Liter. Heu enthält nahezu keine sporenbildenden Bakterien, das ist für Hartkäse- und Heumilch entscheidend (Agroscope 2014; LK Salzburg).</p>
     <ul>
-      <li><strong>Schnitthöhe:</strong> Unter 6 cm kommt deutlich mehr Erde ins Futter. Über 7 cm lässt man Ertrag stehen, im Spiel rund 4 % je Zentimeter. Die Stoppeln tragen dafür das Schwad und lassen es luftiger liegen.</li>
-      <li><strong>Zinkenhöhe:</strong> Sie wird auf festem, ebenem Boden eingestellt. Auf dem Feld sinken die Räder ein, auf nassem Boden stärker, die Zinken laufen also tiefer. Unter etwa 2 cm reissen sie Erde mit.</li>
-      <li><strong>Futter bleibt liegen:</strong> Das Schwad liegt auf den niedergedrückten Stoppeln. Stehen die Zinken darüber, bleibt Futter liegen. Bei hohen Stoppeln darf die Einstellung höher sein.</li>
+      <li><strong>Schnitthöhe:</strong> Mindestens 5 bis 7 cm vom Boden aus gemessen sollen stehen bleiben, teils wird auf 8 bis 9 cm gemäht (LK Salzburg). Tiefe Schnitte schaden dem nächsten Aufwuchs: Die Pflanze verliert ihr grünes Assimilationsgewebe und muss aus den Wurzelreserven nachschieben, und das viele Licht am Boden fördert die Keimung von Ampfer. Eine richtige Schnitthöhe bringt weniger Erde im Futter, eine bessere Feldtrocknung durch den grösseren Abstand zum Boden, eine dichte Grasnarbe und einen rascheren Folgeaufwuchs. Im Spiel kommt unter 6 cm deutlich mehr Erde ins Futter, und über 7 cm bleiben rund 4 % Ertrag je Zentimeter stehen.</li>
+      <li><strong>Zinkenhöhe:</strong> Sie wird auf festem, ebenem Boden eingestellt. Auf dem Feld sinken die Räder ein, auf nassem Boden stärker, die Zinken laufen also tiefer. Unter etwa 2 cm reissen sie im Spiel Erde mit. Kleine Kreiseldurchmesser und eine flache Kreiselstellung passen sich dem Boden besser an (LK Salzburg; Agroscope 2014).</li>
+      <li><strong>Futter bleibt liegen:</strong> Das Schwad liegt auf den niedergedrückten Stoppeln. Stehen die Zinken darüber, bleibt Futter liegen. Bei hohen Stoppeln darf die Einstellung höher sein. Doppelkreiselschwader mit Mittelablage schleifen das Futter weniger über den Boden (LK Salzburg).</li>
       <li><strong>Maulwurfshaufen</strong> und ein nasser Boden verstärken das Problem.</li>
     </ul>
 
     <h2 id="zetten">Zetten und Schwaden: Blätter schonen</h2>
-    <p>Zetten lockert das Futter und dreht die feuchte Unterseite nach oben. Am wirksamsten ist ein Durchgang kurz nach dem Mähen. Je trockener das Futter wird, desto mehr bröckelt beim Zetten und Schwaden ab. Bei Klee sind das die eiweissreichen Blätter. Zetten und Schwaden ist daher am besten, solange das Futter noch unter etwa 40 % TS hat.</p>
+    <p>Zetten lockert das Futter und verteilt es breit. Am ersten Tag nach dem Mähen kann der Kreiselzettwender mehrmals eingesetzt werden, jeder Arbeitsgang kostet aber Blätter. Mit zunehmender Trocknung, bei Heu über 60 % TM, steigen die Bröckelverluste überproportional. Am zweiten Tag wird das Futter deshalb nur noch wenig bearbeitet. Bei kräuterreichen Beständen und Bodenheu können es bis 100 kg TM je ha und Arbeitsgang sein (LK Salzburg). Bei Klee sind das die eiweissreichen Blätter. Im Spiel steigen die Bröckelverluste ab etwa 35 % TS spürbar.</p>
+    <p>Empfohlen werden zwei bis höchstens drei Durchgänge mit abnehmender Drehzahl und zunehmender Schonung. Die Durchgänge erfolgen abwechselnd längs und quer, und der Kreisel steht beim Wenden eher flach:</p>
+    <div class="tabelle"><table class="zahlen">
+      <thead><tr><th>Durchgang</th><th>Zapfwellendrehzahl LK Salzburg</th><th>Zapfwellendrehzahl Agroscope 2014</th></tr></thead>
+      <tbody>
+        <tr><td>1. (Zetten)</td><td>540 U/min</td><td>rund 500 U/min bei 6 bis 8 km/h</td></tr>
+        <tr><td>2. (Wenden)</td><td>400 U/min</td><td>380 bis 420 U/min</td></tr>
+        <tr><td>3. (Wenden)</td><td>320 U/min</td><td>340 bis 400 U/min</td></tr>
+      </tbody>
+    </table></div>
+    <p><strong>Schwaden:</strong> Wegen der Bröckelverluste wird besser früh geschwadet, und das Futter trocknet im Schwad im Wind nach. Eine breite Schwadablage ist günstig für das schonende Aufnehmen mit Ladewagen oder Presse (LK Salzburg).</p>
 
     <h2 id="gaerung">Gärqualität bewerten: Labor oder Prozess?</h2>
-    <p>Der DLG-Schlüssel bewertet Silage im Nachhinein mit Laborwerten: Buttersäure, Essigsäure und pH-Wert ergeben bis 100 Punkte. In der Schweizer Beratung steht häufiger der Prozess im Vordergrund: Wurde alles richtig gemacht, damit die Silage gut werden musste? Vorbeugen ist besser als Korrigieren, und bei guten Bedingungen sind Siliermittel meist nicht nötig. Das Spiel zeigt beides: Am Schluss steht die Note, und die Erklär-Karten zeigen die Arbeitsschritte, die dazu geführt haben.</p>
+    <p>Der DLG-Schlüssel bewertet Silage im Nachhinein mit Laborwerten: Buttersäure, Essigsäure und pH-Wert ergeben bis 100 Punkte. Die Gärqualität entsteht aber auf dem Feld und im Silo: Wer sauber arbeitet, genug anwelkt und gut verdichtet, braucht meist kein Siliermittel. Vorbeugen ist besser als Korrigieren. Das Spiel zeigt beides: Am Schluss steht die Note, und die Erklär-Karten zeigen die Arbeitsschritte, die dazu geführt haben.</p>
 
     <h2 id="heu">Heu: Bodenheu, Heuballen oder Belüftung</h2>
-    <p>Heu wird nicht vergoren, sondern so weit getrocknet, dass Bakterien und Pilze nicht mehr arbeiten können. Bis dahin muss viel mehr Wasser weg als bei Silage: von rund 20 % TS beim Mähen auf über 85 %. Dafür braucht es meist zwei bis drei schöne Tage.</p>
+    <p>Heu wird nicht vergoren, sondern so weit getrocknet, dass Bakterien und Pilze nicht mehr arbeiten können. Lagerfähig ist Heu ab etwa 87 bis 88 % TS (Agroscope 2014; LK Salzburg: fertiges Heu hat rund 88 % TM). Bis dahin muss viel mehr Wasser weg als bei Silage: Aus Gras mit 20 % TS müssen rund 3,35 kg Wasser je kg Heu verdunsten (Agroscope 2014), bei 15 % TS sind es sogar rund 4,9 kg (FAT 1982). Wird das Futter auf 60 % TS vorgetrocknet, bleiben nur noch rund 0,67 kg Wasser je kg Trockenmasse. Der wesentliche Teil der Trocknung passiert also auf dem Feld. Eine um rund 10 % höhere Feuchtigkeit des Belüftungsheus verdoppelt die abzutrocknende Wassermenge (Agroscope 2014).</p>
+    <p>Belüftungsheu wird meist am Folgetag nach dem Mähen eingefahren, mit einem Mähaufbereiter und zwei bis höchstens drei Zettdurchgängen sind bei gutem Wetter 60 bis 70 % TS erreichbar (Agroscope 2014). Mit modernen Anlagen genügen oft zwei Sonnentage (LK Salzburg).</p>
     <ul>
-      <li><strong>Bodenheu:</strong> trocknet ganz auf dem Feld und kommt mit mindestens ${SILOARTEN.bodenheu.ziel[0]} % TS auf den Heustock.</li>
-      <li><strong>Heuballen:</strong> ebenfalls ab ${SILOARTEN.heuballen.ziel[0]} % TS. Dicht gepresste Ballen geben Wärme schlecht ab und schimmeln, wenn sie zu feucht sind.</li>
-      <li><strong>Belüftungsheu:</strong> wird schon ab etwa ${SILOARTEN.belueftung.ziel[0]} % TS eingeführt. Ein Gebläse trocknet es im Heustock mit Aussenluft fertig. Das spart einen Feldtag, verringert das Wetterrisiko und schont die Blätter. Wie lange das dauert, hängt davon ab, wie trocken die Luft ist (siehe die App <a href="../drywatch/">Heutrocknung</a>).</li>
+      <li><strong>Bodenheu:</strong> trocknet ganz auf dem Feld. Es darf höchstens 20 bis 25 % Wasser enthalten, wenn es auf den Heustock kommt; dort erwärmt es sich dann normalerweise bis 40 bis 45 °C. Im Spiel gilt es ab ${SILOARTEN.bodenheu.ziel[0]} % TS als einlagerbar.</li>
+      <li><strong>Heuballen:</strong> Vorsicht bei stark verdichteten Pressballen mit mehr als 20 % Restfeuchte: Sie geben Wärme schlecht ab und schimmeln. Im Spiel gilt ebenfalls ab ${SILOARTEN.heuballen.ziel[0]} % TS als einlagerbar.</li>
+      <li><strong>Belüftungsheu:</strong> wird schon feuchter eingeführt, im Spiel ab etwa ${SILOARTEN.belueftung.ziel[0]} % TS. Ein Gebläse trocknet es im Heustock mit Aussenluft fertig. Das verringert Bröckel- und Atmungsverluste und das Wetterrisiko (Agroscope 2014). Wie lange das dauert, hängt von der Luft ab: Bei 20 °C und höchstens 50 % Luftfeuchte lässt sich Heu auf rund 87 % TM trocknen, bei 80 % Luftfeuchte nur bis etwa 76 % TM (LK Salzburg). Die App <a href="../drywatch/">Heutrocknung</a> rechnet das genauer.</li>
     </ul>
-    <p><strong>Blätter schonen:</strong> Am ersten Tag wird fleissig gezettet, solange das Futter feucht ist. Ab etwa 60 % TS werden die Blätter spröde und brechen beim Zetten, Schwaden und Pressen ab. Dann nur noch schonend arbeiten, am besten am Morgen mit etwas Restfeuchte. Bei Klee sind die Verluste besonders hoch, und es gehen vor allem die eiweissreichen Blätter verloren.</p>
-    <p><strong>Tau und Nachtschwad:</strong> Über Nacht nimmt das Heu wieder Feuchtigkeit auf. Ein Nachtschwad (am Abend schwaden, am Morgen wieder breit streuen) verringert das. Eingefahren wird am Nachmittag, nie mit Tau.</p>
-    <p><strong>Erwärmung und Brandgefahr:</strong> Zu feucht eingelagertes Heu erwärmt sich, wird muffig und schimmlig. Ein Heustock kann sich sogar selbst entzünden. Darum wird frisches Heu in den ersten Wochen regelmässig mit der Heusonde gemessen: ab 45 °C täglich, ab 60 °C die Feuerwehr verständigen.</p>
-    <p><strong>Sonne und Regen:</strong> Trockenes Heu, das lange in der Sonne liegt, bleicht aus und verliert Carotin. Regen auf fast trockenes Heu laugt es aus. Gutes Heu riecht aromatisch, ist grünlich, blattreich und sauber. Das Spiel bewertet Heu nach Geruch, Farbe, Gefüge (Blätter) und Verunreinigung, angelehnt an die Sinnenprüfung und vereinfacht.</p>
+    <p>Wie feucht das Futter beim Einfahren höchstens sein darf, hängt vom Trocknungsverfahren ab (nach Wirleitner, in LK Salzburg):</p>
+    <div class="tabelle"><table class="zahlen">
+      <thead><tr><th>Verfahren</th><th>Höchste Feuchte beim Einfahren</th><th>Entspricht TS</th></tr></thead>
+      <tbody>
+        <tr><td>Bodenheu (ohne Belüftung)</td><td>20 bis 25 %</td><td>75 bis 80 %</td></tr>
+        <tr><td>Einfache Kaltbelüftung</td><td>25 bis 35 %</td><td>65 bis 75 %</td></tr>
+        <tr><td>Rundballenbelüftung</td><td>höchstens 35 %</td><td>ab 65 %</td></tr>
+        <tr><td>Solarbelüftung</td><td>30 bis 40 %</td><td>60 bis 70 %</td></tr>
+        <tr><td>Warmbelüftung, Entfeuchter</td><td>40 bis 55 %</td><td>45 bis 60 %</td></tr>
+        <tr><td>Fertig getrocknetes Heu (lagerfähig)</td><td>ab etwa 10 bis 13 %</td><td>87 bis 90 %</td></tr>
+      </tbody>
+    </table></div>
+    <p>Belüftungsheu hat mehr Energie als Bodenheu: In den Futterwerttabellen stehen rund 6,4 MJ NEL je kg TM gegenüber 5,7 MJ bei Bodenheu (Grassilage: 6,3 MJ), und das nutzbare Protein ist höher (LK Salzburg).</p>
+    <p><strong>Blätter schonen:</strong> Am ersten Tag wird gezettet, solange das Futter feucht ist. Ab etwa 60 % TS werden die Blätter spröde und brechen beim Zetten, Schwaden und Pressen ab; ab da nur noch wenig bearbeiten. Bei Klee sind die Verluste besonders hoch, und es gehen vor allem die eiweissreichen Blätter verloren.</p>
+    <p><strong>Tau und Nachtschwad:</strong> Über Nacht nimmt das Heu wieder Feuchtigkeit auf. In der Praxis verringert ein Nachtschwad (am Abend schwaden, am Morgen wieder breit streuen) das. Eingefahren wird immer vor Sonnenuntergang, nicht mit Tau (LK Salzburg).</p>
+    <p><strong>Erwärmung und Brandgefahr:</strong> Auch scheinbar trockenes Heu atmet nach dem Einlagern noch und erzeugt Wärme und Feuchte. Ohne Belüftung ist eine Eigenerwärmung bis 40 bis 45 °C normal; diese Fermentationsphase mit Schwitzwasser ist nach vier bis sechs Wochen vorbei, bei feucht eingebrachtem, verdichtetem oder sehr jungem Futter dauert sie länger. Hauptursachen für Selbstentzündung sind angeregnetes Heu, hohe Restfeuchte, zu rasche Ernte von sehr jungem blattreichem Futter, verschmutztes Futter und zu dichte Lagerung. Der Heustock wird bis zu zwölf Wochen mit der Heusonde gemessen («Heumesskalender»): in den ersten Tagen täglich, in der 2. bis 4. Woche alle zwei bis drei Tage, danach einmal wöchentlich, mit Messstellen höchstens 1,5 m voneinander entfernt (LK Salzburg).</p>
+    <div class="tabelle"><table class="zahlen">
+      <thead><tr><th>Temperatur im Stock</th><th>Was zu tun ist</th><th>Verluste an Energie / nutzbarem Protein</th></tr></thead>
+      <tbody>
+        <tr><td>unter 40 °C</td><td>normal</td><td>2 bis 5 % / 2 bis 5 %</td></tr>
+        <tr><td>45 bis 60 °C</td><td>Gefahr: Kontrollen verstärken</td><td>bei 50 °C: 10 bis 15 % / 20 bis 25 %</td></tr>
+        <tr><td>60 bis 70 °C</td><td>alle fünf Stunden messen, Stock nicht abtragen</td><td>bei 60 °C: 15 bis 20 % / 40 bis 55 %</td></tr>
+        <tr><td>über 70 °C oder Mulde im Stock</td><td>sofort die Feuerwehr (Heuwehr) rufen</td><td>bei 70 °C: 30 bis 35 % / 70 bis 80 %</td></tr>
+      </tbody>
+    </table></div>
+    <p>Einen heissen Heustock niemals selbst abtragen: Luftsauerstoff und Hitze führen unweigerlich zum Brand. Erkennungsmerkmale sind Schwitzwasser, ein seltsam süsslicher Geruch, ein Temperaturanstieg über 50 °C und eine muldenförmige Einbuchtung (Verluste nach Philipsen 1965, in LK Salzburg). Bei der Kaltbelüftung gilt zudem: Stocktemperaturen über 35 °C im Intervallbetrieb beachten (Agroscope 2014).</p>
+    <p><strong>Sonne und Regen:</strong> Trockenes Heu, das lange in der Sonne liegt, bleicht aus und verliert Vitamine (Carotin). Regen und Tau waschen aus, 1 bis 5 % und mehr (LK Salzburg). Gutes Heu riecht aromatisch, ist grünlich, blattreich und sauber. Das Spiel bewertet Heu nach Geruch, Farbe, Gefüge (Blätter) und Verunreinigung, angelehnt an die Sinnenprüfung und vereinfacht.</p>
     <div class="infobox"><p><strong>Im Spiel:</strong> Bei Hochdruck ist Bodenheu am Nachmittag des dritten Tages lagerfähig. Reicht das Wetterfenster nicht, rettet die Belüftung das Futter.</p></div>
 
     <h2 id="begriffe">Begriffe kurz erklärt</h2>
@@ -155,8 +210,13 @@ ${BEGRIFFE.map((b) => `      <dt>${esc(b.begriff)} <small>(${esc(b.lang)})</smal
     </dl>
 
     <h2 id="quellen">Quellen</h2>
+    <h3>Österreich, Schweiz, Deutschland</h3>
     <ul>
-${QUELLEN.map(([t, u]) => `      <li><a href="${u}" rel="noopener">${esc(t)}</a></li>`).join('\n')}
+${QUELLEN_DACH.map(([t, u]) => `      <li><a href="${u}" rel="noopener">${esc(t)}</a></li>`).join('\n')}
+    </ul>
+    <h3>USA</h3>
+    <ul>
+${QUELLEN_USA.map(([t, u]) => `      <li><a href="${u}" rel="noopener">${esc(t)}</a></li>`).join('\n')}
       <li>Rotz, C. A.; Chen, Y. (1985): Alfalfa drying model for the field environment. Transactions of the ASAE 28. (Grundlage der Trocknungsrechnung im Spiel)</li>
     </ul>
 

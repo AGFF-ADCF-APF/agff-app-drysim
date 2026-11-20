@@ -332,7 +332,8 @@ function abzeichen(res) {
     if (h.abzug.farbe < 1 && e.regenFeld === 0) a.push(['Grünes Heu', 'Nicht verregnet, nicht ausgebleicht']);
     if (v.broeckel < (res.plan.bestand === 'klee' ? 10 : 8)) a.push(['Blattschoner', 'Wenig Bröckelverluste']);
     if (res.plan.siloart === 'belueftung' && h.belueftTage <= 3 && res.ernte.ts >= 60) a.push(['Belüftungsprofi', 'Rechtzeitig und genug angewelkt eingeführt']);
-    if (h.temp >= 60) a.push(['Heustock heiss', 'Feuerwehr verständigen!', true]);
+    if (h.temp >= 70) a.push(['Heustock heiss', 'Ab 70 °C: Feuerwehr verständigen!', true]);
+    else if (h.temp >= 60) a.push(['Heustock sehr warm', 'Alle fünf Stunden messen', true]);
     else if (h.schimmel !== 'kein') a.push(['Muffig', 'Zu feucht eingelagert', true]);
   } else {
     if (e.stunden <= 12) a.push(['Blitzsilage', 'In unter 12 h im Silo']);

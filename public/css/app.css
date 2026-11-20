@@ -465,3 +465,9 @@ a.logo small { opacity: .85; font-size: .95rem; }
 :root[data-outdoor="1"] .aktion { min-height: 72px; }
 /* Name «Heureka»: Wortspiel Heu + Heureka sichtbar machen (heugelb auf dem grünen Kopf) */
 .logo-heu { color: #f5c84c; letter-spacing: .02em; }
+
+/* Zahlentabellen auf der Lernseite */
+.seite .tabelle { overflow-x: auto; margin: .6rem 0 1rem; }
+.seite table.zahlen { width: 100%; border-collapse: collapse; font-size: 1rem; }
+.seite table.zahlen th, .seite table.zahlen td { text-align: left; padding: .55rem .6rem; border-bottom: 1px solid var(--linie); vertical-align: top; }
+.seite table.zahlen th { background: var(--bg); font-weight: 700; }
