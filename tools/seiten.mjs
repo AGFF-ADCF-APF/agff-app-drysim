@@ -153,15 +153,16 @@ const lernen = seite({
 
     <h2 id="zetten">Zetten und Schwaden: Blätter schonen</h2>
     <p>Zetten lockert das Futter und verteilt es breit. Am ersten Tag nach dem Mähen kann der Kreiselzettwender mehrmals eingesetzt werden, jeder Arbeitsgang kostet aber Blätter. Mit zunehmender Trocknung, bei Heu über 60 % TM, steigen die Bröckelverluste überproportional. Am zweiten Tag wird das Futter deshalb nur noch wenig bearbeitet. Bei kräuterreichen Beständen und Bodenheu können es bis 100 kg TM je ha und Arbeitsgang sein (LK Salzburg). Bei Klee sind das die eiweissreichen Blätter. Im Spiel steigen die Bröckelverluste ab etwa 35 % TS spürbar.</p>
-    <p>Empfohlen werden zwei bis höchstens drei Durchgänge mit abnehmender Drehzahl und zunehmender Schonung. Die Durchgänge erfolgen abwechselnd längs und quer, und der Kreisel steht beim Wenden eher flach:</p>
+    <p id="zettwender">Die Durchgänge laufen mit abnehmender Drehzahl und zunehmender Schonung, abwechselnd längs und quer, und der Kreisel steht beim Wenden eher flach. Wie viele es sind, hängt vom Schnitt und vom Aufbereiter ab (LK Salzburg): Beim 1. Schnitt ohne Aufbereiter sind es drei (Zetten und zweimal Wenden). Mit Aufbereiter übernimmt dieser den ersten Durchgang, es bleiben zwei. Bei den Folgeschnitten sind es ebenfalls zwei. Agroscope 2014 nennt mit Aufbereiter zwei bis höchstens drei Durchgänge.</p>
     <div class="tabelle"><table class="zahlen">
-      <thead><tr><th>Durchgang</th><th>Zapfwellendrehzahl LK Salzburg</th><th>Zapfwellendrehzahl Agroscope 2014</th></tr></thead>
+      <thead><tr><th>Futter</th><th>1. Durchgang (Zetten, steiler Kreisel)</th><th>2. Durchgang (Wenden, flacher Kreisel)</th><th>3. Durchgang (Wenden)</th></tr></thead>
       <tbody>
-        <tr><td>1. (Zetten)</td><td>540 U/min</td><td>rund 500 U/min bei 6 bis 8 km/h</td></tr>
-        <tr><td>2. (Wenden)</td><td>400 U/min</td><td>380 bis 420 U/min</td></tr>
-        <tr><td>3. (Wenden)</td><td>320 U/min</td><td>340 bis 400 U/min</td></tr>
+        <tr><td>1. Schnitt, ohne Aufbereiter</td><td>540 U/min</td><td>400 U/min</td><td>320 U/min</td></tr>
+        <tr><td>1. Schnitt, mit Aufbereiter</td><td>übernimmt der Aufbereiter</td><td>400 U/min</td><td>320 U/min</td></tr>
+        <tr><td>2. und Folgeschnitte</td><td>540 U/min</td><td>320 U/min</td><td>–</td></tr>
       </tbody>
     </table></div>
+    <p>Zapfwellendrehzahl nach LK Salzburg; Agroscope 2014 nennt rund 500 U/min bei 6 bis 8 km/h für den ersten, 380 bis 420 für den zweiten und 340 bis 400 für den dritten Durchgang.</p>
     <p><strong>Schwaden:</strong> Wegen der Bröckelverluste wird besser früh geschwadet, und das Futter trocknet im Schwad im Wind nach. Eine breite Schwadablage ist günstig für das schonende Aufnehmen mit Ladewagen oder Presse (LK Salzburg).</p>
 
     <h2 id="gaerung">Gärqualität bewerten: Labor oder Prozess?</h2>
@@ -175,7 +176,7 @@ const lernen = seite({
       <li><strong>Heuballen:</strong> Vorsicht bei stark verdichteten Pressballen mit mehr als 20 % Restfeuchte: Sie geben Wärme schlecht ab und schimmeln. Im Spiel gilt ebenfalls ab ${SILOARTEN.heuballen.ziel[0]} % TS als einlagerbar.</li>
       <li><strong>Belüftungsheu:</strong> wird schon feuchter eingeführt, im Spiel ab etwa ${SILOARTEN.belueftung.ziel[0]} % TS. Ein Gebläse trocknet es im Heustock mit Aussenluft fertig. Das verringert Bröckel- und Atmungsverluste und das Wetterrisiko (Agroscope 2014). Wie lange das dauert, hängt von der Luft ab: Bei 20 °C und höchstens 50 % Luftfeuchte lässt sich Heu auf rund 87 % TM trocknen, bei 80 % Luftfeuchte nur bis etwa 76 % TM (LK Salzburg). Die App <a href="../drywatch/">Heutrocknung</a> rechnet das genauer.</li>
     </ul>
-    <p>Wie feucht das Futter beim Einfahren höchstens sein darf, hängt vom Trocknungsverfahren ab (nach Wirleitner, in LK Salzburg):</p>
+    <p id="einfuhrfeuchte">Wie feucht das Futter beim Einfahren höchstens sein darf, hängt vom Trocknungsverfahren ab (nach Wirleitner, in LK Salzburg):</p>
     <div class="tabelle"><table class="zahlen">
       <thead><tr><th>Verfahren</th><th>Höchste Feuchte beim Einfahren</th><th>Entspricht TS</th></tr></thead>
       <tbody>
@@ -190,17 +191,17 @@ const lernen = seite({
     <p>Belüftungsheu hat mehr Energie als Bodenheu: In den Futterwerttabellen stehen rund 6,4 MJ NEL je kg TM gegenüber 5,7 MJ bei Bodenheu (Grassilage: 6,3 MJ), und das nutzbare Protein ist höher (LK Salzburg).</p>
     <p><strong>Blätter schonen:</strong> Am ersten Tag wird gezettet, solange das Futter feucht ist. Ab etwa 60 % TS werden die Blätter spröde und brechen beim Zetten, Schwaden und Pressen ab; ab da nur noch wenig bearbeiten. Bei Klee sind die Verluste besonders hoch, und es gehen vor allem die eiweissreichen Blätter verloren.</p>
     <p><strong>Tau und Nachtschwad:</strong> Über Nacht nimmt das Heu wieder Feuchtigkeit auf. In der Praxis verringert ein Nachtschwad (am Abend schwaden, am Morgen wieder breit streuen) das. Eingefahren wird immer vor Sonnenuntergang, nicht mit Tau (LK Salzburg).</p>
-    <p><strong>Erwärmung und Brandgefahr:</strong> Auch scheinbar trockenes Heu atmet nach dem Einlagern noch und erzeugt Wärme und Feuchte. Ohne Belüftung ist eine Eigenerwärmung bis 40 bis 45 °C normal; diese Fermentationsphase mit Schwitzwasser ist nach vier bis sechs Wochen vorbei, bei feucht eingebrachtem, verdichtetem oder sehr jungem Futter dauert sie länger. Hauptursachen für Selbstentzündung sind angeregnetes Heu, hohe Restfeuchte, zu rasche Ernte von sehr jungem blattreichem Futter, verschmutztes Futter und zu dichte Lagerung. Der Heustock wird bis zu zwölf Wochen mit der Heusonde gemessen («Heumesskalender»): in den ersten Tagen täglich, in der 2. bis 4. Woche alle zwei bis drei Tage, danach einmal wöchentlich, mit Messstellen höchstens 1,5 m voneinander entfernt (LK Salzburg).</p>
+    <p id="erwaermung"><strong>Erwärmung und Brandgefahr:</strong> Auch scheinbar trockenes Heu atmet nach dem Einlagern noch und erzeugt Wärme und Feuchte. Ohne Belüftung ist eine Eigenerwärmung bis 40 bis 45 °C normal; diese Fermentationsphase mit Schwitzwasser ist nach vier bis sechs Wochen vorbei, bei feucht eingebrachtem, verdichtetem oder sehr jungem Futter dauert sie länger. Hauptursachen für Selbstentzündung sind angeregnetes Heu, hohe Restfeuchte, zu rasche Ernte von sehr jungem blattreichem Futter, verschmutztes Futter und zu dichte Lagerung. Der Heustock wird bis zu zwölf Wochen mit der Heusonde gemessen («Heumesskalender»): in den ersten Tagen täglich, in der 2. bis 4. Woche alle zwei bis drei Tage, danach einmal wöchentlich, mit Messstellen höchstens 1,5 m voneinander entfernt (LK Salzburg).</p>
     <div class="tabelle"><table class="zahlen">
       <thead><tr><th>Temperatur im Stock</th><th>Was zu tun ist</th><th>Verluste an Energie / nutzbarem Protein</th></tr></thead>
       <tbody>
         <tr><td>unter 40 °C</td><td>normal</td><td>2 bis 5 % / 2 bis 5 %</td></tr>
         <tr><td>45 bis 60 °C</td><td>Gefahr: Kontrollen verstärken</td><td>bei 50 °C: 10 bis 15 % / 20 bis 25 %</td></tr>
-        <tr><td>60 bis 70 °C</td><td>alle fünf Stunden messen, Stock nicht abtragen</td><td>bei 60 °C: 15 bis 20 % / 40 bis 55 %</td></tr>
-        <tr><td>über 70 °C oder Mulde im Stock</td><td>sofort die Feuerwehr (Heuwehr) rufen</td><td>bei 70 °C: 30 bis 35 % / 70 bis 80 %</td></tr>
+        <tr><td>60 bis 70 °C</td><td>alle fünf Stunden messen, Stock nicht abtragen; die örtliche Feuerwehr vorinformieren und um Rat fragen</td><td>bei 60 °C: 15 bis 20 % / 40 bis 55 %</td></tr>
+        <tr><td>über 70 °C oder Mulde im Stock</td><td>sofort die Feuerwehr (Heuwehr) alarmieren</td><td>bei 70 °C: 30 bis 35 % / 70 bis 80 %</td></tr>
       </tbody>
     </table></div>
-    <p>Einen heissen Heustock niemals selbst abtragen: Luftsauerstoff und Hitze führen unweigerlich zum Brand. Erkennungsmerkmale sind Schwitzwasser, ein seltsam süsslicher Geruch, ein Temperaturanstieg über 50 °C und eine muldenförmige Einbuchtung (Verluste nach Philipsen 1965, in LK Salzburg). Bei der Kaltbelüftung gilt zudem: Stocktemperaturen über 35 °C im Intervallbetrieb beachten (Agroscope 2014).</p>
+    <p>Die frühe Information der örtlichen Feuerwehr ab 60 °C ist eine bewährte Praxisempfehlung (sie hat auch Messsonden und gibt Rat); die Quelle verlangt den Alarm ab 70 °C. Einen heissen Heustock niemals selbst abtragen: Luftsauerstoff und Hitze führen unweigerlich zum Brand. Erkennungsmerkmale sind Schwitzwasser, ein seltsam süsslicher Geruch, ein Temperaturanstieg über 50 °C und eine muldenförmige Einbuchtung (Verluste nach Philipsen 1965, in LK Salzburg). Bei der Kaltbelüftung gilt zudem: Stocktemperaturen über 35 °C im Intervallbetrieb beachten (Agroscope 2014).</p>
     <p><strong>Sonne und Regen:</strong> Trockenes Heu, das lange in der Sonne liegt, bleicht aus und verliert Vitamine (Carotin). Regen und Tau waschen aus, 1 bis 5 % und mehr (LK Salzburg). Gutes Heu riecht aromatisch, ist grünlich, blattreich und sauber. Das Spiel bewertet Heu nach Geruch, Farbe, Gefüge (Blätter) und Verunreinigung, angelehnt an die Sinnenprüfung und vereinfacht.</p>
     <div class="infobox"><p><strong>Im Spiel:</strong> Bei Hochdruck ist Bodenheu am Nachmittag des dritten Tages lagerfähig. Reicht das Wetterfenster nicht, rettet die Belüftung das Futter.</p></div>
 

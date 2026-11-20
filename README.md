@@ -58,6 +58,16 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine node tools/seiten.mjs
 - **Offline:** Service Worker (aus `tools/seiten.mjs`) lädt alle Dateien vorab; die App startet auch ohne Netz.
 - `sitemap.xml` liegt unter `/heureka/`. Ein `robots.txt` müsste auf `apps.graswachstum.ch` im Wurzelverzeichnis liegen (gehört nicht zu dieser App).
 
+## Traktor-Assistent (Lerninhalte im Spiel)
+
+Wie in Futter v2 gibt ein Traktor unten rechts kurze Lerntipps (`public/js/assistent.js`, Texte in `assistent-texte.js`, feste Texte, keine KI):
+
+- **Wo:** auf der Startseite, im Einsatz (je Abschnitt beim Scrollen und als Rückmeldung zu Wahl und Reglern, z. B. «Sehr tief gemäht», «Zinken im Boden»), auf dem Feld (je Phase: stehend, gemäht, im Schwad; dazu Ereignisse wie Regen, Zielbereich, Abend, spröde Blätter, über 35 Stunden, zu viel Erde, erstes Zetten und Schwaden) und beim Ergebnis (Silage bzw. Heustock-Kontrolle).
+- **Bedienung:** meldet sich beim ersten Mal von selbst mit einer kleinen Blase, die beim Antippen aufgeht; Warnungen kommen bei jedem Mal. Texte «einfach» oder «fachlich» (mit Zahlen und Quellen), «Mehr dazu» führt in die Lernseite. «Ruhe, bitte» schickt den Traktor schlafen, auf der Startseite lassen sich die Tipps aus- und wieder einschalten oder neu starten.
+- **Spiel:** Öffnet man eine Blase im laufenden Spiel, pausiert es. In der Wette (Zeitraffer) gibt es nur den Hinweis auf den Zeitraffer.
+- **Zettvorgänge nach LK Salzburg:** 1. Schnitt ohne Aufbereiter drei Durchgänge (540 → 400 → 320 U/min), mit Aufbereiter zwei (er ersetzt das Zetten), Folgeschnitte zwei (540 → 320).
+- **Feuerwehr bei Heu:** Ab 60 °C die örtliche Feuerwehr vorinformieren und um Rat fragen (Praxisempfehlung), bei 60 bis 70 °C alle fünf Stunden messen, ab 70 °C oder bei Mulde sofort alarmieren (LK Salzburg).
+
 ## Modell (Lehrmodell, vereinfacht)
 
 - **Trocknung**: Trocknungskonstante nach Rotz & Chen (1985) aus Strahlung, Dampfdruckdefizit, Bodenfeuchte und Schwaddichte (am ersten Tag schneller). Kalibriert auf Feldversuche der Univ. Wisconsin (Breitablage ≥ 70 % der Fläche: 35 % TS nach rund 8–10 h bei gutem Wetter; schmale Schwade erst am Folgetag; Breitablage wichtiger als Aufbereitung): Schwadfaktor hoch −0,75 (Breitablage 1, Mähschwade 1,7, Schwad 5), Wind, hohe Stoppeln (+2 %/cm über 7 cm). Der Aufbereiter wirkt erst in der zweiten Phase (ab ca. 22–30 % TS), nach dem Schliessen der Stomata.

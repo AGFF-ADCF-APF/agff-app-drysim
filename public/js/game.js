@@ -5,6 +5,7 @@ import { Feld, SILOARTEN, AUFBEREITER, spieleNach } from './model.js';
 import { stundenwetter } from './weather.js';
 import { Szene } from './scene.js';
 import { wetterSymbol, stundenSymbol, AKTION } from './icons.js';
+import { Assistent } from './assistent.js';
 
 export const START = 5; // Tag 1, 05:00
 const TEMPO = { 1: 800, 2: 280, 3: 80 };
@@ -59,8 +60,17 @@ export class Spiel {
     if (resume) this.melde(`${t0}: Runde fortgesetzt. Weiter mit ▶ oder Leertaste.`);
     else this.melde(`Tag 1, ${zeit(START)}: ${this.vorher.nass > 0.1 ? 'Tau liegt auf dem Gras.' : 'Der Tag beginnt.'} ${plan ? 'Zeitraffer läuft …' : this.ruhig ? 'Du bestimmst, wann die Zeit weiterläuft (+1 h).' : this.heu ? 'Heu braucht zwei bis drei schöne Tage. Wann mähst du?' : 'Wann mähst du?'}`);
     this.zeichne(0.01);
+    this.assistentPhase();
     this.lauf();
   }
+
+  // ---------- Traktor-Assistent: Lernhilfe je Phase und Ereignis (in der Wette läuft nur der Zeitraffer)
+  assistentPhase() {
+    if (this.plan) { Assistent.kontext('spiel.zeitraffer'); return; }
+    const phase = { stehend: 'spiel.stehend', gemaeht: 'spiel.gemaeht', schwad: 'spiel.schwad' }[this.feld.phase];
+    Assistent.kontext(phase ? phase + (this.heu ? '.heu' : '') : null);
+  }
+  tipp(key) { if (!this.plan) Assistent.hinweis(key); }
 
   stop() {
     clearTimeout(this.timer); this.gestoppt = true;
@@ -178,6 +188,8 @@ export class Spiel {
     if (art === 'schwaden') { f.schwaden(); if (this.heu) this.gemeldet.add('nachtschwad'); this.melde(`${t}: Geschwadet bei ${z(f.ts())} % TS.`); }
     if (art !== 'ernte') this.log.push({ t: f.t, art });
     this.beschaeftigt = false;
+    if (art !== 'ernte') this.assistentPhase();
+    if (art === 'zetten' || art === 'schwaden') this.tipp(art === 'zetten' ? 'ev.zetten' : 'ev.schwaden');
     if (art === 'ernte') {
       this.melde(`${t}: Eingefahren bei ${z(f.ts())} % TS.`);
       const res = f.einfahren();
@@ -211,14 +223,20 @@ export class Spiel {
     };
     if (w.regen > 0 && !(this.wetter[f.t - 1]?.regen > 0)) {
       einmal('regen' + f.t, `${t}: Regen zieht auf – ${z(w.regen, 1)} mm in dieser Stunde!`, true);
+      this.tipp('ev.regen');
     }
     if (zs.phase === 'stehend' && alt.nass > 0.08 && zs.nass <= 0.08) einmal('tauweg' + w.tag, `${t}: Der Tau ist abgetrocknet.`);
     if (zs.phase !== 'stehend' && w.h === 20) einmal('abend' + w.tag, `${t}: Es wird Abend. Über Nacht fällt Tau aufs Futter.${this.heu && zs.phase === 'gemaeht' && !this.gemeldet.has('nachtschwad') ? ' Tipp: Ein Nachtschwad nimmt weniger Tau auf; am Morgen wieder zetten.' : ''}`);
     if (this.heu && zs.phase === 'gemaeht' && w.h === 20) this.gemeldet.add('nachtschwad');
+    if (zs.phase !== 'stehend' && w.h === 20 && !this.gemeldet.has('abendtipp' + w.tag)) { this.gemeldet.add('abendtipp' + w.tag); this.tipp(this.heu && zs.phase === 'gemaeht' ? 'ev.abend.heu' : 'ev.abend'); }
+    if (!this.heu && zs.phase !== 'stehend' && f.t - f.maehZeit >= 35) { einmal('lang35', `${t}: Seit über 35 Stunden auf dem Feld – der Zucker nimmt ab.`); this.tipp('ev.lang35'); }
+    if (zs.phase !== 'stehend' && zs.asche > 100 && alt.asche <= 100) this.tipp('ev.erde');
     if (zs.phase !== 'stehend') {
       const belueft = this.setup.siloart === 'belueftung';
-      if (zs.ts >= this.ziel[0] && alt.ts < this.ziel[0]) einmal('ziel', `${t}: Feuchtemesser zeigt ${z(zs.ts)} % TS – ${this.heu ? (belueft ? 'genug angewelkt für die Belüftung!' : 'das Heu ist lagerfähig!') : 'Zielbereich erreicht!'}`, true);
+      if (zs.ts >= this.ziel[0] && alt.ts < this.ziel[0]) { einmal('ziel', `${t}: Feuchtemesser zeigt ${z(zs.ts)} % TS – ${this.heu ? (belueft ? 'genug angewelkt für die Belüftung!' : 'das Heu ist lagerfähig!') : 'Zielbereich erreicht!'}`, true); this.tipp(this.heu ? (belueft ? 'ev.ziel.belueftung' : 'ev.ziel.heu') : 'ev.ziel'); }
+      if (zs.ts > this.ziel[1] && alt.ts <= this.ziel[1]) this.tipp('ev.zutrocken');
       if (zs.ts > this.ziel[1] && alt.ts <= this.ziel[1]) einmal('zutrocken', this.heu ? `${t}: ${z(zs.ts)} % TS – trockener als nötig, die Blätter bröckeln jetzt leicht.` : `${t}: Achtung, das Futter wird zu trocken (${z(zs.ts)} % TS).`, !this.heu || belueft);
+      if (this.heu && !belueft && zs.ts >= 60 && alt.ts < 60) this.tipp('ev.sproede');
       if (this.heu && !belueft && zs.ts >= 60 && alt.ts < 60) einmal('sproede', `${t}: ${z(zs.ts)} % TS – ab jetzt werden die Blätter spröde. Lieber am Morgen mit etwas Tau zetten.`);
     }
     if (f.t === this.wetter.length - 8) einmal('schluss', `${t}: Noch 8 Stunden bis Spielende!`, true);

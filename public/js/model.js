@@ -553,7 +553,7 @@ function erklaere(r, c) {
       : e.ts > zmax ? 'Trockener als nötig: Früher einfahren spart Blätter.' : 'Lagerfähig eingefahren. Merke dir den Ablauf.')
       : e.ts < zmin ? 'Lass das Futter noch ein paar Stunden liegen oder zette einmal mehr.' : e.ts > zmax ? 'Fahre früher ein, sobald der Feuchtemesser den Zielbereich zeigt.' : 'Genau getroffen. Merke dir die Uhrzeit für das nächste Mal.',
     heuqualitaet: hq && hq.note > 2 ? 'Schau, wo die meisten Punkte verloren gingen: Geruch (zu feucht eingelagert), Farbe (Regen, zu lange Sonne), Blätter (zu oft trocken bearbeitet) oder Erde.' : 'Schönes Heu: grün, duftend, blattreich.',
-    lager: hq && hq.temp >= 45 ? 'Miss die Temperatur im Heustock mit der Heusonde nach Messkalender: ab 45 °C erhöhte Aufmerksamkeit, bei 60 bis 70 °C alle fünf Stunden, ab 70 °C die Feuerwehr verständigen.' : 'Kontrolliere frisches Heu in den ersten Wochen trotzdem regelmässig mit der Heusonde: zuerst täglich, später seltener, insgesamt zwölf Wochen lang.',
+    lager: hq && hq.temp >= 45 ? 'Miss die Temperatur im Heustock mit der Heusonde nach Messkalender: ab 45 °C erhöhte Aufmerksamkeit, ab 60 °C die örtliche Feuerwehr vorinformieren und alle fünf Stunden messen, ab 70 °C sofort alarmieren.' : 'Kontrolliere frisches Heu in den ersten Wochen trotzdem regelmässig mit der Heusonde: zuerst täglich, später seltener, insgesamt zwölf Wochen lang.',
     fk: s?.fk < 45 ? 'Welke stärker an und schone den Zucker mit einer kurzen Feldliegezeit.' : 'Gute Voraussetzung für eine saubere Gärung.',
     gaerung: s?.note > 2 ? 'Schau bei den roten Karten nach: Meistens liegt die Ursache bei Erde, zu nassem Futter oder zu wenig Zucker.' : 'Prima Gärung: Die Arbeitsschritte haben gepasst.',
     siloverlust: s?.siloverlust > 8 ? 'Achte auf gute Verdichtung und triff den TS-Zielbereich des Silos.' : 'Niedrige Verluste im Silo.',
@@ -597,7 +597,7 @@ function heuKarten(f, r, c, z) {
     text: (belueft ? `Die Kaltbelüftung brauchte etwa ${z(hq.belueftTage, 1)} Tage bis lagerfähig. ${hq.belueftTage > 3 ? 'Das ist lang: Feuchte Luft nach dem Einführen oder zu nasses Futter verlängern die Belüftung, und Schimmel kann sich bilden. ' : 'Trockene Luft und gut angewelktes Futter machen es schnell. '}`
       : '') +
       `Im Lager wurde es bis etwa ${z(hq.temp, 0)} °C warm. ` +
-      (hq.temp >= 70 ? 'Akute Brandgefahr! Ein feuchter Heustock kann sich selbst entzünden: sofort die Feuerwehr (Heuwehr) verständigen und den Stock nicht selbst abtragen. ' : hq.temp >= 60 ? 'Zwischen 60 und 70 °C alle fünf Stunden messen und den Stock nicht abtragen: Luft und Hitze führen zum Brand. Ab 70 °C sofort die Feuerwehr. ' : hq.temp >= 45 ? 'Ab 45 °C erhöhte Aufmerksamkeit: öfter mit der Heusonde messen. ' : 'Unbedenklich. ') +
+      (hq.temp >= 70 ? 'Akute Brandgefahr! Ein feuchter Heustock kann sich selbst entzünden: sofort die Feuerwehr alarmieren und den Stock nicht selbst abtragen. ' : hq.temp >= 60 ? 'Ab 60 °C die örtliche Feuerwehr vorinformieren und um Rat fragen, bis 70 °C alle fünf Stunden messen und den Stock nicht abtragen: Luft und Hitze führen zum Brand. Ab 70 °C sofort alarmieren. ' : hq.temp >= 45 ? 'Ab 45 °C erhöhte Aufmerksamkeit: öfter mit der Heusonde messen. ' : 'Unbedenklich. ') +
       `Verluste im Lager: ${z(hq.sv.grund)} % normal${hq.sv.erwaermung > 0.05 ? `, ${z(hq.sv.erwaermung)} % durch Erwärmung und Schimmel` : ''}.` +
       (belueft ? ' Mehr zur Heubelüftung zeigt die App «Heutrocknung».' : ''),
   });

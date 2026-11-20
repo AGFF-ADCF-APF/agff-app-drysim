@@ -1,5 +1,5 @@
 import { stundenwetter, zufallswetter } from './weather.js';
-import { BESTAENDE, STADIEN, AUFBEREITER, SILOARTEN } from './model.js';
+import { BESTAENDE, STADIEN, AUFBEREITER, SILOARTEN, zinken } from './model.js';
 import { bestandBild, stadiumBild, ertragBild, bodenBild } from './wiese.js';
 import { schnittBild, aufbereiterBild, ablageBild, zinkenBild } from './maschinen.js';
 import { WETTER, PROGNOSEN, GRUNDPLAN } from './scenarios.js';
@@ -8,6 +8,7 @@ import { Spiel, gespeicherteRunde, vergissRunde } from './game.js';
 import { zeichne } from './chart.js';
 import { wetterSymbol, STERN } from './icons.js';
 import { BEGRIFFE, mitBegriffen } from './begriffe.js';
+import { Assistent } from './assistent.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const z = (x, d = 1) => x.toFixed(d).replace('.', ',');
@@ -47,6 +48,8 @@ function zeige(id, push = true) {
   const url = id === 'start' ? location.pathname + location.search : `#${id}`;
   try { (push && id !== aktuell ? history.pushState : history.replaceState).call(history, { id }, '', url); } catch { /* egal */ }
   aktuell = id;
+  document.documentElement.dataset.screen = id;
+  assistentFuer(id);
   if (id === 'start') { zeigeRangliste(); zeigeFortsetzen(); }
   window.scrollTo({ top: 0 });
   const h1 = $(`#${id} h1`); // Screenreader hört den neuen Bildschirm
@@ -168,7 +171,7 @@ function baueWahl(box, feld, ziel = wahl, onChange) {
     b.addEventListener('click', () => {
       ziel[box.dataset.feld] = o.wert;
       box.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b));
-      onChange?.();
+      onChange?.(box.dataset.feld, o.wert);
     });
     return b;
   }));
@@ -223,10 +226,11 @@ function aktualisiereOffen() {
   $('#schritt-maschinen').classList.toggle('fertig', !fehlt.length);
   speichereEinstellungen();
 }
-const nachWahl = () => {
+const nachWahl = (feld, wert) => {
   $('.code', setup).hidden = wahl.wetter !== 'zufall';
   maschinenBilder();
   aktualisiereOffen();
+  if (feld) lerntipp(feld, wert);
 };
 setup.querySelectorAll('[data-feld]').forEach((box) => baueWahl(box, box.dataset.feld, wahl, nachWahl));
 for (const feld of Object.keys(PFLICHT)) {
@@ -238,6 +242,7 @@ for (const feld of Object.keys(PFLICHT)) {
     $('#setupfehler').textContent = '';
     maschinenBilder();
     aktualisiereOffen();
+    reglerTipp(feld);
   };
   regler.addEventListener('input', setze);
   regler.addEventListener('pointerup', setze);
@@ -264,6 +269,58 @@ document.querySelectorAll('[data-sprung]').forEach((b) => b.addEventListener('cl
 $('.code', setup).hidden = wahl.wetter !== 'zufall';
 maschinenBilder();
 aktualisiereOffen();
+
+// ---------- Traktor-Assistent: Lernhilfe je Schritt, Abschnitt und Einstellung
+const ABSCHNITT = { 's-wetter': 'setup.wetter', 's-wiese': 'setup.wiese', 's-maschinen': 'setup.maschinen', 's-silo': 'setup.silo' };
+let letzterAbschnitt = null;
+function assistentFuer(id) {
+  const k = { start: 'start', wetten: 'wetten' }[id];
+  if (id === 'setup') { letzterAbschnitt = 'setup.wetter'; Assistent.kontext(letzterAbschnitt); } else if (k) Assistent.kontext(k);
+  else if (id !== 'spiel' && id !== 'ergebnis') Assistent.kontext(null); // Spielfeld und Ergebnis setzen ihren Schritt selbst
+}
+{
+  // Im Einsatz begleitet der Traktor beim Scrollen: der Abschnitt mit der grössten sichtbaren Höhe gilt
+  const hoehe = new Map();
+  const io = new IntersectionObserver((eintraege) => {
+    for (const e of eintraege) hoehe.set(e.target.id, e.isIntersecting ? e.intersectionRect.height : 0);
+    if (aktuell !== 'setup') return;
+    const best = [...hoehe].sort((a, b) => b[1] - a[1])[0];
+    const key = best && best[1] > 80 ? ABSCHNITT[best[0]] : null;
+    if (key && key !== letzterAbschnitt) { letzterAbschnitt = key; Assistent.kontext(key); }
+  }, { threshold: [0, 0.1, 0.25, 0.4, 0.55, 0.7, 0.85, 1] });
+  Object.keys(ABSCHNITT).forEach((id) => io.observe(document.getElementById(id)));
+}
+Assistent.beiOeffnen = () => { if (spiel && !spiel.plan && !spiel.pause && !spiel.gestoppt) spiel.setzeTempo(0); };
+
+// Rückmeldung zu einer Wahl (Karte oder Knopf)
+function lerntipp(feld, wert) {
+  const key = {
+    aufbereiter: `setup.aufb.${wert}`, breit: `setup.ablage.${wert ? 'breit' : 'schwade'}`, siloart: `setup.silo.${wert}`,
+    bestand: `setup.bestand.${wert}`, stadium: `setup.stadium.${wert}`, boden: wert === 'maulwurf' ? 'setup.boden.maulwurf' : null,
+  }[feld];
+  if (key) Assistent.hinweis(key);
+}
+// Rückmeldung zu den Reglern, erst wenn der Regler zur Ruhe gekommen ist
+let reglerTimer = null;
+function reglerTipp(feld) {
+  clearTimeout(reglerTimer);
+  reglerTimer = setTimeout(() => {
+    const h = wahl[feld];
+    if (h == null) return;
+    let key;
+    if (feld === 'schnitthoehe') key = h < 5 ? 'setup.schnitt.tief' : h > 9 ? 'setup.schnitt.hoch' : 'setup.schnitt.gut';
+    else key = h < 2 ? 'setup.zinken.tief' : h > zinken(0, wahl.schnitthoehe ?? 7).schwelle ? 'setup.zinken.hoch' : 'setup.zinken.gut';
+    Assistent.hinweis(key);
+  }, 700);
+}
+// Steuerung auf der Startseite
+function zeigeAssistentSteuerung() {
+  $('#assist-an').textContent = Assistent.ruhe ? 'Traktor-Tipps: aus' : 'Traktor-Tipps: an';
+  $('#assist-an').setAttribute('aria-pressed', String(!Assistent.ruhe));
+}
+$('#assist-an').addEventListener('click', () => { Assistent.ruhe = !Assistent.ruhe; zeigeAssistentSteuerung(); });
+$('#assist-neu').addEventListener('click', () => { Assistent.zuruecksetzen(); Assistent.ruhe = false; zeigeAssistentSteuerung(); $('#assist-neu').textContent = 'Alle Tipps kommen wieder ✓'; });
+zeigeAssistentSteuerung();
 
 function wetterVon(id, code) {
   if (id === 'zufall') return zufallswetter((code || 'AGFF').trim().toUpperCase());
@@ -332,8 +389,8 @@ function abzeichen(res) {
     if (h.abzug.farbe < 1 && e.regenFeld === 0) a.push(['Grünes Heu', 'Nicht verregnet, nicht ausgebleicht']);
     if (v.broeckel < (res.plan.bestand === 'klee' ? 10 : 8)) a.push(['Blattschoner', 'Wenig Bröckelverluste']);
     if (res.plan.siloart === 'belueftung' && h.belueftTage <= 3 && res.ernte.ts >= 60) a.push(['Belüftungsprofi', 'Rechtzeitig und genug angewelkt eingeführt']);
-    if (h.temp >= 70) a.push(['Heustock heiss', 'Ab 70 °C: Feuerwehr verständigen!', true]);
-    else if (h.temp >= 60) a.push(['Heustock sehr warm', 'Alle fünf Stunden messen', true]);
+    if (h.temp >= 70) a.push(['Heustock heiss', 'Ab 70 °C: Feuerwehr alarmieren!', true]);
+    else if (h.temp >= 60) a.push(['Heustock sehr warm', 'Feuerwehr vorinformieren, alle fünf Stunden messen', true]);
     else if (h.schimmel !== 'kein') a.push(['Muffig', 'Zu feucht eingelagert', true]);
   } else {
     if (e.stunden <= 12) a.push(['Blitzsilage', 'In unter 12 h im Silo']);
@@ -369,6 +426,7 @@ function zeigeErgebnis(res, sz, tipp, einstellungen) {
   PFAD.ergebnis = tipp ? [['Start', 'start'], ['Prognose-Wette', 'wetten'], [schluss]] : [['Start', 'start'], ['Einsatz planen', 'setup'], [schluss]];
   TITEL.ergebnis = `${schluss} – Heureka`;
   zeige('ergebnis');
+  Assistent.kontext(heu ? 'ergebnis.heu' : 'ergebnis.silage');
   $('#ergebnis-titel').textContent = heu ? 'Heustock geprüft: dein Ergebnis' : 'Silo geöffnet: dein Ergebnis';
   $('#ergebnis .ueber').textContent = heu
     ? (res.plan.siloart === 'belueftung' ? 'Sechs Wochen später – die Belüftung ist längst aus, das Heu wird geprüft …' : 'Sechs Wochen später – das Heu wird geprüft …')
@@ -480,6 +538,7 @@ function waehleSzenario(id) {
     return `<div class="tageskarte"><b>Tag ${i + 1}</b>${wetterSymbol(d)}<span>${Math.round(d.tmax)}° / ${Math.round(d.tmin)}°</span><small>${mm > 0 ? z(mm, 0) + ' mm' : 'trocken'}</small></div>`;
   }).join('');
   tippform.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  Assistent.hinweis(`wette.${szenario.id}`, { titel: szenario.name, einfach: szenario.lernziel, fachlich: szenario.lernziel, lernen: 'trocknung' });
 }
 $('#szenarien').addEventListener('click', (ev) => {
   const b = ev.target.closest('.wahlkarte');

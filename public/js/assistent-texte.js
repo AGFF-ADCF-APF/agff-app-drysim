@@ -1,0 +1,325 @@
+// Texte des Traktor-Assistenten (feste Texte, keine KI).
+// Je Eintrag: titel, einfach (Alltagssprache), fachlich (Zahlen und Quellen), lernen (Anker auf lernen.html),
+// immer (Warnung: erscheint bei jedem Wechsel, nicht nur beim ersten Mal).
+// Kurzzeichen der Quellen: LK Salzburg = «Heutrocknung von A bis Z», Agroscope 2014 = Transfer Nr. 38,
+// FAT 1982 = «ABC der Heubelüftung» (siehe Quellen auf der Lernseite).
+
+export const T = {
+  // ---------- Start, Wette, Ergebnis
+  start: {
+    titel: 'Willkommen!',
+    einfach: 'Hier lernst du, wie Silage und Heu entstehen. Du bestimmst, wann gemäht, gezettet, geschwadet und eingefahren wird – das Wetter spielt mit. Ich sage dir unterwegs, worauf es ankommt. Mit «Ruhe, bitte» schläft der Traktor.',
+    fachlich: 'Die Richtwerte stammen aus Unterlagen aus Österreich, der Schweiz und Deutschland (LK Salzburg, Agroscope 2014, FAT 1982), ergänzt durch US-Versuche. Das Spiel rechnet mit einem vereinfachten Lehrmodell: Es zeigt Zusammenhänge und Grössenordnungen, keine Prognose für einen Betrieb.',
+    lernen: '',
+  },
+  wetten: {
+    titel: 'So tippst du',
+    einfach: 'Lies die Geschichte: Wann wird gemäht, wie hoch, mit welchem Aufbereiter, und was macht das Wetter? Tippe dann <b>TS</b>, <b>Rohasche</b> und die <b>Note</b>. Regen und tiefe Schnitte drücken die Note.',
+    fachlich: 'Sauberes Futter hat etwa 90 g Rohasche je kg TS; über 100 g steigt das Risiko für Buttersäure deutlich (LK Salzburg). Zielbereich Silage 30–40 % TS, Heu ab 85 bis 88 % TS.',
+    lernen: 'sauber',
+  },
+  'ergebnis.silage': {
+    titel: 'So liest du das Ergebnis',
+    einfach: 'Tippe auf die Karten: ✓ heisst gut gemacht, ! geht besser, ✗ hier lag das Problem. Zu jeder Karte gibt es einen Tipp für das nächste Mal.',
+    fachlich: 'Konservierungsverluste vom Schnitt bis zum Trog: Atmung 3–10 %, Bröckeln 3–15 %, Auswaschung 1–5 %, Lager 2–10 %. Ziel: möglichst unter 10 % (LK Salzburg).',
+    lernen: 'zucker',
+  },
+  'ergebnis.heu': {
+    titel: 'Heustock kontrollieren',
+    einfach: 'Auch trockenes Heu atmet noch ein wenig. Darum misst man den Stock mit der Heusonde: zuerst täglich, später wöchentlich, bis zu zwölf Wochen lang. Ab 60 °C informierst du die örtliche Feuerwehr, sie berät und hat auch Messsonden. Ab 70 °C wird sofort alarmiert.',
+    fachlich: '45–60 °C: Gefahr, Kontrollen verstärken. 60–70 °C: alle fünf Stunden messen, Stock nicht abtragen, örtliche Feuerwehr vorinformieren und um Rat fragen (Praxisempfehlung). Ab 70 °C oder bei Mulde im Stock: Feuerwehr (Heuwehr) alarmieren. Bei 60 °C gehen 40–55 % des nutzbaren Proteins verloren (LK Salzburg).',
+    lernen: 'erwaermung',
+  },
+
+  // ---------- Einsatz planen
+  'setup.wetter': {
+    titel: 'Das Wetter lesen',
+    einfach: 'Schau auf <b>Regen</b>, <b>Tau</b> und <b>Sonne</b>. Silage kann am gleichen Tag angewelkt sein, Heu braucht mehr schöne Tage. Mit Belüftung genügen oft zwei. Mit dem <b>Wettercode</b> bekommt die ganze Klasse dasselbe Wetter.',
+    fachlich: 'Belüftungsheu wird meist am Folgetag nach dem Mähen eingefahren (Agroscope 2014); mit modernen Anlagen reichen oft zwei Sonnentage (LK Salzburg). Gemäht wird erst nach dem Abtrocknen des Taus. Regen wäscht 1–5 % und mehr aus.',
+    lernen: 'trocknung',
+  },
+  'setup.wiese': {
+    titel: 'Die Wiese',
+    einfach: 'Was wächst, wie alt es ist und wie viel steht, bestimmt Energie, Zucker und Arbeit. Dazu der Boden: Maulwurfshaufen bringen Erde ins Futter.',
+    fachlich: 'Faustzahl für den Ertrag: Wuchshöhe in cm minus Stoppelhöhe (5–7 cm); 1 cm entspricht etwa 1 dt TM je ha. Ein Aufwuchs liefert rund 20–40 dt TM (LK Salzburg).',
+    lernen: 'anwelken',
+  },
+  'setup.bestand.graeser': {
+    titel: 'Gräserreich',
+    einfach: 'Viel Gras, viel Zucker: So siliert es sich leicht. Dafür ist es weniger eiweissreich.',
+    fachlich: 'Hoher Zuckergehalt und geringe Pufferkapazität ergeben einen hohen Vergärbarkeitskoeffizienten (FK = TS + 8 · Zucker / Pufferkapazität; ab 45 gut silierbar). Weidelgras-Bestände altern rascher als extensivere Wiesen (LK Salzburg).',
+    lernen: 'anwelken',
+  },
+  'setup.bestand.ausgewogen': {
+    titel: 'Ausgewogener Bestand',
+    einfach: 'Gräser, Klee und Kräuter gemischt: ein guter Mittelweg. Klee bringt Eiweiss, aber die Kräuter bröckeln beim Trocknen.',
+    fachlich: 'Die Bröckelverluste hängen vom Kräuteranteil und von jedem Arbeitsgang ab; bei kräuterreichen Beständen und Bodenheu bis 100 kg TM je ha und Arbeitsgang (LK Salzburg).',
+    lernen: 'zetten',
+  },
+  'setup.bestand.klee': {
+    titel: 'Kleereich',
+    einfach: 'Klee ist eiweissreich, aber heikel: wenig Zucker, viel Widerstand gegen die Säuerung. Er braucht mehr TS und verliert beim Zetten schnell Blätter.',
+    fachlich: 'Klee hat eine hohe Pufferkapazität und wenig Zucker und braucht höhere TS-Gehalte. Für Luzerne und Kleegras eignen sich Quetschwalzen besser als Zinken (LK Salzburg). Die Blätter sind der eiweissreichste Teil der Pflanze.',
+    lernen: 'zetten',
+  },
+  'setup.stadium.2': {
+    titel: 'Schossen',
+    einfach: 'Junges Gras hat viel Energie, aber wenig Ertrag. Es ist nasser und braucht länger zum Anwelken.',
+    fachlich: 'Mit zunehmendem Alter steigen Ertrag und Rohfaser, Energie und Rohprotein sinken (LK Salzburg). Sehr junges, blattreiches Futter zu rasch einzufahren ist eine Ursache für Selbsterhitzung beim Heu.',
+    lernen: 'anwelken',
+  },
+  'setup.stadium.3': {
+    titel: 'Ähren- und Rispenschieben',
+    einfach: 'Beim Ähren- und Rispenschieben der Leitgräser stimmen Energie und Ertrag am besten zusammen.',
+    fachlich: 'Bei Ernte im Stadium des Ähren-/Rispenschiebens der Leitgräser (z. B. Knaulgras) sind Energiekonzentrationen im Bereich von 6 MJ NEL je kg TS erreichbar (Agroscope 2014).',
+    lernen: 'anwelken',
+  },
+  'setup.stadium.4': {
+    titel: 'Beginn Blüte',
+    einfach: 'Viel Futter, aber härtere Stängel und weniger Energie. Je später, desto weniger Eiweiss.',
+    fachlich: 'Mit zunehmendem Alter des Futters steigt der Rohfasergehalt, während Energie- und Rohproteingehalt deutlich abnehmen (LK Salzburg).',
+    lernen: 'anwelken',
+  },
+  'setup.boden.maulwurf': {
+    titel: 'Maulwurfshaufen',
+    immer: true,
+    einfach: 'Erde im Futter ist der Feind Nummer eins der Silage: Sie bringt Buttersäure-Sporen ins Silo. Mähe nicht zu tief und stell die Zinken höher.',
+    fachlich: 'Die Sporen der Clostridien stammen aus dem Boden und gelangen mit jeder Futterverschmutzung ins Futter. Ab 10 % Rohasche ist bei Silage mit einer explosionsartigen Vermehrung zu rechnen (LK Salzburg).',
+    lernen: 'sauber',
+  },
+  'setup.maschinen': {
+    titel: 'Maschinen einstellen',
+    einfach: 'Drei Einstellungen entscheiden über saubere Arbeit: <b>Schnitthöhe</b>, <b>Zinkenhöhe</b> von Zetter und Schwader und die <b>Ablage</b>. Stell sie selbst ein, ich sage dir, was sie bewirken.',
+    fachlich: 'Mindestens 5–7 cm Stoppeln, Zinken nicht im Boden, Futter breit ablegen: weniger Erde, bessere Feldtrocknung und weniger Bröckelverluste. Legt der Mäher das aufbereitete Futter schon breit ab, entfällt das Ausbreiten (LK Salzburg).',
+    lernen: 'sauber',
+  },
+  'setup.schnitt.tief': {
+    titel: 'Sehr tief gemäht',
+    immer: true,
+    einfach: 'Unter 5 cm kommt viel Erde ins Futter, und das Gras treibt schlechter nach. Üblich sind mindestens 5 bis 7 cm.',
+    fachlich: 'Tiefe Schnitte schaden dem nächsten Aufwuchs: Die Pflanze verliert ihr grünes Assimilationsgewebe und muss aus den Wurzelreserven nachschieben; das Licht am Boden fördert die Ampfer-Keimung. Zu tiefes Mähen zählt zu den Hauptursachen für Clostridien-Sporen im Futter (LK Salzburg).',
+    lernen: 'sauber',
+  },
+  'setup.schnitt.gut': {
+    titel: 'Gut gewählt',
+    einfach: 'Zwischen 5 und 9 cm: weniger Erde, das Futter liegt luftiger auf den Stoppeln, und die Grasnarbe bleibt dicht.',
+    fachlich: 'Mindestens 5–7 cm, teils 8–9 cm (LK Salzburg). Der grössere Abstand zum Boden verbessert die Feldtrocknung. Im Spiel bleiben über 7 cm rund 4 % Ertrag je Zentimeter stehen.',
+    lernen: 'sauber',
+  },
+  'setup.schnitt.hoch': {
+    titel: 'Hoch gemäht',
+    einfach: 'Du lässt viel Ertrag stehen. Dafür bleibt das Futter sauber und trocknet besser. Das lohnt sich eher bei Maulwurfshaufen.',
+    fachlich: 'Im Spiel kostet jeder Zentimeter über 7 cm rund 4 % Ertrag, bringt aber mehr Abstand zum Boden und etwas schnellere Feldtrocknung (LK Salzburg).',
+    lernen: 'sauber',
+  },
+  'setup.aufb.ohne': {
+    titel: 'Ohne Aufbereiter',
+    einfach: 'Schonend für die Blätter, aber das Wasser kommt langsamer aus den Stängeln. Dann sind sofort breit ablegen und früh zetten umso wichtiger.',
+    fachlich: 'Ein Mähaufbereiter verkürzt die Trocknungszeit um 2–4 Stunden und spart oft einen Zettvorgang samt Bröckelverlusten (LK Salzburg); bei grobstängeligem Futter 1–6 Stunden (Agroscope 2014).',
+    lernen: 'trocknung',
+  },
+  'setup.aufb.zinken': {
+    titel: 'Aufbereiter mit Zinken',
+    einfach: 'Zinken (Schlägel) passen zu Dauerwiese und Gräsern. Bei viel Klee schlagen sie Blätter ab.',
+    fachlich: 'Zinken beziehungsweise Schlägel für Dauerwiese und Gräser, Quetschwalzen für Luzerne und Kleegras. Der Aufbereiter braucht rund 44 % mehr Leistung, und sein Effekt sinkt mit der Fahrgeschwindigkeit (besser 7–9 als 11–15 km/h; LK Salzburg).',
+    lernen: 'trocknung',
+  },
+  'setup.aufb.walzen': {
+    titel: 'Walzenaufbereiter',
+    einfach: 'Walzen quetschen die Stängel und schonen die Blätter. Gut für Klee und Luzerne.',
+    fachlich: 'Quetschwalzen für Luzerne und Kleegras (LK Salzburg). Der Aufbereitungseffekt sinkt mit zunehmender Fahrgeschwindigkeit (besser 7–9 als 11–15 km/h).',
+    lernen: 'trocknung',
+  },
+  'setup.aufb.buerste': {
+    titel: 'Zinken mit Bürste',
+    einfach: 'Der Zinkenrotor mit Bürste raut die Wachsschicht stark auf und streut breit. Das Futter trocknet am schnellsten, nimmt bei Regen und Tau aber auch am schnellsten wieder Wasser auf.',
+    fachlich: 'Intensivaufbereiter besitzen meist eine Bürstenwalze und eine Breitstreuvorrichtung (LK Salzburg). Im Spiel verliert Klee bei dieser Bauart am meisten Blätter.',
+    lernen: 'trocknung',
+  },
+  'setup.ablage.breit': {
+    titel: 'Breit ablegen',
+    einfach: 'Sonne und Wind erreichen mehr Futter, so trocknet es am ersten Tag am schnellsten.',
+    fachlich: 'Das Futter wird sofort nach dem Mähen auf die volle Arbeitsbreite ausgebreitet, sofern der Mäher es nicht breitflächig ablegt (LK Salzburg). In Wisconsin war Luzerne bei Breitablage nach 8–10 Stunden bei rund 35 % TS, in schmaler Schwade erst am Folgetag.',
+    lernen: 'trocknung',
+  },
+  'setup.ablage.schwade': {
+    titel: 'In der Mähschwade',
+    einfach: 'Ein dichter Streifen trocknet langsamer, vor allem unten. Dann früh und gründlich zetten.',
+    fachlich: 'In den Wisconsin-Versuchen war das Futter in schmaler Schwade erst am Folgetag so weit; die Ablage wirkt stärker als die Aufbereitung.',
+    lernen: 'trocknung',
+  },
+  'setup.zinken.tief': {
+    titel: 'Zinken im Boden',
+    immer: true,
+    einfach: 'Unter etwa 2 cm reissen die Zinken Erde mit. Das bringt Buttersäure-Sporen ins Futter. Stell sie höher.',
+    fachlich: 'Das Einstellmass gilt auf festem Boden; auf dem Feld sinken die Räder ein, auf nassem Boden stärker. Ab 10 % Rohasche ist bei Silage mit einer explosionsartigen Vermehrung der Buttersäurebakterien zu rechnen (LK Salzburg).',
+    lernen: 'sauber',
+  },
+  'setup.zinken.gut': {
+    titel: 'Zinken passend',
+    einfach: 'Die Zinken heben das Futter, ohne den Boden zu berühren. Kleine Kreisel in flacher Stellung passen sich dem Boden besser an.',
+    fachlich: 'Kleine Kreiseldurchmesser bei flacher Kreiselstellung (LK Salzburg; Agroscope 2014). Doppelkreiselschwader mit Mittelablage schleifen das Futter weniger über den Boden.',
+    lernen: 'sauber',
+  },
+  'setup.zinken.hoch': {
+    titel: 'Zinken zu hoch',
+    immer: true,
+    einfach: 'Die Zinken stehen über dem Schwad: Ein Teil des Futters bleibt liegen. Auf höheren Stoppeln darf die Einstellung höher sein.',
+    fachlich: 'Das Schwad liegt auf den niedergedrückten Stoppeln. Im Spiel bleibt Futter liegen, sobald die Zinken über der halben Stoppelhöhe plus 0,5 cm stehen.',
+    lernen: 'sauber',
+  },
+  'setup.silo': {
+    titel: 'Wohin mit dem Futter?',
+    einfach: 'Silage wird vergoren, Heu getrocknet. Silage braucht etwa 30 bis 40 % TS, Heu über 85 %. Mit Belüftung kommt es schon bei rund 60 % in den Stock.',
+    fachlich: 'Lagerfähiges Heu hat 87–88 % TS (Agroscope 2014). Zu feuchtes Heu erwärmt sich und kann sich selbst entzünden. Bodenheu darf höchstens 20–25 % Wasser haben (LK Salzburg).',
+    lernen: 'heu',
+  },
+  'setup.silo.flachsilo': {
+    titel: 'Flachsilo',
+    einfach: 'Mit dem Ladewagen ins Silo und gut verdichten. Ziel: 30 bis 40 % TS. Zu nass gibt Sickersaft, zu trocken bleibt Luft im Silo.',
+    fachlich: 'Die LfL Bayern nennt für Grassilage meist 30–40 % TM. Die Silierbarkeit beschreibt der FK = TS + 8 · Zucker / Pufferkapazität; ab 45 gilt Futter als gut silierbar.',
+    lernen: 'anwelken',
+  },
+  'setup.silo.ballen': {
+    titel: 'Rundballen',
+    einfach: 'Pressen und wickeln. Das Futter muss trockener sein als fürs Flachsilo, sonst gärt es schlecht.',
+    fachlich: 'Im Spiel liegt das Ziel bei 40 bis 55 % TS. Dicht gepresste Ballen leiten Wärme schlecht ab.',
+    lernen: 'anwelken',
+  },
+  'setup.silo.bodenheu': {
+    titel: 'Bodenheu',
+    einfach: 'Das Futter trocknet ganz auf dem Feld. Das braucht mehrere schöne Tage, und das Wetterrisiko ist am grössten.',
+    fachlich: 'Bodenheu darf höchstens 20–25 % Wasser haben, wenn es auf den Stock kommt (75–80 % TS); es erwärmt sich dann bis 40–45 °C. Lagerfähig ist es ab 87–88 % TS. Im Spiel gilt es ab 85 % TS als einlagerbar (LK Salzburg; Agroscope 2014).',
+    lernen: 'einfuhrfeuchte',
+  },
+  'setup.silo.heuballen': {
+    titel: 'Heuballen',
+    einfach: 'Gepresste Ballen nur mit ganz trockenem Heu: Dicht gepresst geben sie Wärme schlecht ab.',
+    fachlich: 'Vorsicht bei stark verdichteten Pressballen mit mehr als 20 % Restfeuchte (LK Salzburg). Im Spiel gilt Heu ab 85 % TS als einlagerbar.',
+    lernen: 'heu',
+  },
+  'setup.silo.belueftung': {
+    titel: 'Belüftungsheu',
+    einfach: 'Du fährst das Futter schon feuchter ein, ab etwa 60 % TS. Ein Gebläse trocknet es im Heustock fertig. Das spart einen Feldtag und schont die Blätter.',
+    fachlich: 'Mit Aufbereiter und zwei bis höchstens drei Zettdurchgängen sind bei gutem Wetter 60–70 % TS erreichbar (Agroscope 2014). Der wesentliche Teil der Trocknung passiert auf dem Feld: 10 % mehr Feuchtigkeit verdoppeln die abzutrocknende Wassermenge.',
+    lernen: 'einfuhrfeuchte',
+  },
+
+  // ---------- Auf dem Feld (Phasen)
+  'spiel.zeitraffer': {
+    titel: 'Zeitraffer',
+    einfach: 'Schau zu, wie sich das Szenario entwickelt: Feuchtemesser, Wetter und Arbeitsgänge. Danach siehst du, ob dein Tipp gestimmt hat.',
+    fachlich: 'Das Modell rechnet Stunde für Stunde: Strahlung, Luftfeuchte und Wind bestimmen das Anwelken, Tau und Regen bringen Wasser zurück (Trocknung nach Rotz und Chen, vereinfacht).',
+    lernen: 'trocknung',
+  },
+  'spiel.stehend': {
+    titel: 'Das Gras steht noch',
+    einfach: 'Mähe erst, wenn der Tau abgetrocknet ist, meist am späteren Vormittag. Am Abend zu mähen bringt nichts: Der Zucker wird nachts wieder veratmet. Zum Mähen den Knopf gedrückt halten.',
+    fachlich: 'Gemäht wird frühestens nach dem Abtrocknen des Taus. Der tagsüber gebildete Zucker wird in der Nacht veratmet, dazu kommt das zusätzliche Wetterrisiko (LK Salzburg).',
+    lernen: 'zucker',
+  },
+  'spiel.stehend.heu': {
+    titel: 'Heu braucht schöne Tage',
+    einfach: 'Schau den Wetterbericht an und mähe erst nach dem Tau. Mit Belüftung genügen oft zwei Tage, Bodenheu braucht mehr. Zum Mähen den Knopf gedrückt halten.',
+    fachlich: 'Belüftungsheu wird meist am Folgetag nach dem Mähen eingefahren (Agroscope 2014), mit modernen Anlagen genügen oft zwei Sonnentage (LK Salzburg). Beim Bodenheu ist das Wetterrisiko am grössten.',
+    lernen: 'heu',
+  },
+  'spiel.gemaeht': {
+    titel: 'Jetzt trocknen lassen',
+    einfach: 'Lege das Futter breit und zette früh: So geht das Wasser am schnellsten weg. Behalte den Feuchtemesser im Blick, Ziel 30 bis 40 % TS. Zu lange auf dem Feld kostet Zucker.',
+    fachlich: 'Sofort auf die volle Arbeitsbreite ausbreiten (LK Salzburg). Stängelprobe: mit dem Daumennagel ausstreichen; tritt am Ende kein Wasser mehr aus, sind es über 65 % TS (Agroscope 2014). Bei über 35 Stunden Feldliegezeit sinkt der Zuckergehalt.',
+    lernen: 'trocknung',
+  },
+  'spiel.gemaeht.heu': {
+    titel: 'Trocknen und Blätter schonen',
+    einfach: 'Zette früh, solange das Futter feucht ist, und arbeite danach nur noch schonend. Jeder Durchgang kostet Blätter, und ab etwa 60 % TS brechen sie ab. Mit Aufbereiter brauchst du einen Durchgang weniger.',
+    fachlich: 'Beim 1. Schnitt bis dreimal (Zetten, 2× Wenden) mit abnehmender Drehzahl; mit Aufbereiter übernimmt dieser den ersten Durchgang, bleiben zwei; bei Folgeschnitten zwei (LK Salzburg). Agroscope 2014 nennt mit Aufbereiter zwei bis höchstens drei. Über 60 % TM steigen die Bröckelverluste überproportional.',
+    lernen: 'zetten',
+  },
+  'spiel.schwad': {
+    titel: 'Im Schwad',
+    einfach: 'Das Futter liegt jetzt dicht. Fahre ein, wenn der Zielbereich erreicht ist, und möglichst vor Sonnenuntergang. Über Nacht fällt Tau.',
+    fachlich: 'Wegen der Bröckelverluste wird besser früh geschwadet, und das Futter trocknet im Schwad im Wind nach. Eine breite Schwadablage ist schonend für Ladewagen und Presse. Immer vor Sonnenuntergang einfahren (LK Salzburg).',
+    lernen: 'zetten',
+  },
+  'spiel.schwad.heu': {
+    titel: 'Bereit zum Einlagern?',
+    einfach: 'Bodenheu und Ballen erst einfahren, wenn sie ganz trocken sind. Belüftungsheu schon ab etwa 60 % TS. Immer vor Sonnenuntergang, nie mit Tau.',
+    fachlich: 'Höchste Einfuhrfeuchte: Bodenheu 20–25 %, einfache Kaltbelüftung 25–35 %, Warmbelüftung und Entfeuchter 40–55 % (LK Salzburg). Beim Beschicken den Lüfter spätestens nach etwa ½ m Schichthöhe einschalten.',
+    lernen: 'einfuhrfeuchte',
+  },
+
+  // ---------- Auf dem Feld (Ereignisse)
+  'ev.zetten': {
+    titel: 'Richtig zetten',
+    einfach: 'Der erste Durchgang läuft mit hoher Drehzahl, die weiteren schonender. Wechsle die Fahrtrichtung (längs, quer) und stelle den Kreisel beim Wenden flach. Mit Aufbereiter sparst du einen Durchgang.',
+    fachlich: 'LK Salzburg: 1. Schnitt ohne Aufbereiter 540 → 400 → 320 U/min (drei Durchgänge); mit Aufbereiter ersetzt dieser das Zetten, dann 400 → 320; Folgeschnitte 540 → 320. Agroscope 2014: rund 500, dann 380–420, dann 340–400 U/min, höchstens drei Durchgänge.',
+    lernen: 'zetten',
+  },
+  'ev.schwaden': {
+    titel: 'Schwaden',
+    einfach: 'Besser früh schwaden: Im Schwad trocknet das Futter im Wind nach, und es bröckelt weniger. Eine breite Ablage schont das Futter beim Aufnehmen.',
+    fachlich: 'Doppelkreiselschwader mit Mittelablage schleifen das Futter weniger über den Boden. Trocknungszustand und Fahrgeschwindigkeit wirken sich direkt auf die Bröckelverluste aus (LK Salzburg).',
+    lernen: 'zetten',
+  },
+  'ev.regen': {
+    titel: 'Regen!',
+    einfach: 'Regen macht den Trocknungsfortschritt zunichte und wäscht Zucker aus. Aufbereitetes Futter nimmt Wasser besonders schnell auf. Fahre wenn möglich früher ein.',
+    fachlich: 'Auswaschungsverluste 1–5 % und mehr durch Regen und Tau (LK Salzburg). Bei Heu zählt angeregnetes Futter zu den Hauptursachen für Selbstentzündung im Stock.',
+    lernen: 'zucker',
+  },
+  'ev.ziel': {
+    titel: 'Zielbereich erreicht',
+    einfach: 'Jetzt einfahren! Jede weitere Stunde auf dem Feld kostet Zucker.',
+    fachlich: 'Im Zielbereich arbeiten die Milchsäurebakterien gut, und das Futter lässt sich gut verdichten. Die Atmungsverluste betragen 3–10 % und mehr, je nach Trocknungszeit (LK Salzburg).',
+    lernen: 'anwelken',
+  },
+  'ev.ziel.heu': {
+    titel: 'Das Heu ist lagerfähig',
+    einfach: 'Ab hier kann das Heu in den Stock. Achte darauf, dass es nicht mehr nass wird, und fahre vor Sonnenuntergang ein.',
+    fachlich: 'Lagerfähig ist Heu ab etwa 87–88 % TS (Agroscope 2014). Nach dem Einlagern wird der Stock mit der Heusonde kontrolliert, zuerst täglich, dann seltener.',
+    lernen: 'erwaermung',
+  },
+  'ev.ziel.belueftung': {
+    titel: 'Genug angewelkt',
+    einfach: 'Jetzt kannst du in die Belüftung einfahren. Den Rest trocknet das Gebläse im Heustock.',
+    fachlich: 'Typisch sind 60–70 % TS (Agroscope 2014). Nach jedem Einfüllen von Welkheu soll unabhängig vom Wetter eine Stunde belüftet werden (FAT 1982).',
+    lernen: 'einfuhrfeuchte',
+  },
+  'ev.zutrocken': {
+    titel: 'Zu trocken',
+    einfach: 'Zu trockenes Futter lässt sich schlecht verdichten: Luft bleibt im Silo, es erwärmt sich und schimmelt. Bei Heu gehen jetzt viele Blätter verloren.',
+    fachlich: 'Mit zunehmender Trocknung über 60 % TM steigen die Bröckelverluste überproportional (LK Salzburg).',
+    lernen: 'zetten',
+  },
+  'ev.abend': {
+    titel: 'Es wird Abend',
+    einfach: 'Über Nacht fällt Tau, und das Futter veratmet Zucker. Wenn du noch einfahren kannst, tu es vor Sonnenuntergang.',
+    fachlich: 'Immer vor Sonnenuntergang einfahren (LK Salzburg). Der Tau muss am Morgen zuerst verdunsten, bevor die Trocknung weitergeht.',
+    lernen: 'zucker',
+  },
+  'ev.abend.heu': {
+    titel: 'Nachtschwad?',
+    einfach: 'Über Nacht nimmt das Heu wieder Wasser auf. Ein Nachtschwad nimmt weniger Tau auf: abends schwaden, am Morgen wieder breit streuen.',
+    fachlich: 'In der Praxis üblich, aber jeder zusätzliche Durchgang kostet Blätter. Wegen der Bröckelverluste besser früh schwaden und im Wind nachtrocknen lassen (LK Salzburg).',
+    lernen: 'heu',
+  },
+  'ev.sproede': {
+    titel: 'Die Blätter werden spröde',
+    einfach: 'Ab etwa 60 % TS brechen die Blätter ab. Zette jetzt nur noch, wenn es nötig ist, am besten am Morgen mit etwas Tau.',
+    fachlich: 'Über 60 % TM steigen die Bröckelverluste überproportional, bei kräuterreichen Beständen bis 100 kg TM je ha und Arbeitsgang. Am zweiten Tag wird das Futter nur noch wenig bearbeitet (LK Salzburg).',
+    lernen: 'zetten',
+  },
+  'ev.lang35': {
+    titel: 'Schon lange auf dem Feld',
+    einfach: 'Seit über 35 Stunden liegt das Futter. Der Zucker nimmt ab, die Atmungs- und Bröckelverluste steigen. Besser einfahren.',
+    fachlich: 'Bei zu langer Verweildauer auf dem Feld (über 35 Stunden) oder bei eingeregnetem Futter verringert sich der Zuckergehalt (LK Salzburg).',
+    lernen: 'zucker',
+  },
+  'ev.erde': {
+    titel: 'Zu viel Erde',
+    einfach: 'Die Rohasche liegt über 100 g/kg: Das ist Erde im Futter, und daraus gedeihen Buttersäurebakterien. Nächstes Mal höher mähen und die Zinken höher stellen.',
+    fachlich: 'Ab 10 % Rohasche ist bei Silage mit einer explosionsartigen Vermehrung der Clostridien zu rechnen. Gute Milch enthält unter 200 Sporen je Liter (LK Salzburg).',
+    lernen: 'sauber',
+  },
+};

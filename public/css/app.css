@@ -471,3 +471,47 @@ a.logo small { opacity: .85; font-size: .95rem; }
 .seite table.zahlen { width: 100%; border-collapse: collapse; font-size: 1rem; }
 .seite table.zahlen th, .seite table.zahlen td { text-align: left; padding: .55rem .6rem; border-bottom: 1px solid var(--linie); vertical-align: top; }
 .seite table.zahlen th { background: var(--bg); font-weight: 700; }
+
+/* Traktor-Assistent (gleiches Muster wie in Futter v2) */
+.assist { position: fixed; right: 12px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 30; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; pointer-events: none; }
+.assist[hidden] { display: none; }
+.assist > * { pointer-events: auto; }
+.assist-btn { position: relative; width: 66px; height: 60px; border-radius: 22px; border: 2px solid var(--linie); background: var(--karte); box-shadow: var(--schatten); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.assist.offen .assist-btn { border-color: var(--gruen); }
+.assist-btn .zz { display: none; position: absolute; top: -8px; right: -2px; font: 700 14px/1 inherit; color: var(--leise); }
+.assist.schlaeft .assist-btn { opacity: .7; }
+.assist.schlaeft .assist-btn .zz { display: block; }
+.assist.schlaeft .aug { transform: scaleY(.2); transform-box: fill-box; transform-origin: center; }
+.assist.schlaeft .mund { opacity: .4; }
+.assist:not(.schlaeft):not(.offen) .assist-btn { animation: assist-wink 6s ease-in-out 1.5s 2; }
+@keyframes assist-wink { 0%, 90%, 100% { transform: rotate(0); } 93% { transform: rotate(-6deg); } 96% { transform: rotate(5deg); } }
+.assist-bubble { position: relative; width: min(380px, calc(100vw - 24px)); max-height: min(62vh, 560px); overflow: auto; background: var(--karte); color: var(--text);
+  border: 2px solid var(--gruen); border-radius: 18px 18px 6px 18px; box-shadow: 0 8px 28px rgba(0, 0, 0, .25); padding: 12px 14px; font-size: 1rem; line-height: 1.45; }
+.assist-bubble[hidden] { display: none; }
+.assist-bubble:focus { outline: none; }
+.assist-bubble.kurz { width: auto; max-width: min(280px, calc(100vw - 100px)); padding: 0; border-radius: 16px 16px 4px 16px; }
+.assist-teaser { display: grid; gap: 2px; text-align: left; border: 0; background: none; color: var(--text); padding: 10px 14px; cursor: pointer; font: inherit; min-height: 48px; }
+.assist-teaser span { color: var(--leise); font-size: .95rem; }
+.assist-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.assist-head b { flex: 1; font-size: 1.05rem; }
+.assist-x { border: 0; background: none; color: var(--leise); font-size: 1.6rem; line-height: 1; width: 48px; height: 48px; border-radius: 12px; cursor: pointer; }
+.assist-text { margin: 0 0 8px; }
+.assist-link { margin: 0 0 8px; }
+.assist-link a { color: var(--blau); display: inline-block; padding: .6rem 0; min-height: 44px; }
+.assist-foot { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.seg { display: inline-flex; gap: 4px; background: var(--bg); padding: 3px; border-radius: 12px; }
+.seg button { border: 0; background: none; border-radius: 9px; padding: .45rem .85rem; min-height: 44px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--gruen); color: #fff; }
+/* über den festen Leisten: Start-Leiste im Einsatz, Arbeitsgänge auf dem Handy */
+[data-screen="setup"] .assist { bottom: calc(150px + env(safe-area-inset-bottom)); }
+@media (max-width: 760px) { [data-screen="spiel"] .assist { bottom: calc(108px + env(safe-area-inset-bottom)); } }
+@media (prefers-reduced-motion: reduce) { .assist-btn { animation: none !important; } }
+:root[data-outdoor="1"] .assist-bubble { font-size: 1.1rem; }
+
+/* Handy: keine Seite breiter als der Bildschirm (Stadien- und Boden-Karten) */
+.wahlkarte { min-width: 0; }
+.wahl.wiese, .wahl.stadien { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.wiese-unten .wahl.bilder { grid-template-columns: repeat(2, minmax(0, 180px)); }
+@media (max-width: 640px) { .wahl.wiese { grid-template-columns: minmax(0, 1fr); } }
+.wiese-unten { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+@media (max-width: 700px) { .wiese-unten { grid-template-columns: minmax(0, 1fr); } }
