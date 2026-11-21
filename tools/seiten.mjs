@@ -12,7 +12,7 @@ const HEUTE = new Date().toISOString().slice(0, 10);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const zahl = (x) => String(x).replace('.', ',');
 
-function seite({ pfad, tiefe, titel, beschreibung, krumen, h1, inhalt }) {
+function seite({ pfad, tiefe, titel, beschreibung, krumen, h1, inhalt, kopf = '' }) {
   const hoch = '../'.repeat(tiefe);
   const kr = krumen.map(([t, href], i) => (i === krumen.length - 1
     ? `<li aria-current="page">${esc(t)}</li>` : `<li><a href="${href}">${esc(t)}</a></li>`)).join('');
@@ -37,7 +37,7 @@ function seite({ pfad, tiefe, titel, beschreibung, krumen, h1, inhalt }) {
   <link rel="icon" href="${hoch}img/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="${hoch}img/icon-192.png">
   <link rel="stylesheet" href="${hoch}css/app.css">
-  <script src="${hoch}js/boot.js"></script>
+  <script src="${hoch}js/boot.js"></script>${kopf}
 </head>
 <body>
   <a class="skip" href="#inhalt">Zum Inhalt</a>
@@ -91,6 +91,10 @@ const lernen = seite({
   beschreibung: 'Wie gute Silage und gutes Heu entstehen: Anwelken, Breitablage, Aufbereiter, Zetten, Heu ab 87 bis 88 % TS, Belüftung und Heustock-Kontrolle. Nach Unterlagen aus Österreich, der Schweiz und Deutschland.',
   krumen: [['Start', './'], ['Lernen']],
   h1: 'Futterkonservierung verstehen',
+  // Gemeinsame AGFF-Mediathek: Liste und Skript liegen in futter (gleicher Host), siehe futter/static/v2/mediathek.js
+  kopf: `
+  <link rel="stylesheet" href="../futter/v2/assets/mediathek.css">
+  <script src="../futter/v2/assets/mediathek.js" defer></script>`,
   inhalt: `
     <p>Silage entsteht, wenn Milchsäurebakterien im luftdichten Silo den Zucker des Futters zu Milchsäure vergären. Der pH-Wert sinkt, und das Futter wird haltbar. Ob das gelingt, entscheidet sich zu einem grossen Teil schon auf dem Feld. Diese Seite erklärt, was im <a href="./">Lernspiel Heureka</a> passiert und warum.</p>
     <div class="infobox"><p><strong>Woher die Zahlen kommen:</strong> Begriffe und Richtwerte stützen sich in erster Linie auf Fachunterlagen aus Österreich, der Schweiz und Deutschland: den Praxisratgeber «Heutrocknung von A bis Z» (<strong>LK Salzburg</strong>), die «Richtlinien für Heubelüftungsanlagen» (<strong>Agroscope 2014</strong>) und das «ABC der Heubelüftung» (<strong>FAT 1982</strong>). Versuche aus den USA ergänzen sie. Das Spiel selbst rechnet mit einem vereinfachten Lehrmodell: Es zeigt Zusammenhänge und Grössenordnungen, ist aber keine Prognose für einen Betrieb.</p></div>
@@ -102,6 +106,7 @@ const lernen = seite({
       <li><a href="#zetten">Zetten und Schwaden: Blätter schonen</a></li>
       <li><a href="#gaerung">Gärqualität bewerten: Labor oder Prozess?</a></li>
       <li><a href="#heu">Heu: Bodenheu, Heuballen oder Belüftung</a></li>
+      <li><a href="#videos">Videos</a></li>
       <li><a href="#begriffe">Begriffe kurz erklärt</a></li>
       <li><a href="#quellen">Quellen</a></li>
     </ul></nav>
@@ -204,6 +209,10 @@ const lernen = seite({
     <p>Die frühe Information der örtlichen Feuerwehr ab 60 °C ist eine bewährte Praxisempfehlung (sie hat auch Messsonden und gibt Rat); die Quelle verlangt den Alarm ab 70 °C. Einen heissen Heustock niemals selbst abtragen: Luftsauerstoff und Hitze führen unweigerlich zum Brand. Erkennungsmerkmale sind Schwitzwasser, ein seltsam süsslicher Geruch, ein Temperaturanstieg über 50 °C und eine muldenförmige Einbuchtung (Verluste nach Philipsen 1965, in LK Salzburg). Bei der Kaltbelüftung gilt zudem: Stocktemperaturen über 35 °C im Intervallbetrieb beachten (Agroscope 2014).</p>
     <p><strong>Sonne und Regen:</strong> Trockenes Heu, das lange in der Sonne liegt, bleicht aus und verliert Vitamine (Carotin). Regen und Tau waschen aus, 1 bis 5 % und mehr (LK Salzburg). Gutes Heu riecht aromatisch, ist grünlich, blattreich und sauber. Das Spiel bewertet Heu nach Geruch, Farbe, Gefüge (Blätter) und Verunreinigung, angelehnt an die Sinnenprüfung und vereinfacht.</p>
     <div class="infobox"><p><strong>Im Spiel:</strong> Bei Hochdruck ist Bodenheu am Nachmittag des dritten Tages lagerfähig. Reicht das Wetterfenster nicht, rettet die Belüftung das Futter.</p></div>
+
+    <h2 id="videos">Videos</h2>
+    <p>Filme zu Anwelken, Heu und Silage aus der gemeinsamen Mediathek der AGFF-Apps.</p>
+    <div data-agff-mediathek data-app="heureka" data-filter data-leer="Die Videoliste ist gerade nicht erreichbar."></div>
 
     <h2 id="begriffe">Begriffe kurz erklärt</h2>
     <dl>
