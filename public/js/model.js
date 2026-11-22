@@ -3,6 +3,8 @@
 // nach innerem Pflanzenwasser und Oberflächenwasser aus Tau und Regen).
 // Trocknungskonstante nach Rotz & Chen (1985); die übrigen Ansätze sind
 // vereinfachte Lehrmodelle (Quellen und offene Punkte: README.md).
+import { Heustock, spieleBelueftungNach, STANDARD, ANLAGE } from './belueftung.js';
+import { belueftungsWetter } from './weather.js';
 
 export const BESTAENDE = {
   graeser: { name: 'Gräserreich (Raigras)', zucker: 170, pk: 42, leg: 0.05, asche: 85 },
@@ -248,6 +250,8 @@ export class Feld {
     this.verlauf.push({ t: this.t, ts: this.ts(), tsInnen: 100 * this.tsInnen(), nass: this.wo / this.dm });
   }
 
+  // Einfahren; bei Belüftungsheu rechnet der Standardbetrieb (oder plan.belueftung) die Belüftung im Heustock.
+  // Nach der Spielphase «Am Heustock» bewertet `bewerte(lauf)` das Ergebnis mit dem gespielten Verlauf neu.
   einfahren() {
     if (this.phase !== 'schwad') return null;
     const { b, st, silo, leg, p } = this;
@@ -258,7 +262,7 @@ export class Feld {
     this.verliere('broeckel', this.dm * (leg * 4 * this.sproede(45, 20) + (silo.art === 'heu' ? (leg * 3 + 0.5) * this.sproede(70, 15) : 0)) / 100, 0);
     this.phase = 'geerntet';
 
-    const dm = this.dm, dm0 = this.dm0;
+    const dm = this.dm;
     const heu = silo.art === 'heu';
     const ernte = {
       dm, ts: tsErnte, zucker: 1000 * this.zucker / dm, asche: 1000 * this.asche / dm,
@@ -266,9 +270,24 @@ export class Feld {
       bleiche: this.bleiche, regenTrocken: this.regenTrocken,
     };
     const plan = { ...p, maehen: this.maehZeit, zetten: this.zetten, schwaden: this.schwadZeit, schwadZeiten: this.schwadZeiten, ernte: this.t };
+    this.eingefahren = { ernte, plan };
+    let lauf = null;
+    if (silo === SILOARTEN.belueftung) lauf = spieleBelueftungNach(this.heustockStart(), [], Infinity, { ...STANDARD, ...p.belueftung }).ergebnis();
+    return this.bewerte(lauf);
+  }
+
+  // Startwerte für den Heustock (Spielphase und Standardbetrieb); Wetter über die vier Tage hinaus verlängert
+  heustockStart(optionen) {
+    return { dmFeld: this.dm / 1000, ts: this.eingefahren.ernte.ts, t0: this.t, wetter: belueftungsWetter(this.wetter), optionen };
+  }
+
+  // Lager, Energie, Punkte und Erklärungen; lauf = Ergebnis der Belüftung (nur Belüftungsheu)
+  bewerte(lauf = null) {
+    const { b, st, silo, leg } = this, { ernte, plan } = this.eingefahren;
+    const dm = this.dm, dm0 = this.dm0, heu = silo.art === 'heu';
     const v = Object.fromEntries(Object.entries(this.verlust).map(([k, g]) => [k, 100 * g / dm0]));
     const silage = heu ? null : siliere(ernte, b, silo, plan);
-    const lager = heu ? lagereHeu(ernte, silo, v, this.wetter.slice(this.t), leg) : null;
+    const lager = heu ? lagereHeu(ernte, silo, v, lauf, leg) : null;
     const q = heu ? lager : silage;
     const lagerverlust = heu ? lager.lagerverlust : silage.siloverlust;
 
@@ -289,7 +308,7 @@ export class Feld {
     const punkte = Math.round(nelHa * gaerFaktor * zielFaktor / 100);
 
     const res = {
-      plan, ernte, silage, heu: lager, art: silo.art, note: q.note, lagerverlust, verlust: v, dm0, tsMahd: this.tsMahd, woMahd: this.woMahd,
+      plan, ernte, silage, heu: lager, belueftung: lauf, art: silo.art, note: q.note, lagerverlust, verlust: v, dm0, tsMahd: this.tsMahd, woMahd: this.woMahd,
       bodenAsche: this.bodenAsche, ereignisse: this.ereignisse, verlauf: this.verlauf,
       nel, rp, tsTrog, nelHa, punkte, verlustTotal: 100 - 100 * tsTrog / dm0,
     };
@@ -369,29 +388,32 @@ export function siliere(e, b, silo, plan) {
 
 // --- Heu lagern: Lagerfähigkeit, Erwärmung, Nachtrocknung (Belüftung) und Qualität nach Sinnen
 // Lehrmodell. Bewertung angelehnt an die Sinnenprüfung (Geruch, Farbe, Gefüge, Verunreinigung), Punkte vereinfacht.
-export function lagereHeu(e, silo, v, rest, leg) {
+// Belüftungsheu: lauf = simulierter Verlauf im Heustock (belueftung.js): Dauer, höchste Stocktemperatur, Schimmel,
+// Strom. Was beim Spielende noch feucht ist, wird wie zu feucht eingelagertes Heu bewertet (Defizit zur Lagergrenze).
+export function lagereHeu(e, silo, v, lauf, leg) {
   const ts = e.ts;
-  const defizit = Math.max(0, silo.grenze - ts);
-  let temp, belueftTage = 0;
-  if (silo === SILOARTEN.belueftung) {
-    // Kaltbelüftung mit Aussenluft: Dauer aus dem Wasser, das noch weg muss, und der Trockenheit der Luft (Tage danach)
-    const tag = rest.filter((w) => w.rad > 0);
-    const vpd = tag.length ? tag.reduce((a, w) => a + w.vpd, 0) / tag.length : 1.0;
-    const wasser = 100 / ts - 100 / 87; // kg Wasser je kg TS bis lagerfähig
-    belueftTage = wasser / (0.4 * clamp(vpd, 0.3, 2.5));
-    temp = 22 + defizit * 3.5 + Math.max(0, belueftTage - 3) * 5;
+  let defizit = Math.max(0, silo.grenze - ts);
+  let temp, belueftTage = 0, lang = 0, schimmelIdx = 0;
+  if (silo === SILOARTEN.belueftung && lauf) {
+    // Haupttrocknung (feuchteste Schicht bis 80 % TS) innert 80 Stunden (LK Salzburg); jede weitere Stunde mit feuchtem Heu ist ein Risiko
+    const haupt = lauf.hauptStunden ?? lauf.stunden;
+    belueftTage = haupt / 24;
+    defizit = lauf.lagerfaehig ? 0 : Math.max(0, ANLAGE.lagerTs - lauf.tsMinEnde);
+    lang = Math.max(0, haupt - 80) / 24;
+    schimmelIdx = lauf.schimmel;
+    temp = Math.max(22, lauf.tempMax, 22 + defizit * 4.8);
   } else {
     temp = 22 + defizit * 4.8 + (silo === SILOARTEN.heuballen ? -3 * Math.min(1, defizit) : 0);
   }
   temp = Math.min(85, temp);
   const sv = {
     grund: silo.lagerverlust,
-    erwaermung: defizit * 0.8 + Math.max(0, temp - 45) * 0.25 + Math.max(0, belueftTage - 3) * 1.5,
+    erwaermung: defizit * 0.8 + Math.max(0, temp - 45) * 0.25 + lang * 1.5 + Math.min(6, schimmelIdx * 2) + (lauf?.verlust ?? 0),
   };
   const lagerverlust = sv.grund + sv.erwaermung;
   // Sinnenprüfung: Abzüge von 100 Punkten
   const abzug = {
-    geruch: Math.min(60, defizit * 5 + Math.max(0, temp - 40) * 0.6 + Math.max(0, belueftTage - 3) * 6),
+    geruch: Math.min(60, defizit * 5 + Math.max(0, temp - 40) * 0.6 + lang * 6 + Math.max(0, schimmelIdx - 0.5) * 12),
     // Bodenheu braucht rund zwei Sonnentage auf trockenem Futter (ca. 35 MJ/m²); erst was darüber geht, bleicht sichtbar
     farbe: Math.min(25, Math.max(0, e.bleiche - 35) * 0.6 + e.regenTrocken * 2.5),
     gefuege: Math.min(25, Math.max(0, v.broeckel - 4) * (2.5 + 5 * leg)),
@@ -399,8 +421,8 @@ export function lagereHeu(e, silo, v, rest, leg) {
   };
   const punkte = Math.round(clamp(100 - Object.values(abzug).reduce((a, x) => a + x, 0), 0, 100));
   const note = temp >= 70 ? 5 : punkte >= 90 ? 1 : punkte >= 72 ? 2 : punkte >= 52 ? 3 : punkte >= 30 ? 4 : 5; // Brandgefahr: verdorben
-  const schimmel = defizit > 6 || belueftTage > 5 ? 'stark' : defizit > 2 || belueftTage > 3.5 ? 'leicht' : 'kein';
-  return { defizit, temp, belueftTage, lagerverlust, sv, abzug, punkte, note, schimmel };
+  const schimmel = defizit > 6 || schimmelIdx >= 2 ? 'stark' : defizit > 2 || schimmelIdx >= 1 ? 'leicht' : 'kein';
+  return { defizit, temp, belueftTage, lagerverlust, sv, abzug, punkte, note, schimmel, strom: lauf ? { kwh: lauf.kwh, kwhJeT: lauf.kwhJeT } : null };
 }
 
 // Angelehnt an den DLG-Schlüssel 2006 (Buttersäure, Essigsäure, pH je TS) – Stufen vereinfacht
