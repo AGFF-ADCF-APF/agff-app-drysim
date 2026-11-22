@@ -9,6 +9,7 @@ import { grafikTrocknung, grafikFeldverluste, grafikAblage, grafikInsekten, graf
 import { vergleicheAlle } from '../public/js/vergleich.js';
 import { QUELLE_FAT, QUELLE_TOPAGRAR, QUELLE_KOELN, QUELLE_HUMBERT } from '../public/js/versuche.js';
 import { BEGRIFFE } from '../public/js/begriffe.js';
+import { TABELLE as NIVEAUS } from '../public/js/niveau.js';
 
 const BASIS = 'https://apps.graswachstum.ch/heureka/';
 const HEUTE = new Date().toISOString().slice(0, 10);
@@ -61,6 +62,7 @@ ${inhalt}
       <a href="${hoch}">Zum Spiel</a>
       <a href="${hoch}lernen.html">Begriffe und Hintergründe</a>
       <a href="${hoch}szenario/bilderbuch.html">Szenarien</a>
+      <a href="${hoch}unterricht.html">Für Lehrpersonen</a>
       <a href="${hoch}../futter/v2/">Futterrechner</a>
       <a href="${hoch}../drywatch/">Heutrocknung</a>
       <a href="https://www.agff.ch" rel="noopener">AGFF</a>
@@ -346,8 +348,84 @@ ${PROGNOSEN.filter((q) => q.id !== p.id).map((q) => `      <li><a href="${q.id}.
   fs.writeFileSync(new URL(`../public/szenario/${p.id}.html`, import.meta.url), html);
 }
 
+// ---------- Unterricht: fertige Aufträge je Niveau mit Lernziel, Zeitbedarf und Link
+const szenario = (id) => PROGNOSEN.find((p) => p.id === id);
+const wetterName = (id) => WETTER.find((w) => w.id === id).name;
+const AUFTRAEGE = {
+  einstieg: [
+    { titel: 'Silage an einem schönen Tag', zeit: '20 Minuten', link: '?niveau=einstieg&wetter=hoch',
+      ziel: 'Den Tau abwarten, mähen und einfahren, sobald die Ampel grün ist. Die Lernenden erleben, dass Silage am gleichen Tag gelingen kann.',
+      auftrag: `Wetter «${wetterName('hoch')}», Silage ins Flachsilo. Spielt eine Runde und schaut danach die vier Karten an: Was war gut, was geht besser?` },
+    { titel: `Wette «${szenario('bilderbuch').name}»`, zeit: '15 Minuten', link: '?niveau=einstieg&szenario=bilderbuch',
+      ziel: szenario('bilderbuch').lernziel,
+      auftrag: 'Geschichte lesen, Ergebnis tippen, Zeitraffer anschauen. Vergleicht den Tipp mit dem Ergebnis.' },
+    { titel: 'Heu braucht schöne Tage', zeit: '25 Minuten', link: '?niveau=einstieg&wetter=sommer',
+      ziel: 'Bodenheu braucht mehrere schöne Tage und darf erst ganz trocken auf den Stock. Feuchtes Heu wird warm.',
+      auftrag: `Wetter «${wetterName('sommer')}», unter «Silage oder Heu?» Bodenheu wählen. Folgt den Vorschlägen des Traktors und schaut am Schluss die Karte zum Heustock an.` },
+  ],
+  praxis: [
+    { titel: 'Klassenwettkampf: Gewitter am Tag 2', zeit: '30 Minuten', link: '?niveau=praxis&wetter=gewitter',
+      ziel: 'Das Wetterfenster lesen und Maschinen sauber einstellen: Schnitthöhe, Zinkenhöhe, Ablage. Wer schafft die meiste Energie im Trog vor dem Gewitter?',
+      auftrag: 'Alle spielen mit demselben Link und tragen einen Namen ein. Danach vergleicht ihr die Punkte und besprecht die Karten der besten und der schwächsten Runde.' },
+    { titel: `Wette «${szenario('tiefgemaeht').name}»`, zeit: '20 Minuten', link: '?niveau=praxis&szenario=tiefgemaeht',
+      ziel: szenario('tiefgemaeht').lernziel,
+      auftrag: 'Zuerst einzeln tippen (TS, Rohasche, Note), dann den Zeitraffer gemeinsam anschauen. Welche Fehler haben am meisten gekostet?' },
+    { titel: 'Zufallswetter mit Klassencode', zeit: '30 Minuten', link: '?niveau=praxis&code=KLASSE1',
+      ziel: 'Ein unbekanntes Wetter beurteilen und entscheiden: Silage oder Heu, und wann mähen? Mit dem Code bekommen alle dasselbe Wetter.',
+      auftrag: 'Den Code im Link nach Belieben ändern (z. B. KLASSE2). Jede Gruppe begründet ihre Wahl von Lagerart und Mähzeitpunkt in zwei Sätzen.' },
+  ],
+  profi: [
+    { titel: 'Modell gegen Messung: Tänikon 2001', zeit: '45 Minuten', link: '?niveau=profi&szenario=taenikon',
+      ziel: szenario('taenikon').lernziel,
+      auftrag: 'Tippen, Zeitraffer anschauen, dann im Ergebnis die Rechenwege und «Modell gegen Messung» öffnen. Erklärt die Abweichung zwischen Spiel und Messung mit den Annahmen des Modells.' },
+    { titel: 'Föhn: Bodenheu oder Belüftung?', zeit: '45 bis 60 Minuten', link: '?niveau=profi&wetter=foehn',
+      ziel: szenario('heufoehn').lernziel,
+      auftrag: 'Zwei Runden mit demselben Wetter spielen, einmal Bodenheu, einmal Belüftungsheu. Beide Runden als CSV herunterladen, die TS-Verläufe mit Strahlung und Dampfdruckdefizit darstellen und den Unterschied begründen.' },
+    { titel: `Wette «${szenario('kleeheu').name}»`, zeit: '30 Minuten', link: '?niveau=profi&szenario=kleeheu',
+      ziel: szenario('kleeheu').lernziel,
+      auftrag: 'Im Ergebnis die Verlustbilanz und die Sinnenprüfung nachrechnen. Welcher Verlustposten ist der grösste, und welcher Arbeitsgang hätte ihn verringert?' },
+  ],
+};
+const unterricht = seite({
+  pfad: 'unterricht.html', tiefe: 0,
+  titel: 'Heureka im Unterricht: Aufträge für Einstieg, Praxis und Profi – Heureka',
+  beschreibung: 'Fertige Aufträge mit Lernziel, Zeitbedarf und Link für das Lernspiel Heureka: drei Niveaus von EBA über EFZ und Betriebsleiterschule bis Höhere Fachschule und Hochschule.',
+  krumen: [['Start', './'], ['Für Lehrpersonen']],
+  h1: 'Heureka im Unterricht',
+  inhalt: `
+    <p>Heureka gibt es in drei Niveaus. Gerechnet wird in allen gleich, darum bleiben Punkte und Ranglisten vergleichbar. Unterschiedlich ist, wie viel die Lernenden einstellen, wie viele Zahlen und Erklärungen sie sehen und welche Aufgaben gestellt werden. Jeder Link unten setzt das Niveau und das passende Wetter oder Szenario. Schicken Sie ihn einfach an die Klasse.</p>
+    <div class="tabelle"><table class="zahlen">
+      <thead><tr><th>Niveau</th><th>Für wen</th><th>Was anders ist</th></tr></thead>
+      <tbody>
+${Object.values(NIVEAUS).map((n) => `        <tr><td><strong>${esc(n.name)}</strong></td><td>${esc(n.fuer)}</td><td>${esc(n.satz)}</td></tr>`).join('\n')}
+      </tbody>
+    </table></div>
+${Object.entries(AUFTRAEGE).map(([id, liste]) => `
+    <h2 id="${id}">${esc(NIVEAUS[id].name)}: ${esc(NIVEAUS[id].fuer)}</h2>
+${liste.map((a) => `    <div class="auftrag">
+      <h3>${esc(a.titel)}</h3>
+      <p><strong>Lernziel:</strong> ${esc(a.ziel)}</p>
+      <p><strong>Auftrag:</strong> ${esc(a.auftrag)}</p>
+      <p><strong>Zeitbedarf:</strong> ${esc(a.zeit)}</p>
+      <p><a class="knopflink" href="./${a.link}">Link öffnen</a> <code>${esc(BASIS + a.link)}</code></p>
+    </div>`).join('\n')}`).join('\n')}
+
+    <h2 id="wettkampf">Klassenwettkampf: kurz erklärt</h2>
+    <ul>
+      <li><strong>Gleiches Wetter für alle:</strong> eine feste Wetterlage (<code>?wetter=gewitter</code>) oder ein Zufallswetter mit Code (<code>?code=KLASSE1</code>). Mit <code>?niveau=</code> kombinierbar, zum Beispiel <code>?niveau=praxis&amp;code=KLASSE1</code>.</li>
+      <li><strong>Namen eintragen:</strong> Wer unter «Silage oder Heu?» einen Namen oder Teamnamen einträgt, erscheint in der Rangliste, zusammen mit dem Niveau.</li>
+      <li><strong>Die Rangliste ist nur lokal:</strong> Sie liegt im Browser des jeweiligen Geräts. Für einen Wettkampf über mehrere Geräte nennen die Lernenden ihre Punkte, oder alle spielen nacheinander am Beamer-Rechner.</li>
+      <li><strong>Vergleichbar über die Niveaus:</strong> Das Rechenmodell ist überall gleich. Im Einstieg sind Wiese und Maschinen sinnvoll voreingestellt; wer dort gut spielt, erreicht dieselben Punkte wie im Praxis-Niveau mit gleichen Entscheidungen.</li>
+      <li><strong>Ohne Zeitdruck:</strong> Im Einstieg läuft die Zeit nur auf Knopfdruck (ruhiger Modus). In den anderen Niveaus lässt sich das im Einsatz unter «Wie willst du spielen?» wählen.</li>
+      <li><strong>Nachbesprechen:</strong> Die Erklärkarten im Ergebnis zeigen, was gut war und was besser geht. Im Profi-Niveau stehen zusätzlich die Rechenwege, ein Datenexport (CSV) und Aufgaben zum Begründen.</li>
+    </ul>
+    <p>Hintergründe zu allen Themen: <a href="lernen.html">Begriffe und Hintergründe</a>. Szenarien zum Vorbereiten: <a href="szenario/bilderbuch.html">Szenarioseiten</a>.</p>
+`,
+});
+fs.writeFileSync(new URL('../public/unterricht.html', import.meta.url), unterricht);
+
 // ---------- Sitemap
-const urls = ['', 'lernen.html', ...PROGNOSEN.map((p) => `szenario/${p.id}.html`)];
+const urls = ['', 'lernen.html', 'unterricht.html', ...PROGNOSEN.map((p) => `szenario/${p.id}.html`)];
 fs.writeFileSync(new URL('../public/sitemap.xml', import.meta.url), `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map((u) => `  <url><loc>${BASIS}${u}</loc><lastmod>${HEUTE}</lastmod></url>`).join('\n')}

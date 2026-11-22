@@ -1,5 +1,5 @@
 import { stundenwetter, zufallswetter } from './weather.js';
-import { BESTAENDE, STADIEN, AUFBEREITER, SILOARTEN, zinken, ablageVon } from './model.js';
+import { BESTAENDE, STADIEN, AUFBEREITER, SILOARTEN, zinken, ablageVon, KAL, GAERFAKTOR, zielFaktor } from './model.js';
 import { bestandBild, stadiumBild, ertragBild, bodenBild } from './wiese.js';
 import { schnittBild, aufbereiterBild, ablageBild, zinkenBild } from './maschinen.js';
 import { WETTER, PROGNOSEN, GRUNDPLAN } from './scenarios.js';
@@ -10,6 +10,7 @@ import { wetterSymbol, STERN } from './icons.js';
 import { BEGRIFFE, mitBegriffen } from './begriffe.js';
 import { Assistent } from './assistent.js';
 import { KARTEN_GRAFIK } from './grafik.js';
+import { niveau, info as niveauInfo, gueltig as niveauGueltig, zeigt, karteSichtbar, beiWechsel, baueNiveauWahl, setzeNiveau } from './niveau.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const z = (x, d = 1) => x.toFixed(d).replace('.', ',');
@@ -123,7 +124,7 @@ const OPTIONEN = {
   })),
   aufbereiter: Object.entries(AUFBEREITER).map(([k, v]) => ({ wert: k, titel: v.name.replace(/^./, (c) => c.toUpperCase()), text: BESCHREIBUNG.aufbereiter[k], extra: aufbereiterBild(k) })),
   siloart: Object.entries(SILOARTEN).map(([k, v]) => ({
-    wert: k, titel: v.name, text: `${BESCHREIBUNG.siloart[k]} ${v.art === 'heu' && v.ziel[1] >= 95 ? `Ab ${v.ziel[0]}` : `Ziel ${v.ziel[0]}–${v.ziel[1]}`} % TS.`,
+    wert: k, titel: v.name, text: `${BESCHREIBUNG.siloart[k]} ${v.art === 'heu' && v.ziel[1] >= 95 ? `Ab ${v.ziel[0]}` : `Ziel ${v.ziel[0]}–${v.ziel[1]}`} % TS.`, textEinfach: BESCHREIBUNG.siloart[k],
     extra: `<span class="art-marke ${v.art}">${v.art === 'heu' ? 'Heu' : 'Silage'}</span>`,
   })),
   stadium: Object.entries(STADIEN).map(([k, v]) => ({ wert: Number(k), titel: v.name, text: BESCHREIBUNG.stadium[k], extra: stadiumBild(Number(k)) })),
@@ -166,7 +167,8 @@ function baueWahl(box, feld, ziel = wahl, onChange) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = karten ? 'wahlkarte' : 'chip';
-    b.innerHTML = karten ? `<b>${esc(o.titel)}</b>${o.extra ?? ''}<small>${esc(o.text ?? '')}</small>` : esc(o.titel);
+    const text = zeigt('feld.zahlen') ? o.text : o.textEinfach ?? o.text;
+    b.innerHTML = karten ? `<b>${esc(o.titel)}</b>${o.extra ?? ''}<small>${esc(text ?? '')}</small>` : esc(o.titel);
     b.setAttribute('aria-pressed', ziel[box.dataset.feld] === o.wert);
     b.addEventListener('click', () => {
       ziel[box.dataset.feld] = o.wert;
@@ -246,6 +248,7 @@ for (const feld of Object.keys(PFLICHT)) {
   const regler = setup[feld];
   // auch ein Klick genau auf die Mitte (Startwert des Reglers) zählt als Einstellung
   const setze = () => {
+    voreingestellt.delete(feld);
     wahl[feld] = Number(regler.value);
     reglerAnzeige(feld);
     $('#setupfehler').textContent = '';
@@ -265,6 +268,35 @@ setup.code.addEventListener('input', speichereEinstellungen);
 document.querySelectorAll('[data-sprung]').forEach((b) => b.addEventListener('click', () => {
   document.getElementById(b.dataset.sprung)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }));
+
+// ---------- Niveau im Einsatz: Einstieg wählt nur Wetter und Silage/Heu, der Rest ist sinnvoll voreingestellt
+const voreingestellt = new Set(); // Regler, die das Niveau gesetzt hat und die der Spieler nicht angefasst hat
+function einsatzNiveau(wechsel = false) {
+  const kurz = zeigt('einsatz.kurz');
+  if (zeigt('einsatz.voreinstellen')) {
+    for (const k of Object.keys(PFLICHT)) if (wahl[k] == null) { wahl[k] = GRUNDPLAN[k]; voreingestellt.add(k); }
+  } else {
+    for (const k of voreingestellt) wahl[k] = null; // Praxis und Profi: Höhen wieder selbst wählen
+    voreingestellt.clear();
+  }
+  if (wechsel) wahl.modus = zeigt('einsatz.modus');
+  Object.keys(PFLICHT).forEach(reglerAnzeige);
+  setup.classList.toggle('kurz', kurz);
+  $('#mehr-einstellen').hidden = !kurz;
+  if (!kurz) { setup.classList.remove('mehr-offen'); $('#mehr-knopf').setAttribute('aria-expanded', 'false'); }
+  ['siloart', 'modus'].forEach((f) => baueWahl($(`[data-feld="${f}"]`, setup), f, wahl, nachWahl));
+  maschinenBilder();
+  aktualisiereOffen();
+}
+$('#mehr-knopf').addEventListener('click', () => {
+  const offen = !setup.classList.contains('mehr-offen');
+  setup.classList.toggle('mehr-offen', offen);
+  $('#mehr-knopf').setAttribute('aria-expanded', String(offen));
+  $('#mehr-knopf').textContent = offen ? 'Weniger einstellen' : 'Mehr einstellen';
+  if (offen) $('#s-wiese').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+// Erster Besuch ohne gesicherte Einstellungen: Spielart nach Niveau (Einstieg: ruhig)
+einsatzNiveau(!lies(sessionStorage, SK));
 
 // Wetter aus der Adresse (Lehrperson verschickt z.B. ?wetter=gewitter oder ?code=KLASSE3)
 {
@@ -326,9 +358,15 @@ function reglerTipp(feld) {
 }
 // Steuerung auf der Startseite
 function zeigeAssistentSteuerung() {
-  $('#assist-an').textContent = Assistent.ruhe ? 'Traktor-Tipps: aus' : 'Traktor-Tipps: an';
+  const still = zeigt('assistent.nurAufWunsch');
+  $('#assist-an').textContent = Assistent.ruhe ? 'Traktor-Tipps: aus' : still ? 'Traktor-Tipps: nur auf Wunsch' : 'Traktor-Tipps: an';
   $('#assist-an').setAttribute('aria-pressed', String(!Assistent.ruhe));
 }
+function assistentNiveau(wechsel) {
+  Assistent.nurAufWunsch = zeigt('assistent.nurAufWunsch');
+  if (wechsel && zeigt('assistent.stufe')) Assistent.stufe = zeigt('assistent.stufe');
+}
+assistentNiveau(new URLSearchParams(location.search).has('niveau'));
 $('#assist-an').addEventListener('click', () => { Assistent.ruhe = !Assistent.ruhe; zeigeAssistentSteuerung(); });
 $('#assist-neu').addEventListener('click', () => { Assistent.zuruecksetzen(); Assistent.ruhe = false; zeigeAssistentSteuerung(); $('#assist-neu').textContent = 'Alle Tipps kommen wieder ✓'; });
 zeigeAssistentSteuerung();
@@ -357,7 +395,7 @@ setup.addEventListener('submit', (ev) => {
     return;
   }
   const wetterRef = { id: wahl.wetter, code: setup.code.value.trim().toUpperCase() };
-  const einstellungen = { ...wahl, ertrag: Number(setup.ertrag.value), name: setup.name.value.trim() };
+  const einstellungen = { ...wahl, ertrag: Number(setup.ertrag.value), name: setup.name.value.trim(), niveau: niveau() };
   starteSpiel({ einstellungen, sz: wetterVon(wetterRef.id, wetterRef.code), wetterRef });
 });
 
@@ -422,8 +460,17 @@ function saetze(text) {
   out.push(text.slice(start));
   return out.map((s) => s.trim()).filter(Boolean);
 }
-function zeigeDetail(f) {
+// Bild zur Karte im Einstieg (wo vorhanden)
+const KARTEN_BILD = { asche: (p) => schnittBild(p.schnitthoehe) };
+function zeigeDetail(f, plan) {
   $('#detail-titel').textContent = f.titel;
+  if (zeigt('ergebnis.kurz') && f.kurz) {
+    $('#detail-titel').textContent = f.titelEinfach ?? f.titel;
+    $('#detail-wert').textContent = STUFE_TEXT[f.stufe];
+    $('#detail-text').innerHTML = `<p class="kurz">${esc(f.kurz)}</p>` + (KARTEN_BILD[f.id] ? `<div class="bild">${KARTEN_BILD[f.id](plan)}</div>` : '');
+    dialog.showModal();
+    return;
+  }
   $('#detail-wert').textContent = f.wert;
   const [kopf, ...rest] = saetze(f.text);
   $('#detail-text').innerHTML = `<p class="kurz">${mitBegriffen(kopf)}</p>`
@@ -461,22 +508,18 @@ function zeigeErgebnis(res, sz, tipp, einstellungen) {
   requestAnimationFrame(zaehle);
   setTimeout(() => { $('#punkte').textContent = ziel; }, 1300); // auch wenn der Tab im Hintergrund drosselt
 
+  letztesErgebnis = { res, sz, tipp };
   const e = res.ernte;
-  $('#kennzahlen').innerHTML = (heu ? [
-    ['TS beim Einlagern', `${z(e.ts)} %`], ['Rohasche', `${z(e.asche, 0)} g/kg TS`], ['Heustock bis', `${z(res.heu.temp, 0)} °C`],
-    ['Heuqualität', `Note ${res.note} · ${NOTEN[res.note - 1]}`], ['Energie', `${z(res.nel, 2)} MJ NEL/kg TS`], ['Verlust Feld bis Trog', `${z(res.verlustTotal, 0)} %`],
-  ] : [
-    ['TS beim Einfahren', `${z(e.ts)} %`], ['Rohasche', `${z(e.asche, 0)} g/kg TS`], ['Zucker', `${z(e.zucker, 0)} g/kg TS`],
-    ['Gärqualität', `Note ${res.note} · ${NOTEN[res.note - 1]}`], ['Energie', `${z(res.nel, 2)} MJ NEL/kg TS`], ['Verlust Feld bis Trog', `${z(res.verlustTotal, 0)} %`],
-  ]).map(([a, b]) => `<div class="kennzahl"><span>${a}</span><strong>${b}</strong></div>`).join('');
+  ergebnisNiveau();
   $('#abzeichen').innerHTML = abzeichen(res).map(([t, d, minus]) => `<span class="${minus ? 'minus' : ''}" title="${esc(d)}">${minus ? '✗' : '★'} ${esc(t)}</span>`).join('');
 
   // Wette: Tipp gegen Ergebnis
   if (tipp) {
     const bewerte = (diff, eng, weit) => (diff <= eng ? 3 : diff <= weit ? 1 : 0);
+    const tsName = zeigt('feld.zahlen') ? 'TS beim Einfahren' : 'Trockensubstanz beim Einfahren';
     const zeilen = [
-      ['TS beim Einfahren', `${tipp.ts} %`, `${z(e.ts)} %`, bewerte(Math.abs(tipp.ts - e.ts), 3, 7)],
-      ['Rohasche', `${tipp.asche} g/kg`, `${z(e.asche, 0)} g/kg`, bewerte(Math.abs(tipp.asche - e.asche), 10, 25)],
+      [tsName, `${tipp.ts} %`, `${z(e.ts)} %`, bewerte(Math.abs(tipp.ts - e.ts), 3, 7)],
+      [zeigt('feld.zahlen') ? 'Rohasche' : 'Erde im Futter (Rohasche)', `${tipp.asche} g/kg`, `${z(e.asche, 0)} g/kg`, bewerte(Math.abs(tipp.asche - e.asche), 10, 25)],
       [heu ? 'Heuqualität' : 'Gärqualität', `Note ${tipp.note}`, `Note ${res.note}`, bewerte(Math.abs(tipp.note - res.note), 0, 1)],
     ];
     const total = zeilen.reduce((a, r) => a + r[3], 0);
@@ -489,21 +532,136 @@ function zeigeErgebnis(res, sz, tipp, einstellungen) {
     $('.punkte', $('#ergebnis')).hidden = false;
     if (einstellungen.name) {
       const l = rangliste();
-      l.push({ name: einstellungen.name, punkte: res.punkte, wetter: sz.name, ts: e.ts, note: res.note, sterne: n, art: res.art });
+      l.push({ name: einstellungen.name, punkte: res.punkte, wetter: sz.name, ts: e.ts, note: res.note, sterne: n, art: res.art, niveau: einstellungen.niveau ?? niveau() });
       speichereRangliste(l);
     }
   }
+}
 
-  const box = $('#faktoren');
-  box.replaceChildren(...res.faktoren.map((f) => {
+// Teile des Ergebnisses, die vom Niveau abhängen (werden beim Umstellen neu gezeichnet)
+let letztesErgebnis = null;
+function ergebnisNiveau() {
+  if (!letztesErgebnis) return;
+  const { res, sz, tipp } = letztesErgebnis, e = res.ernte, heu = res.art === 'heu';
+  const zahlen = zeigt('ergebnis.zahlen');
+  if (!zahlen) {
+    const [a, b] = SILOARTEN[res.plan.siloart].ziel;
+    const trocken = e.ts < a ? 'noch zu nass' : e.ts > b ? 'zu trocken' : 'genau richtig';
+    $('#kennzahlen').innerHTML = [
+      ['Wie trocken beim Einfahren?', trocken], ['Erde im Futter', e.asche <= 100 ? 'wenig' : 'viel'],
+      [heu ? 'Heuqualität' : 'Gärqualität', `Note ${res.note} · ${NOTEN[res.note - 1]}`],
+      heu ? ['Heustock', res.heu.temp < 45 ? 'blieb kühl' : res.heu.temp < 60 ? 'wurde warm' : 'wurde heiss'] : ['Zeit auf dem Feld', `${e.stunden} Stunden`],
+    ].map(([x, y]) => `<div class="kennzahl"><span>${x}</span><strong>${y}</strong></div>`).join('');
+  } else $('#kennzahlen').innerHTML = (heu ? [
+    ['TS beim Einlagern', `${z(e.ts)} %`], ['Rohasche', `${z(e.asche, 0)} g/kg TS`], ['Heustock bis', `${z(res.heu.temp, 0)} °C`],
+    ['Heuqualität', `Note ${res.note} · ${NOTEN[res.note - 1]}`], ['Energie', `${z(res.nel, 2)} MJ NEL/kg TS`], ['Verlust Feld bis Trog', `${z(res.verlustTotal, 0)} %`],
+  ] : [
+    ['TS beim Einfahren', `${z(e.ts)} %`], ['Rohasche', `${z(e.asche, 0)} g/kg TS`], ['Zucker', `${z(e.zucker, 0)} g/kg TS`],
+    ['Gärqualität', `Note ${res.note} · ${NOTEN[res.note - 1]}`], ['Energie', `${z(res.nel, 2)} MJ NEL/kg TS`], ['Verlust Feld bis Trog', `${z(res.verlustTotal, 0)} %`],
+  ]).map(([a, b]) => `<div class="kennzahl"><span>${a}</span><strong>${b}</strong></div>`).join('');
+
+  // Erklärkarten: nur die, die das Niveau zeigt (Kennzeichnung `ab` in model.js)
+  const kurz = zeigt('ergebnis.kurz');
+  $('#faktoren').replaceChildren(...res.faktoren.filter((f) => karteSichtbar(f)).map((f) => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = `faktor ${f.stufe}`;
-    b.innerHTML = `<b><span class="sr-only">${STUFE_TEXT[f.stufe]}: </span>${esc(f.titel)}</b><small>${esc(f.wert)}</small>`;
-    b.addEventListener('click', () => zeigeDetail(f));
+    b.innerHTML = `<b><span class="sr-only">${STUFE_TEXT[f.stufe]}: </span>${esc(kurz ? f.titelEinfach ?? f.titel : f.titel)}</b><small>${esc(kurz ? STUFE_TEXT[f.stufe] : f.wert)}</small>`;
+    b.addEventListener('click', () => zeigeDetail(f, res.plan));
     return b;
   }));
-  zeichne($('#rueckblick'), stundenwetter(sz), { aktionen: res.ereignisse, verlauf: res.verlauf, ziel: SILOARTEN[res.plan.siloart].ziel });
+  $('#rueckblick-karte').hidden = !zeigt('ergebnis.rueckblick');
+  if (zeigt('ergebnis.rueckblick')) zeichne($('#rueckblick'), stundenwetter(sz), { aktionen: res.ereignisse, verlauf: res.verlauf, ziel: SILOARTEN[res.plan.siloart].ziel });
+  $('#profi').hidden = !zeigt('ergebnis.rechenweg');
+  if (zeigt('ergebnis.rechenweg')) $('#rechenweg').innerHTML = rechenweg(res, sz, tipp);
 }
+
+// ---------- Profi: Rechenwege, Kalibrierung, Modell gegen Messung, Datenexport und Begründungsaufgaben
+function rechenweg(res, sz, tipp) {
+  const e = res.ernte, heu = res.art === 'heu', silo = SILOARTEN[res.plan.siloart], v = res.verlust;
+  const gf = GAERFAKTOR[res.note - 1], zf = zielFaktor(e.ts, silo.ziel);
+  const zeile = (a, b) => `<tr><th scope="row">${a}</th><td>${b}</td></tr>`;
+  let html = '<h3>Punkte</h3><table class="rechnung"><tbody>'
+    + zeile('Energie im Trog je ha', `${z(res.tsTrog * 10, 0)} kg TS/ha × ${z(res.nel, 2)} MJ NEL/kg TS = ${z(res.nelHa, 0)} MJ NEL/ha`)
+    + zeile(heu ? 'Heufaktor (Note)' : 'Gärfaktor (Note)', `Note ${res.note} → ${z(gf, 2)}`)
+    + zeile('Zielfaktor', `1 − min(0,2; 0,01 × Abstand zum Zielbereich ${silo.ziel[0]}–${silo.ziel[1]} % TS) = ${z(zf, 2)}`)
+    + zeile('Punkte', `${z(res.nelHa, 0)} × ${z(gf, 2)} × ${z(zf, 2)} / 100 = <b>${res.punkte}</b>`)
+    + '</tbody></table>';
+  if (!heu) {
+    const s = res.silage, pk = BESTAENDE[res.plan.bestand].pk;
+    html += '<h3>Silierung</h3><table class="rechnung"><tbody>'
+      + zeile('Vergärbarkeitskoeffizient (Weissbach)', `FK = TS + 8 × Zucker/Pufferkapazität = ${z(e.ts)} + 8 × ${z(e.zucker, 0)}/${pk} = <b>${z(s.fk)}</b> (ab 45 sicher silierbar)`)
+      + zeile('Kritischer pH', `pH<sub>krit</sub> = 0,0257 × TS + 3,71 = 0,0257 × ${z(e.ts)} + 3,71 = ${z(s.pHkrit, 2)}; Modell-pH ${z(s.pH, 2)}`)
+      + zeile('DLG-Schlüssel (vereinfacht)', `Buttersäure ${z(s.buttersaeure / 10, 2)} % TS, Essigsäure ${z(s.essigsaeure / 10, 1)} % TS, pH ${z(s.pH, 2)} → ${s.dlg} Punkte → Note ${s.note}`)
+      + '</tbody></table>';
+  } else {
+    const h = res.heu, wasser = Math.max(0, 100 / e.ts - 100 / 87);
+    html += '<h3>Lagerung</h3><table class="rechnung"><tbody>'
+      + zeile('TS-Defizit', `Grenze ${silo.grenze} % − ${z(e.ts)} % = ${z(h.defizit)} Prozentpunkte`)
+      + (res.plan.siloart === 'belueftung'
+        ? zeile('Wasser bis lagerfähig (87 % TS)', `100/TS − 100/87 = 100/${z(e.ts)} − 100/87 = ${z(wasser, 2)} kg Wasser je kg TS`)
+          + zeile('Belüftungsdauer (Lehrmodell)', `Wasser / (0,4 × mittleres Dampfdruckdefizit tagsüber) ≈ ${z(h.belueftTage, 1)} Tage`)
+        : '')
+      + zeile('Sinnenprüfung', `100 − Geruch ${z(h.abzug.geruch, 0)} − Farbe ${z(h.abzug.farbe, 0)} − Gefüge ${z(h.abzug.gefuege, 0)} − Erde ${z(h.abzug.verunreinigung, 0)} = ${h.punkte} Punkte → Note ${h.note}`)
+      + '</tbody></table>';
+  }
+  html += '<h3>Verluste vom Feld bis zum Trog (% der gemähten TS)</h3><table class="rechnung"><tbody>'
+    + [['Atmung', v.atmung], ['Auswaschung', v.auswaschung], ['Bröckeln', v.broeckel], ['Liegen gelassen', v.liegen], [heu ? 'Lager' : 'Silo', res.lagerverlust]].map(([a, b]) => zeile(a, `${z(b)} %`)).join('')
+    + zeile('Total', `<b>${z(res.verlustTotal)} %</b>`) + '</tbody></table>';
+  html += '<h3>Kalibrierung des Modells (KAL in model.js)</h3><table class="rechnung"><tbody>'
+    + zeile('Grundtempo der Trocknung (k)', z(KAL.k, 2))
+    + zeile('Wirkung der Ablagebreite', `${z(KAL.ablage, 2)} (Schwadfaktor = (85/Ablage)<sup>${z(KAL.ablage, 2)}</sup>)`)
+    + zeile('Schub ab 55 % TS innen (Heu)', z(KAL.schub, 2))
+    + zeile('Massstab der Bröckelverluste', `× ${z(KAL.broeckel, 2)}`)
+    + '</tbody></table><p class="hinweis">Kalibriert am FAT-Versuch Tänikon 2001 (FAT-Bericht 584); mittlere Abweichung rund 3,5 Prozentpunkte TS. Trocknung nach Rotz &amp; Chen (1985).</p>'
+    + '<div class="knopfreihe"><a class="knopflink" href="lernen.html#versuch" target="_blank" rel="noopener">Modell gegen Messung</a>'
+    + '<button type="button" class="leise-knopf" data-export>Daten als CSV herunterladen</button></div>';
+  html += `<h3>Aufgaben zum Begründen</h3><ol class="aufgaben">${aufgaben(res, tipp).map((a) => `<li>${a}</li>`).join('')}</ol>`;
+  return html;
+}
+
+function aufgaben(res, tipp) {
+  const e = res.ernte, heu = res.art === 'heu', v = res.verlust, a = [];
+  if (tipp?.messung) a.push(`Erkläre die Abweichung zwischen Spiel (${z(e.ts)} % TS) und Messung (${z(tipp.messung.ts)} % TS). Welche Annahmen des Modells oder der Kalibrierung könnten sie verursachen?`);
+  else a.push('Erkläre die Abweichung zwischen Spiel und Messung im Versuch Tänikon (Knopf «Modell gegen Messung»): Bei welchen Verfahren liegt das Modell daneben, und warum?');
+  if (!heu) a.push(`Begründe die Gärnote ${res.note} mit dem Vergärbarkeitskoeffizienten: Welche Grösse in FK = TS + 8 × Zucker/Pufferkapazität hat dein Ergebnis am stärksten bestimmt?`);
+  else a.push(`Rechne nach: Wie viel Wasser je kg TS hätte nach dem Einlagern noch weg müssen (100/TS − 100/87)? Was hätte eine um 10 Prozentpunkte tiefere TS bedeutet?`);
+  const [art, wert] = [['Atmung', v.atmung], ['Auswaschung', v.auswaschung], ['Bröckeln', v.broeckel], ['Liegen gelassen', v.liegen], [heu ? 'Lager' : 'Silo', res.lagerverlust]].sort((x, y) => y[1] - x[1])[0];
+  a.push(`Der grösste Verlustposten war «${art}» mit ${z(wert)} % der TS. Welche Entscheidung hätte ihn verringert, und was hätte sie gekostet (Zeit, Wetterrisiko, Leistung, Insekten)?`);
+  a.push('Lade die Daten als CSV herunter und stelle den TS-Verlauf zusammen mit Strahlung und Dampfdruckdefizit dar. Wann trocknete das Futter am schnellsten, und warum?');
+  return a;
+}
+
+// CSV (Semikolon, Dezimalpunkt, UTF-8 mit BOM): Ergebniswerte, Arbeitsgänge, stündlicher Verlauf
+function csvRunde() {
+  const { res, sz } = letztesErgebnis, e = res.ernte, wetter = stundenwetter(sz), f = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : '');
+  const q = (x) => (/[;"\n]/.test(String(x)) ? `"${String(x).replace(/"/g, '""')}"` : String(x));
+  const zeilen = [['Heureka – Datenexport der Runde'], ['Niveau', niveauInfo().name], ['Wetter', sz.name], ['Lager', SILOARTEN[res.plan.siloart].name], [],
+    ['Ergebnis', 'Wert', 'Einheit'],
+    ['TS beim Einfahren', f(e.ts), '%'], ['Rohasche', f(e.asche, 1), 'g/kg TS'], ['Zucker', f(e.zucker, 1), 'g/kg TS'],
+    ['Note', res.note, ''], ['Energie', f(res.nel), 'MJ NEL/kg TS'], ['Energie im Trog', f(res.nelHa, 0), 'MJ NEL/ha'],
+    ['Verlust Feld bis Trog', f(res.verlustTotal), '%'], ...Object.entries(res.verlust).map(([k, x]) => [`Verlust ${k}`, f(x), '% TS']), ['Verlust Lager/Silo', f(res.lagerverlust), '% TS'],
+    ...(res.silage ? [['FK', f(res.silage.fk, 1), ''], ['pH', f(res.silage.pH), ''], ['pH kritisch', f(res.silage.pHkrit), ''], ['Buttersäure', f(res.silage.buttersaeure / 10), '% TS'], ['DLG-Punkte', res.silage.dlg, '']] : []),
+    ...(res.heu ? [['Heustock bis', f(res.heu.temp, 0), '°C'], ['Belüftungstage', f(res.heu.belueftTage, 1), 'd'], ['Heuqualität', res.heu.punkte, 'Punkte']] : []),
+    ['Punkte', res.punkte, ''], [],
+    ['Arbeitsgänge'], ['Stunde', 'Tag', 'Uhrzeit', 'Arbeitsgang', 'TS %'],
+    ...res.ereignisse.map((x) => [x.t, Math.floor(x.t / 24) + 1, `${String(x.t % 24).padStart(2, '0')}:00`, x.text, f(x.ts)]), [],
+    ['Stündlicher Verlauf'], ['Stunde', 'Tag', 'Uhrzeit', 'Temperatur °C', 'rel. Luftfeuchte %', 'Strahlung W/m2', 'Dampfdruckdefizit kPa', 'Wind m/s', 'Regen mm', 'TS %', 'TS innen %', 'Oberflächenwasser g/g TS'],
+  ];
+  const nachT = new Map(res.verlauf.map((x) => [x.t, x]));
+  for (const w of wetter.filter((x) => x.t <= res.plan.ernte)) {
+    const m = nachT.get(w.t);
+    zeilen.push([w.t, w.tag, `${String(w.h).padStart(2, '0')}:00`, f(w.temp, 1), f(w.rh, 1), f(w.rad, 0), f(w.vpd, 3), f(w.wind, 1), f(w.regen, 1), m ? f(m.ts) : '', m ? f(m.tsInnen) : '', m ? f(m.nass, 3) : '']);
+  }
+  return '\ufeff' + zeilen.map((r) => r.map(q).join(';')).join('\r\n');
+}
+$('#profi').addEventListener('click', (ev) => {
+  if (!ev.target.closest('[data-export]') || !letztesErgebnis) return;
+  const url = URL.createObjectURL(new Blob([csvRunde()], { type: 'text/csv;charset=utf-8' }));
+  const d = new Date(), stempel = `${d.toISOString().slice(0, 10)}-${String(d.getHours()).padStart(2, '0')}${String(d.getMinutes()).padStart(2, '0')}`;
+  const a = Object.assign(document.createElement('a'), { href: url, download: `heureka-runde-${stempel}.csv` });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
 $('#nochmals').addEventListener('click', () => {
   if (letzterStart?.plan) zeige('wetten');
   else if (letzterStart) starteSpiel(letzterStart);
@@ -516,7 +674,7 @@ const speichereRangliste = (l) => schreib(localStorage, RL, l);
 function zeigeRangliste() {
   const l = rangliste().sort((a, b) => b.punkte - a.punkte).slice(0, 10);
   $('#rangliste').innerHTML = l.length
-    ? l.map((e) => `<li><span>${esc(e.name)}<small>${e.art === 'heu' ? 'Heu' : 'Silage'} · ${esc(e.wetter)} · ${z(e.ts, 0)} % TS · Note ${e.note}</small></span><strong>${e.punkte}</strong></li>`).join('')
+    ? l.map((e) => `<li><span>${esc(e.name)}<small>${niveauGueltig(e.niveau) ? `<span class="niveau-marke ${e.niveau}">${niveauInfo(e.niveau).name}</span> · ` : ''}${e.art === 'heu' ? 'Heu' : 'Silage'} · ${esc(e.wetter)} · ${z(e.ts, 0)} % TS · Note ${e.note}</small></span><strong>${e.punkte}</strong></li>`).join('')
     : '<li class="leer">Noch niemand. Gib beim Einsatz einen Namen ein, dann erscheinst du hier.</li>';
 }
 $('#rangliste-leeren').addEventListener('click', () => {
@@ -559,6 +717,12 @@ $('#szenarien').addEventListener('click', (ev) => {
   if (b) waehleSzenario(b.dataset.id);
 });
 baueWahl($('[data-feld="note"]', tippform), [1, 2, 3, 4, 5].map((n) => ({ wert: n, titel: `${n} · ${NOTEN[n - 1]}` })), tipp);
+function wetteNiveau() {
+  const einfach = !zeigt('feld.zahlen');
+  tippform.ts.closest('label').querySelector('span').textContent = einfach ? 'Trockensubstanz beim Einfahren' : 'TS beim Einfahren';
+  tippform.asche.closest('label').querySelector('span').textContent = einfach ? 'Erde im Futter (Rohasche)' : 'Rohasche';
+}
+wetteNiveau();
 function tippText() {
   tippform.tsAus.value = `${tippform.ts.value} % TS`;
   tippform.ascheAus.value = `${tippform.asche.value} g/kg TS`;
@@ -573,6 +737,25 @@ tippform.addEventListener('submit', (ev) => {
   const t = { ts: Number(tippform.ts.value), asche: Number(tippform.asche.value), note: tipp.note, messung: szenario.messung ?? null };
   const { maehen, zetten, schwaden, ernte, ...einstellungen } = szenario.plan;
   starteSpiel({ einstellungen, sz: WETTER.find((x) => x.id === szenario.wetter), plan: { maehen, zetten, schwaden, ernte }, tipp: t });
+});
+
+// ---------- Niveau wählen (Startbildschirm, Dialog über den Knopf im Kopf)
+document.querySelectorAll('.niveau-wahl').forEach(baueNiveauWahl);
+function zeigeNiveauKnopf() {
+  const n = niveauInfo();
+  $('#niveau-auf').innerHTML = `<span aria-hidden="true">${n.zeichen}</span> ${n.name}`;
+  $('#niveau-auf').setAttribute('aria-label', `Niveau: ${n.name}. Ändern`);
+}
+zeigeNiveauKnopf();
+$('#niveau-auf').addEventListener('click', () => dialogOeffnen($('#niveau-dialog')));
+beiWechsel(() => {
+  zeigeNiveauKnopf();
+  einsatzNiveau(true);
+  assistentNiveau(true);
+  zeigeAssistentSteuerung();
+  wetteNiveau();
+  spiel?.zeichne(0.3);
+  if (aktuell === 'ergebnis') ergebnisNiveau();
 });
 
 // ---------- Start: Adresse auswerten, Verlauf aufbauen, offline nutzbar machen

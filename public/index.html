@@ -37,6 +37,7 @@
       <span><b><span class="logo-heu">HEU</span>reka</b><small>Lernspiel Futterkonservierung</small></span>
     </button>
     <div class="kopf-knoepfe">
+      <button type="button" class="leise-knopf" id="niveau-auf" aria-haspopup="dialog">Niveau</button>
       <button type="button" class="leise-knopf" id="begriffe-auf">Begriffe</button>
       <button type="button" class="icon-btn" id="modus"></button>
       <button type="button" class="leise-knopf" data-gehe="start" id="zum-menu" hidden>Zum Startmenü</button>
@@ -61,6 +62,11 @@
           </button>
         </div>
       </div>
+    </div>
+    <div class="karte niveau-karte">
+      <h2 id="niveau-titel">Wähle dein Niveau</h2>
+      <div class="niveau-wahl" role="group" aria-labelledby="niveau-titel"></div>
+      <p class="hinweis">Gerechnet wird überall gleich: Die Punkte bleiben vergleichbar. Umstellen geht jederzeit oben mit «Niveau».</p>
     </div>
     <div class="karte fortsetzen" id="fortsetzen" hidden>
       <div>
@@ -117,6 +123,10 @@
         <h2>1 · Wetterbericht</h2>
         <div class="wahl" data-feld="wetter"></div>
         <label class="code" hidden>Wettercode <input name="code" maxlength="12" placeholder="z.B. KLASSE3" autocapitalize="characters" autocorrect="off" spellcheck="false" enterkeyhint="done" autocomplete="off"></label>
+      </div>
+      <div class="karte mehr-einstellen" id="mehr-einstellen" hidden>
+        <p><b>Wiese und Maschinen sind schon sinnvoll eingestellt.</b> Du wählst nur das Wetter und ob es Silage oder Heu gibt.</p>
+        <button type="button" class="leise-knopf" id="mehr-knopf" aria-expanded="false" aria-controls="s-wiese s-maschinen">Mehr einstellen</button>
       </div>
       <div class="karte" id="s-wiese">
         <h2>2 · Die Wiese</h2>
@@ -232,7 +242,11 @@
       <p class="hinweis">Tippe auf eine Karte. ✓ = gut gemacht, ! = geht besser, ✗ = hier lag das Problem.</p>
       <div class="faktoren" id="faktoren"></div>
     </div>
-    <div class="karte">
+    <div class="karte profi-karte" id="profi" hidden>
+      <h2>Rechenwege, Daten und Aufgaben</h2>
+      <div id="rechenweg"></div>
+    </div>
+    <div class="karte" id="rueckblick-karte">
       <h2>Rückblick</h2>
       <div id="rueckblick" class="diagramm"></div>
     </div>
@@ -270,6 +284,15 @@
     </form>
   </dialog>
 
+  <dialog id="niveau-dialog" aria-labelledby="niveau-dialog-titel">
+    <form method="dialog">
+      <h2 id="niveau-dialog-titel">Niveau wählen</h2>
+      <div class="niveau-wahl" role="group" aria-labelledby="niveau-dialog-titel"></div>
+      <p class="hinweis">Gerechnet wird überall gleich. Das Niveau ändert, wie viel du einstellst und wie viele Zahlen und Erklärungen du siehst.</p>
+      <button class="gross-knopf gruen"><b>Fertig</b></button>
+    </form>
+  </dialog>
+
   <dialog id="begriffe" aria-labelledby="begriffe-titel">
     <form method="dialog">
       <h2 id="begriffe-titel">Begriffe kurz erklärt</h2>
@@ -284,6 +307,7 @@
     <nav aria-label="Weiterführende Links">
       <a href="lernen.html">Begriffe und Hintergründe</a>
       <a href="lernen.html#videos">Videos</a>
+      <a href="unterricht.html">Für Lehrpersonen</a>
       <a href="szenario/bilderbuch.html">Szenarien</a>
       <a href="../futter/v2/">Futterrechner</a>
       <a href="../drywatch/">Heutrocknung</a>

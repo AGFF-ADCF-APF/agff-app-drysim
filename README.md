@@ -25,6 +25,7 @@ Ablauf im Spiel: Start → Einsatz planen (Wetter, Wiese, Maschinen, Silo) → S
 | `public/js/scene.js` | SVG-Feldszene: Himmel im Tagesverlauf, Sonne/Mond, Wolken, Regen, Tau, Futterfarbe nach TS, Erde, Traktor |
 | `public/js/icons.js` | Wetter- und Maschinensymbole |
 | `public/js/chart.js` | Rückblick-Diagramm Wetter + TS-Verlauf |
+| `public/js/niveau.js` | Niveaus Einstieg, Praxis, Profi: eine Tabelle, was jedes Niveau zeigt |
 | `public/js/app.js` | Bildschirme mit Browser-Verlauf und Titeln, Einsatz-Auswahl (gespeichert pro Sitzung), Silo öffnen, Wette, lokale Rangliste, Kontrastmodus |
 | `public/js/begriffe.js` | Fachbegriffe für Tipp-Erklärungen und Begriffe-Dialog (auch Quelle der Lernseite) |
 | `public/js/wiese.js`, `maschinen.js` | Bilder für Wiese, Maschinen und Einstellungen |
@@ -57,6 +58,20 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine node tools/seiten.mjs
 
 - **Offline:** Service Worker (aus `tools/seiten.mjs`) lädt alle Dateien vorab; die App startet auch ohne Netz.
 - `sitemap.xml` liegt unter `/heureka/`. Ein `robots.txt` müsste auf `apps.graswachstum.ch` im Wurzelverzeichnis liegen (gehört nicht zu dieser App).
+
+## Niveaus: Einstieg, Praxis, Profi (seit 22.11.2026)
+
+Drei Niveaus von EBA bis Hochschule. **Das Rechenmodell ist für alle gleich**, Punkte und Ranglisten bleiben vergleichbar. Unterschiedlich ist nur, wie viel man einstellt, wie viel Text und Zahlen man sieht und welche Aufgaben gestellt werden.
+
+- **Einstieg** (EBA, 1. Lehrjahr EFZ): Im Einsatz nur Wetter und Silage/Heu; Wiese und Maschinen sind voreingestellt (Grundplan: 7 cm Schnitthöhe, Zinken 3 cm) und hinter «Mehr einstellen» erreichbar. Ruhiger Modus als Standard. Auf dem Feld eine Ampel mit Worten («noch zu nass / genau richtig / zu trocken») statt Zahlen, der Traktor schlägt den nächsten Schritt vor (Regeln aus den Assistententexten) und hebt den passenden Knopf hervor. Im Ergebnis nur die vier wichtigsten Karten mit je einem einfachen Satz, ohne Abkürzungen.
+- **Praxis** (EFZ, Betriebsleiterschule): wie bisher, Standard.
+- **Profi** (HF, Hochschule): zusätzliche Werte auf dem Feld (Strahlung, Dampfdruckdefizit, Wind, TS innen, Oberflächenwasser), im Ergebnis Rechenwege (Punkte, FK, kritischer pH, DLG bzw. Sinnenprüfung, Wasserentzug bei Belüftung), Verlustbilanz, Kalibrierparameter `KAL`, Link «Modell gegen Messung», CSV-Export der Runde (Ergebniswerte, Arbeitsgänge, stündlicher Verlauf; Semikolon, Dezimalpunkt, UTF-8) und Aufgaben zum Begründen. Der Traktor meldet sich nur auf Wunsch.
+
+Bedienung: Wahl auf dem Startbildschirm und jederzeit über den Knopf «Niveau» im Kopf; gemerkt unter `drysim-niveau`. Per Adresse: `?niveau=einstieg|praxis|profi`, kombinierbar mit `?wetter=`, `?code=` und `?szenario=`. Die Rangliste speichert das Niveau mit.
+
+Aufbau: `public/js/niveau.js` enthält **eine Tabelle**, was jedes Niveau zeigt (`einsatz`, `feld`, `ergebnis`, `assistent`, `belueftung`); die übrigen Module fragen mit `zeigt('feld.ampel')` usw. nach. Erklärkarten tragen in `model.js` die Kennzeichnung `ab` (ab welchem Niveau sie erscheinen), die Einstiegskarten zusätzlich `kurz` und `titelEinfach`. Für die Heubelüftung ist der Eintrag `belueftung` vorbereitet (Einstieg: Lüfter ein/aus mit Ampel; Profi: Rechenaufgabe Wasserentzug).
+
+Für Lehrpersonen erzeugt `tools/seiten.mjs` die Seite `unterricht.html`: je Niveau drei Aufträge mit Lernziel, Zeitbedarf und fertigem Link, dazu Hinweise zum Klassenwettkampf.
 
 ## Traktor-Assistent (Lerninhalte im Spiel)
 

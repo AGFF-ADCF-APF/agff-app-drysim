@@ -282,11 +282,7 @@ export class Feld {
     const tsTrog = dm * (1 - lagerverlust / 100);
     const nelHa = tsTrog * 10 * nel; // MJ NEL/ha
     // Wettkampfpunkte: Energie im Trog, abgewertet für Fehlgärung bzw. schlechtes Heu und TS ausserhalb des Zielbereichs
-    const gaerFaktor = [1, 0.95, 0.85, 0.7, 0.5][q.note - 1];
-    const [zmin, zmax] = silo.ziel;
-    const daneben = Math.max(0, zmin - ernte.ts, ernte.ts - zmax);
-    const zielFaktor = 1 - Math.min(0.2, daneben * 0.01);
-    const punkte = Math.round(nelHa * gaerFaktor * zielFaktor / 100);
+    const punkte = Math.round(nelHa * GAERFAKTOR[q.note - 1] * zielFaktor(ernte.ts, silo.ziel) / 100);
 
     const res = {
       plan, ernte, silage, heu: lager, art: silo.art, note: q.note, lagerverlust, verlust: v, dm0, tsMahd: this.tsMahd, woMahd: this.woMahd,
@@ -296,6 +292,13 @@ export class Feld {
     res.faktoren = erklaere(res, this);
     return res;
   }
+}
+
+// Wettkampfpunkte = MJ NEL/ha im Trog × Gärfaktor (Note 1–5) × Zielfaktor / 100 (auch für den Rechenweg im Niveau Profi)
+export const GAERFAKTOR = [1, 0.95, 0.85, 0.7, 0.5];
+export function zielFaktor(ts, [zmin, zmax]) {
+  const daneben = Math.max(0, zmin - ts, ts - zmax);
+  return 1 - Math.min(0.2, daneben * 0.01);
 }
 
 // Ganzer Plan auf einmal (Prognose, Tests). `schwaden` darf eine Liste sein (Heu: Nachtschwad, am Morgen wieder zetten); der letzte Schwad wird eingefahren
@@ -600,6 +603,38 @@ function erklaere(r, c) {
     bilanz: r.verlustTotal >= 15 ? 'Die grössten Verluste stehen oben in der Aufstellung. Dort lohnt sich die Verbesserung zuerst.' : 'Wenig Verlust vom Feld bis in den Trog.',
   };
   for (const x of f) x.tipp = tipps[x.id];
+
+  // Niveau: ab welchem Niveau die Karte erscheint (einstieg | praxis | profi, siehe niveau.js). Im Einstieg
+  // stehen nur die vier wichtigsten Karten, je mit einem einfachen Satz (kurz) ohne Abkürzungen.
+  const ab = { ts: 'einstieg', asche: 'einstieg', wetter: 'einstieg', atmung: heu ? 'praxis' : 'einstieg', lager: 'einstieg' };
+  const belueft = p.siloart === 'belueftung', zuNass = e.ts < zmin, zuTrocken = e.ts > zmax, t = hq?.temp ?? 0;
+  const kurz = {
+    ts: heu
+      ? (zuNass ? (belueft ? 'Das Heu war noch zu feucht für die Belüftung. Es wird im Stock warm und kann schimmeln, bevor es trocken ist.'
+        : 'Das Heu war noch zu feucht. Feuchtes Heu wird im Stock warm, riecht muffig und schimmelt.')
+        : belueft && zuTrocken ? 'Trockener als nötig: Die Belüftung hätte den Rest getrocknet, und es wären mehr Blätter dran geblieben.'
+          : 'Trocken genug eingelagert: So bleibt das Heu im Stock in Ordnung.')
+      : zuNass ? 'Das Futter war beim Einfahren noch zu nass. Lass es nächstes Mal etwas länger trocknen, bis die Ampel grün ist.'
+        : zuTrocken ? `Das Futter war zu trocken. ${p.siloart === 'flachsilo' ? 'Im Silo lässt es sich dann schlecht festdrücken, Luft bleibt drin und es schimmelt.' : 'Ballen lassen sich dann schlecht pressen.'} Fahre früher ein, sobald die Ampel grün ist.`
+          : 'Genau richtig trocken eingefahren: So können die Milchsäurebakterien gut arbeiten.',
+    asche: e.asche > 100
+      ? (heu ? 'Es kam Erde ins Heu. Das macht es staubig, und die Tiere fressen es weniger gern. Mähe nicht zu tief und stell die Zinken höher.'
+        : 'Es kam Erde ins Futter. Mit der Erde kommen Bakterien ins Silo, die stinkende Buttersäure bilden. Mähe nicht zu tief und stell die Zinken höher.')
+      : 'Sauber gearbeitet: Es kam kaum Erde ins Futter.',
+    wetter: e.regenFeld > 0
+      ? `Regen hat das ${heu ? 'fast trockene Heu wieder nass gemacht und ausgewaschen' : 'Futter wieder nass gemacht und Zucker ausgewaschen'}. Schau vor dem Mähen gut auf den Wetterbericht.`
+      : heu ? (e.bleiche > 35 ? 'Das Heu lag lange in der Sonne und ist ausgebleicht. Fahre ein, sobald es trocken genug ist.' : 'Kein Regen: So bleibt das Heu grün und duftet.')
+        : e.tauNaechte > 0 ? 'Das Futter lag über Nacht im Tau. Am Morgen musste es zuerst wieder abtrocknen. Fahre wenn möglich am gleichen Tag ein.'
+          : 'Kein Regen und keine Nacht im Tau: ideal für Silage.',
+    atmung: v.atmung >= 2 ? `Das Futter lag ${e.stunden} Stunden auf dem Feld. Solange es liegt, verbraucht es Zucker. Mähe nach dem Tau, lege breit ab und fahre bald ein.`
+      : 'Kurz auf dem Feld: Der Zucker blieb im Futter.',
+    lager: t >= 70 ? 'Der Heustock wurde gefährlich heiss: Brandgefahr! Sofort die Feuerwehr alarmieren und den Stock nicht selbst abtragen.'
+      : t >= 60 ? 'Der Heustock wurde sehr heiss. Jetzt die örtliche Feuerwehr informieren und alle fünf Stunden messen.'
+        : t >= 45 ? 'Der Heustock wurde warm. Jetzt öfter mit der Heusonde messen.'
+          : 'Der Heustock blieb kühl. Miss trotzdem regelmässig mit der Heusonde.',
+  };
+  const titelEinfach = { ts: heu ? 'Wie trocken eingelagert?' : 'Wie trocken eingefahren?', asche: 'Erde im Futter', wetter: 'Wetter', atmung: 'Zeit auf dem Feld', lager: 'Wärme im Heustock' };
+  for (const x of f) { x.ab = ab[x.id] ?? 'praxis'; if (kurz[x.id]) { x.kurz = kurz[x.id]; x.titelEinfach = titelEinfach[x.id]; } }
   return f;
 }
 
