@@ -109,6 +109,17 @@ export const PROGNOSEN = [
     plan: { ...HEUPLAN, siloart: 'belueftung', zetten: [10, 14, 34], schwaden: 40, ernte: 42 },
   },
   {
+    // Belüftung: plan.belueftung legt den Betrieb im Heustock fest (sonst Standard: Intervall mit Warmluft vom Dach)
+    id: 'heudauer', lernziel: 'Viel hilft viel? Was bringt es, wenn der Lüfter auch in der feuchten Nacht durchläuft, und was kostet der Strom?', name: 'Belüftung: Lüfter Tag und Nacht', wetter: 'hoch',
+    text: 'Ausgewogener Bestand bei Beginn Blüte, gemäht am Tag 1 um 9 Uhr mit Walzenaufbereiter und Breitablage, gezettet um 10 und 14 Uhr. Am Tag 2 um 11 Uhr schwaden, um 13 Uhr in die Belüftung. Der Lüfter läuft danach Tag und Nacht ohne Pause, ohne Warmluft vom Dach.',
+    plan: { ...HEUPLAN, siloart: 'belueftung', zetten: [10, 14], schwaden: 35, ernte: 37, belueftung: { luefter: 'dauer', dach: false, entfeuchter: false } },
+  },
+  {
+    id: 'heugewitter', lernziel: 'Vor dem Gewitter feucht eingeführt: Schafft die Kaltbelüftung ohne Warmluft die Haupttrocknung in 80 Stunden?', name: 'Belüftung: vor dem Gewitter', wetter: 'gewitter',
+    text: 'Ausgewogener Bestand bei Beginn Blüte, gemäht am Tag 1 um 9 Uhr mit Walzenaufbereiter und Breitablage, gezettet um 10 und 14 Uhr. Am Tag 2 droht am Nachmittag ein Gewitter: um 10 Uhr schwaden, um 12 Uhr in die Belüftung. Die Anlage hat kein Warmluftdach; die Steuerung lüftet im Intervall.',
+    plan: { ...HEUPLAN, siloart: 'belueftung', zetten: [10, 14], schwaden: 34, ernte: 36, belueftung: { luefter: 'intervall', dach: false, entfeuchter: false } },
+  },
+  {
     id: 'kleeheu', lernziel: 'Die Blätter sind das Beste am Heu: Was kostet es, kleereiches Heu trocken und oft zu zetten?', name: 'Kleeheu zu oft gezettet', wetter: 'sommer',
     text: 'Kleereicher Bestand bei Beginn Blüte, gemäht um 9 Uhr mit Zinkenaufbereiter und Breitablage. Gezettet wird jeden Tag mehrmals, auch über Mittag, wenn das Futter schon raschelt: am Tag 1 um 10 und 14 Uhr, am Tag 2 um 10, 13 und 16 Uhr und am Tag 3 um 11 Uhr. Schwaden am Tag 3 um 14 Uhr, Einfahren um 16 Uhr in den Heustock.',
     plan: { ...HEUPLAN, bestand: 'klee', aufbereiter: 'zinken', zetten: [10, 14, 34, 37, 40, 59], schwaden: 62, ernte: 64 },

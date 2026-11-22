@@ -1,7 +1,9 @@
 // Kleine Grafiken aus Messwerten und Modell: Balken als HTML (Schrift bleibt auf dem Handy lesbar),
 // Verläufe als SVG. Farben über CSS-Variablen, damit Nacht- und Kontrastmodus mitziehen.
 // Genutzt in den Erklärkarten des Spiels und auf der Lernseite (tools/seiten.mjs).
-import { FAT_VERFAHREN, FAT_ABLAGE, INSEKTEN, LEISTUNG, QUELLE_FAT, QUELLE_HUMBERT, QUELLE_TOPAGRAR } from './versuche.js';
+import { FAT_VERFAHREN, FAT_ABLAGE, INSEKTEN, LEISTUNG, QUELLE_FAT, QUELLE_HUMBERT, QUELLE_TOPAGRAR, ABB29, QUELLE_FAT1982 } from './versuche.js';
+import { LUFT, ANLAGE } from './belueftung.js';
+import { konstant } from './belueftung-vergleich.js';
 import { rechneVerfahren } from './vergleich.js';
 import { Feld } from './model.js';
 import { stundenwetter } from './weather.js';
@@ -110,8 +112,85 @@ export function grafikZucker() {
   });
 }
 
-// Grafiken für die Erklärkarten im Spiel (Schlüssel aus model.js, Feld «grafik»)
+// ---------- Heubelüftung
+// Kleines h,x-Diagramm wie in drywatch: Temperatur gegen absolute Feuchte (g/m³), Linien gleicher relativer Feuchte.
+// aussen, zu, ab: { t, rh }; aussen ist optional
+export function grafikHx({ aussen = null, zu, ab }) {
+  const ymax = Math.max(25, Math.ceil((Math.max(LUFT.gm3(zu.t, 100), LUFT.gm3(ab.t, 100)) + 3) / 5) * 5);
+  const kurve = (rh) => Array.from({ length: 81 }, (_, i) => [i / 2, LUFT.gm3(i / 2, rh)]).filter(([, y]) => y <= ymax);
+  const pkt = (z) => [z.t, LUFT.gm3(z.t, z.rh)];
+  const reihen = [
+    { name: '100 % rF', punkte: kurve(100), farbe: 'var(--blau)' },
+    { name: '80 % rF', punkte: kurve(80), farbe: 'var(--leise)', strich: true },
+    { name: '60 % rF', punkte: kurve(60), farbe: 'var(--leise)', strich: true },
+    { name: '40 % rF', punkte: kurve(40), farbe: 'var(--leise)', strich: true },
+    { name: 'Weg der Luft', punkte: [...(aussen ? [pkt(aussen)] : []), pkt(zu), pkt(ab)], farbe: 'var(--text)' },
+    ...(aussen ? [{ name: 'Aussenluft', punkte: [pkt(aussen)], farbe: 'var(--leise)', art: 'punkte' }] : []),
+    { name: 'Zuluft', punkte: [pkt(zu)], farbe: 'var(--gelb-dunkel)', art: 'punkte' },
+    { name: 'Abluft', punkte: [pkt(ab)], farbe: 'var(--gruen)', art: 'punkte' },
+  ];
+  const leg = [['Zuluft', 'var(--gelb-dunkel)'], ['Abluft', 'var(--gruen)'], ...(aussen ? [['Aussenluft', 'var(--leise)']] : []), ['100 % rF (gesättigt)', 'var(--blau)'], ['gestrichelt: 80, 60, 40 % rF', 'var(--leise)']];
+  return verlauf({
+    titel: 'Die Luft im h,x-Diagramm: Wassergehalt gegen Temperatur', reihen,
+    x: { min: 0, max: 40, ticks: [[0, '0 °C'], [10, '10'], [20, '20'], [30, '30'], [40, '40 °C']] },
+    y: { min: 0, max: ymax, titel: 'Wasser, g/m³', ticks: Array.from({ length: ymax / 5 + 1 }, (_, i) => [i * 5, String(i * 5)]) },
+    legendeEintraege: leg,
+    quelle: 'Im Heu kühlt sich die Luft ab, während sie Wasser aufnimmt: Sie wandert nach links oben, Richtung Sättigung. Je weiter, desto mehr Wasser trägt sie fort.',
+  });
+}
+
+// Verlauf einer Belüftung (Ergebnis von Heustock.ergebnis()): TS und Stocktemperatur
+export function grafikBelueftung(lauf) {
+  if (!lauf?.verlauf?.length) return '';
+  const v = lauf.verlauf, t0 = lauf.t0, max = Math.max(24, Math.ceil((v[v.length - 1].t - t0) / 24) * 24);
+  const ticks = []; for (let h = 0; h <= max; h += max > 120 ? 48 : 24) ticks.push([h, `${h} h`]);
+  const x = { min: 0, max, ticks };
+  const ts = verlauf({
+    titel: 'Belüftung: TS im Heustock', x,
+    reihen: [
+      { name: 'Ziel', punkte: [[0, ANLAGE.lagerTs], [max, ANLAGE.lagerTs]], farbe: 'var(--gruen)', strich: true },
+      { name: 'Mittel', punkte: [[0, lauf.tsEin], ...v.map((p) => [p.t - t0, p.ts])], farbe: FARBEN[0] },
+      { name: 'feuchteste Schicht (oben)', punkte: [[0, lauf.tsEin], ...v.map((p) => [p.t - t0, p.tsMin])], farbe: FARBEN[1] },
+    ],
+    y: { min: 50, max: 95, titel: 'TS', ticks: [[50, '50 %'], [60, '60 %'], [70, '70 %'], [80, '80 %'], [90, '90 %']] },
+    legendeEintraege: [['Mittel des Stocks', FARBEN[0]], ['feuchteste Schicht', FARBEN[1]], [`lagerfähig ab ${ANLAGE.lagerTs} %`, 'var(--gruen)']],
+  });
+  const temp = verlauf({
+    titel: 'Stocktemperatur (wärmste Schicht)', x,
+    reihen: [
+      { name: '35 °C', punkte: [[0, 35], [max, 35]], farbe: 'var(--rot)', strich: true },
+      { name: 'Stock', punkte: v.map((p) => [p.t - t0, p.temp]), farbe: FARBEN[3] },
+    ],
+    y: { min: 10, max: Math.max(50, Math.ceil(lauf.tempMax / 10) * 10 + 10), titel: '°C', ticks: [[10, '10'], [20, '20'], [30, '30'], [40, '40'], [50, '50'], ...(lauf.tempMax > 45 ? [[60, '60'], [70, '70']] : [])] },
+    legendeEintraege: [['Stock', FARBEN[3]], ['über 35 °C muss belüftet werden', 'var(--rot)']],
+    quelle: 'Rechnung des Spiels. Grenzwerte: LK Salzburg (35 °C belüften, nie über 40 °C).',
+  });
+  return ts + temp;
+}
+
+// Modell gegen Richtwert: Wasserentzug je m³ Luft nach Luftfeuchte und TS (FAT 1982, Abb. 29)
+export function grafikAbb29() {
+  const reihen = [], leg = [];
+  ABB29.kurven.forEach((k, i) => {
+    const f = FARBEN[i];
+    reihen.push({ name: `${k.name}, Spiel`, punkte: [35, 45, 55, 65, 75, 85, 95].map((rh) => [rh, konstant({ ts: k.ts, rh }).gm3]), farbe: f });
+    reihen.push({ name: `${k.name}, FAT 1982`, punkte: k.punkte, farbe: f, art: 'punkte' });
+    leg.push([k.name, f]);
+  });
+  reihen.push({ name: 'null', punkte: [[30, 0], [100, 0]], farbe: 'var(--leise)', strich: true });
+  leg.push(['Linie = Spiel (20 °C), Kreis = FAT 1982', 'var(--leise)', 'nur-text']);
+  return verlauf({
+    titel: 'Wasserentzug je m³ Luft: Spiel gegen FAT 1982', reihen,
+    x: { min: 30, max: 100, ticks: [[40, '40 %'], [60, '60 %'], [80, '80 %'], [100, '100 % rF']] },
+    y: { min: -1, max: 4.5, titel: 'g Wasser je m³', ticks: [[-1, '−1'], [0, '0'], [1, '1'], [2, '2'], [3, '3'], [4, '4']] },
+    legendeEintraege: leg,
+    quelle: `<a href="${QUELLE_FAT1982.url}" rel="noopener">${esc(QUELLE_FAT1982.titel)}</a>, Abb. 29 (aus der Grafik abgelesen). Unter null nimmt das Heu Wasser aus der Luft auf.`,
+  });
+}
+
+// Grafiken für die Erklärkarten im Spiel (Schlüssel aus model.js, Feld «grafik»; daten = Feld «grafikDaten»)
 export const KARTEN_GRAFIK = {
+  belueftung: (lauf) => grafikBelueftung(lauf),
   trocknung: () => grafikTrocknung(), ablage: grafikAblage, feldverluste: grafikFeldverluste,
   insekten: () => grafikInsekten() + '<p><a class="knopflink" href="lernen.html#bff">Exkurs: Biodiversitätsförderflächen und schlau mähen</a></p>',
 };

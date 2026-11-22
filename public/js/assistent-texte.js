@@ -334,4 +334,56 @@ export const T = {
     fachlich: 'Ab 10 % Rohasche ist bei Silage mit einer explosionsartigen Vermehrung der Clostridien zu rechnen. Gute Milch enthält unter 200 Sporen je Liter (LK Salzburg).',
     lernen: 'sauber',
   },
+
+  // ---------- Am Heustock (Belüftungsheu)
+  heustock: {
+    titel: 'Am Heustock',
+    einfach: 'Jetzt trocknet der Lüfter dein Heu fertig. Er bläst Luft von unten durch den Stock. Trockene Luft nimmt Wasser mit, feuchte Nachtluft kaum. Schau auf <b>Zuluft</b> und <b>Abluft</b>: Je feuchter die Abluft, desto mehr Wasser trägt sie fort.',
+    fachlich: 'Luftmenge rund 0,11 m³/s je m² Stockfläche (Agroscope 2014). Die ersten 24 Stunden läuft der Lüfter durch; die Haupttrocknung soll innert 80 Stunden vorbei sein (LK Salzburg). Kaltbelüftung entzieht bei üblicher Luftfeuchte etwa 0,8 bis 1,1 g Wasser je m³ Luft (LK Salzburg).',
+    lernen: 'belueftung',
+  },
+  'hs.feucht': {
+    titel: 'Feuchte Luft',
+    einfach: 'Die Luft ist so feucht, dass sie dem Heu kein Wasser mehr abnimmt. Im Gegenteil: Das Heu nimmt Wasser aus der Luft auf. Im Intervall lüftet die Steuerung nur, wenn es etwas bringt.',
+    fachlich: 'Heu trocknet nur, wenn die Luftfeuchte unter dem Feuchtegleichgewicht des Heus liegt; sonst nimmt es Wasser auf (LK Salzburg). Bei Regen und in der Nacht hat es keinen Sinn, die Kaltbelüftung dauernd laufen zu lassen; alle 4 bis 6 Stunden 20 bis 30 Minuten lüften genügt gegen Erwärmung (FAT 1982).',
+    lernen: 'belueftung',
+    immer: true,
+  },
+  'hs.dauer': {
+    titel: 'Dauerbetrieb',
+    einfach: 'Der Lüfter läuft jetzt Tag und Nacht. Am Tag ist das gut, in der Nacht bringt feuchte Luft wenig und kostet Strom.',
+    fachlich: 'Bei Schönwetter sind von etwa 8 bis 20 Uhr die Bedingungen für eine Dauerbelüftung gut (FAT 1982). Kaltbelüftung braucht um 0,25 kWh je kg Wasser (LK Salzburg).',
+    lernen: 'belueftung',
+  },
+  'hs.warm': {
+    titel: 'Der Stock wird warm',
+    einfach: 'Feuchtes Heu atmet und wird warm. Über 35 °C muss der Lüfter laufen, sonst wird das Heu muffig oder sogar heiss.',
+    fachlich: 'Über 35 °C im Heu muss aus Sicherheitsgründen belüftet werden; die Temperatur im Heu darf nie 40 °C übersteigen (LK Salzburg). Im Intervallbetrieb besonders auf Stocktemperaturen über 35 °C achten (Agroscope 2014).',
+    lernen: 'belueftung',
+    immer: true,
+  },
+  'hs.haupt': {
+    titel: 'Haupttrocknung geschafft',
+    einfach: 'Auch oben im Stock hat das Heu jetzt 80 % TS. Jetzt wird nur noch nachbelüftet: ab und zu eine Stunde, bis die Abluft unter 50 % rF bleibt.',
+    fachlich: 'Nachbelüften: mit immer längeren Pausen jeweils etwa eine Stunde lüften. Ist die Abluftfeuchte nach einer längeren Pause unter 50 %, ist das Heu fertig getrocknet (LK Salzburg; Agroscope 2014: Abluft 50 % ≙ rund 85 % TS).',
+    lernen: 'belueftung',
+  },
+  'hs.dach': {
+    titel: 'Warmluft vom Dach',
+    einfach: 'Die Sonne wärmt das Dach, und der Lüfter saugt die warme Luft an. Warme Luft kann mehr Wasser aufnehmen, das Heu trocknet schneller und günstiger.',
+    fachlich: 'Dachabsaugung: nutzbar 250 bis 300 W je m² Dach, Kollektor mindestens doppelt so gross wie die Stockfläche (Agroscope 2014); unter 0,2 kWh je kg Wasser (LK Salzburg). Schon 5 °C Anwärmung verdoppeln fast die Wasseraufnahme (LK Salzburg).',
+    lernen: 'belueftung',
+  },
+  'hs.entfeuchter': {
+    titel: 'Entfeuchter',
+    einfach: 'Der Entfeuchter ist eine Wärmepumpe: Er kühlt die Luft ab, das Wasser tropft heraus, dann wärmt er sie wieder. So trocknet das Heu auch nachts und bei Regen, aber er braucht viel Strom.',
+    fachlich: 'Unter 35 bis 40 % rF oder unter 10 °C ist ein Entfeuchter wenig wirksam (Agroscope 2014). Typisch 0,26 bis 0,45 kWh je kg Wasser (LK Salzburg). Kompressor rund 17 kW je 100 m² Box (LK Salzburg).',
+    lernen: 'belueftung',
+  },
+  'hs.rechnen': {
+    titel: 'Selber nachrechnen',
+    einfach: 'Aus Temperatur und Luftfeuchte von Zuluft und Abluft kannst du selbst ausrechnen, wie viel Wasser die Luft mitnimmt. Tippe auf «Nachrechnen».',
+    fachlich: 'Absolute Feuchte = Sättigungsmenge bei dieser Temperatur × relative Feuchte. Wasserentzug = Abluft − Zuluft in g/m³, mal Luftmenge (m³/h) ergibt g/h. Die App Heutrocknung (drywatch) rechnet genauer mit g je kg trockener Luft.',
+    lernen: 'belueftung',
+  },
 };

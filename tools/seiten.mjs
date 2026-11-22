@@ -5,7 +5,11 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { WETTER, PROGNOSEN } from '../public/js/scenarios.js';
 import { BESTAENDE, SILOARTEN, STADIEN, AUFBEREITER, ablageVon, KAL } from '../public/js/model.js';
-import { grafikTrocknung, grafikFeldverluste, grafikAblage, grafikInsekten, grafikZucker } from '../public/js/grafik.js';
+import { grafikTrocknung, grafikFeldverluste, grafikAblage, grafikInsekten, grafikZucker, grafikHx, grafikAbb29 } from '../public/js/grafik.js';
+import { ANLAGE, LUFT } from '../public/js/belueftung.js';
+import { konstant } from '../public/js/belueftung-vergleich.js';
+import { LKS_VERFAHREN, LKS_RICHTWERTE, ABLUFT_TS } from '../public/js/versuche.js';
+import { tsAusU, uGleich } from '../public/js/belueftung.js';
 import { vergleicheAlle } from '../public/js/vergleich.js';
 import { QUELLE_FAT, QUELLE_TOPAGRAR, QUELLE_KOELN, QUELLE_HUMBERT } from '../public/js/versuche.js';
 import { BEGRIFFE } from '../public/js/begriffe.js';
@@ -96,10 +100,79 @@ const QUELLEN_USA = [
   ['UW Forage: Swath Drying (Merkblatt, PDF)', 'https://fyi.extension.wisc.edu/forage/files/2014/01/SwathDrying-FOF.pdf'],
   ['Undersander: Harvest Strategies (Alfalfa Symposium 2013, PDF)', 'https://alfalfasymposium.ucdavis.edu/+symposium/proceedings/2013/13WAS-27_Undersander_HarvestStrategies.pdf'],
 ];
+// ---------- Abschnitt Heubelüftung (Zahlen aus belueftung.js und den Richtwerten in versuche.js)
+function belueftungsAbschnitt() {
+  const z = (x, d = 1) => x.toFixed(d).replace('.', ',');
+  // Rechenbeispiel: Zuluft 22 °C / 55 %, Abluft 18 °C / 85 %, 100 m² Box
+  const bsp = { zu: { t: 22, rh: 55 }, ab: { t: 18, rh: 85 }, V: 11 };
+  const gZu = LUFT.gm3(bsp.zu.t, bsp.zu.rh), gAb = LUFT.gm3(bsp.ab.t, bsp.ab.rh), d = gAb - gZu;
+  const verf = LKS_VERFAHREN.map((v) => ({ ...v, spiel: konstant({ ts: 65, rh: v.rh, stunden: 12, dach: v.dach }) }));
+  const entf = konstant({ ts: 65, rh: 80, stunden: 12, entfeuchter: true });
+  return `
+    <h2 id="belueftung">Heubelüftung: Luft, Wasser und Strom</h2>
+    <p>Belüftungsheu kommt mit 60 bis 75 % TS in den Heustock. Ein Lüfter bläst Aussenluft unter einem Rost hindurch von unten durch das Heu. Die Luft nimmt dabei Wasser auf und trägt es oben hinaus. Wie viel, hängt davon ab, wie trocken und warm die Luft ist und wie feucht das Heu noch ist. Im Spiel folgt nach dem Einführen von Belüftungsheu die Phase <strong>«Am Heustock»</strong>: Du schaltest den Lüfter, die Warmluft vom Dach und den Entfeuchter, Stunde für Stunde.</p>
+    <p><strong>Warum feuchte Nachtluft wenig bringt:</strong> Heu und Luft tauschen Wasser aus, bis sie im Gleichgewicht sind. Bei 20 °C und 50 % Luftfeuchte lässt sich Heu auf rund 85 bis 87 % TS trocknen, bei 80 % nur bis etwa 76 % (LK Salzburg). Ist die Luft feuchter als das Gleichgewicht, nimmt das Heu wieder Wasser auf. Warme Luft trocknet bei gleicher relativer Feuchte weiter. Darum hilft schon eine kleine Anwärmung: 5 °C mehr verdoppeln fast die Wasseraufnahme (LK Salzburg).</p>
+    <p><strong>Die Luft kühlt sich ab:</strong> Für jedes Kilogramm Wasser, das verdunstet, braucht es 0,68 kWh Wärme. Die nimmt sich das Wasser aus der Luft: Sie kühlt sich ab, 1 °C entspricht rund 0,47 g Wasser je m³ (LK Salzburg). Theoretisch könnte 1 m³ Luft bei 20 °C und 70 % rF 5,2 g Wasser aufnehmen; tatsächlich sind es bei der Kaltbelüftung etwa 0,8 bis 1,1 g, weil sie sich abkühlt und das Heu das Wasser nicht beliebig schnell abgibt. In der Praxis werden 50 bis 65 % des Sättigungsdefizits ausgenutzt (LK Salzburg).</p>
+    <h3>Richtwerte für die Anlage</h3>
+    <div class="tabelle"><table class="zahlen">
+      <thead><tr><th>Grösse</th><th>Richtwert</th><th>Quelle</th><th>im Spiel</th></tr></thead>
+      <tbody>
+        <tr><td>Luftmenge</td><td>rund 0,11 m³/s je m² Stockfläche (0,07–0,14), bei voller Stockhöhe mindestens 0,07</td><td>Agroscope 2014; FAT 1982: 0,10–0,12</td><td>${z(ANLAGE.luft, 2)} m³/s je m²</td></tr>
+        <tr><td>Lüfter</td><td>0,11 kW Motorleistung je m² Box; LK Salzburg: 1 kW je 10 m²</td><td>Agroscope 2014; LK Salzburg</td><td>${z(ANLAGE.luefterKw, 2)} kW je m²</td></tr>
+        <tr><td>Druck</td><td>100–240 Pa je m Stockhöhe (Dauerwiese 160, kleereich 240)</td><td>Agroscope 2014; LK Salzburg</td><td>nicht gerechnet</td></tr>
+        <tr><td>Box</td><td>rund 25 m² je ha Tagesschlagkraft; 14–24 m² je ha und Charge</td><td>LK Salzburg; Agroscope 2014</td><td>${ANLAGE.flaecheJeHa} m² je ha, ${ANLAGE.feldHa} ha Parzelle</td></tr>
+        <tr><td>Raumgewicht</td><td>Mittel 78 kg TS je m³ (Gebläse), 65 (Greifer)</td><td>FAT 1982</td><td>${ANLAGE.dichte} kg TS je m³</td></tr>
+        <tr><td>Schicht je Einfuhrtag</td><td>1,5 bis höchstens 3 m</td><td>LK Salzburg</td><td>ergibt sich aus Ertrag und Box</td></tr>
+        <tr><td>Dachabsaugung</td><td>Dach mindestens doppelt so gross wie die Box, 250–300 W je m² Dach nutzbar</td><td>Agroscope 2014; LK Salzburg: 200–400 W</td><td>${ANLAGE.dachFaktor}-fache Fläche, ${ANLAGE.dachW} W je m² bei voller Sonne</td></tr>
+        <tr><td>Entfeuchter</td><td>Kompressor rund 17 kW je 100 m² Box; wenig wirksam unter 10 °C oder unter 35–40 % rF</td><td>LK Salzburg; Agroscope 2014</td><td>Kondensleistung nach Agroscope 2014, Abb. 18</td></tr>
+        <tr><td>Lagerfähig</td><td>87–88 % TS; Abluft nach einer Pause unter 50 % rF</td><td>Agroscope 2014; LK Salzburg</td><td>feuchteste Schicht ${ANLAGE.lagerTs} % TS</td></tr>
+      </tbody>
+    </table></div>
+    <h3>So wird belüftet</h3>
+    <ul>
+      <li><strong>Die ersten 24 Stunden</strong> läuft der Lüfter durch (LK Salzburg). Nach jedem Einfüllen wird unabhängig vom Wetter belüftet (FAT 1982).</li>
+      <li><strong>Bei schönem Wetter</strong> sind von etwa 8 bis 20 Uhr die Bedingungen für den Dauerbetrieb gut (FAT 1982).</li>
+      <li><strong>Nachts und bei Regen</strong> lohnt es sich nicht, die Kaltbelüftung dauernd laufen zu lassen. Damit sich das Heu nicht erwärmt, wird alle 4 bis 6 Stunden 20 bis 30 Minuten gelüftet, bis die Gutfeuchte bei etwa 20 bis 25 % liegt (FAT 1982). Steuerungen machen das mit Unterbrüchen von 2 bis 3 Stunden (Agroscope 2014).</li>
+      <li><strong>Temperatur:</strong> Über 35 °C im Heu muss belüftet werden, nie über 40 °C (LK Salzburg).</li>
+      <li><strong>Dauer:</strong> Die Haupttrocknung soll innert 80 Stunden vorbei sein, danach wird nachbelüftet (LK Salzburg).</li>
+      <li><strong>Fertig:</strong> Ist die Abluft nach einer längeren Pause unter 50 % rF, ist das Heu lagerfähig (LK Salzburg; Agroscope 2014).</li>
+    </ul>
+    <p>Die Abluft verrät, wie trocken das Heu ist (Agroscope 2014, Tab. 3; LK Salzburg):</p>
+    <div class="tabelle"><table class="zahlen">
+      <thead><tr><th>Abluft</th>${ABLUFT_TS.map(([rh]) => `<th>${rh} % rF</th>`).join('')}</tr></thead>
+      <tbody><tr><td>TS des Heus</td>${ABLUFT_TS.map(([, ts]) => `<td>${z(ts)} %</td>`).join('')}</tr>
+      <tr><td>im Spiel (20 °C)</td>${ABLUFT_TS.map(([rh]) => `<td>${z(tsAusU(uGleich(rh, 20)))} %</td>`).join('')}</tr></tbody>
+    </table></div>
+    <h3 id="rechnen">Selber rechnen: Wie viel Wasser trägt die Luft fort?</h3>
+    <p>Mit zwei Fühlern, einem unter dem Rost (Zuluft) und einem über dem Heu (Abluft), lässt sich der Wasserentzug ausrechnen. Beispiel: Zuluft ${bsp.zu.t} °C und ${bsp.zu.rh} % rF, Abluft ${bsp.ab.t} °C und ${bsp.ab.rh} % rF, ${bsp.V} m³/s Luft (100 m² Box).</p>
+    <ol>
+      <li>Gesättigte Luft enthält bei ${bsp.zu.t} °C höchstens ${z(LUFT.gm3(bsp.zu.t, 100))} g Wasser je m³. Bei ${bsp.zu.rh} % rF: ${z(LUFT.gm3(bsp.zu.t, 100))} × ${z(bsp.zu.rh / 100, 2)} = <strong>${z(gZu)} g/m³</strong>.</li>
+      <li>Abluft: ${z(LUFT.gm3(bsp.ab.t, 100))} × ${z(bsp.ab.rh / 100, 2)} = <strong>${z(gAb)} g/m³</strong>.</li>
+      <li>Jeder Kubikmeter nimmt ${z(gAb)} − ${z(gZu)} = <strong>${z(d)} g Wasser</strong> mit.</li>
+      <li>${bsp.V} m³/s sind ${z(bsp.V * 3600, 0)} m³ je Stunde: ${z(d)} × ${z(bsp.V * 3600, 0)} = ${z(d * bsp.V * 3600, 0)} g, also rund <strong>${z(d * bsp.V * 3.6, 0)} Liter Wasser je Stunde</strong>.</li>
+    </ol>
+${grafikHx({ zu: bsp.zu, ab: bsp.ab })}
+    <p>Im Spiel gibt es dazu die Aufgabe «Nachrechnen» mit den Messwerten der laufenden Stunde. Die App <a href="../drywatch/">Heutrocknung (drywatch)</a> rechnet dasselbe mit den Messwerten deiner eigenen Anlage, genauer mit Gramm Wasser je Kilogramm trockener Luft, und zeigt das h,x-Diagramm.</p>
+    <h3>Strom und Verfahren</h3>
+    <p>Kaltbelüftung braucht um 0,25 kWh je kg Wasser, mit Dachabsaugung deutlich unter 0,2, mit Entfeuchter 0,26 bis 0,45, mit ständiger Warmluft vom Ofen 1 bis 1,4 kWh (LK Salzburg). Wie feucht das Futter beim Einführen höchstens sein darf, hängt vom Verfahren ab (Tabelle oben unter «Heu»). 10 % mehr Feuchte verdoppeln die Wassermenge, die der Lüfter wegtragen muss (Agroscope 2014).</p>
+    <div class="tabelle"><table class="zahlen">
+      <thead><tr><th>Verfahren (Heu mit 65 % TS)</th><th>Strom, kWh je kg Wasser: LK Salzburg</th><th>im Spiel</th><th>Wasser, kg je h und t Heu: LK Salzburg</th><th>im Spiel</th></tr></thead>
+      <tbody>
+${verf.map((v) => `        <tr><td>${esc(v.name)}</td><td>${z(v.kwhJeKg, 2)}</td><td>${z(v.spiel.kwhJeKg, 2)}</td><td>${z(v.kgJeTh, 2)}</td><td>${z(v.spiel.kgJeTh, 2)}</td></tr>`).join('\n')}
+        <tr><td>Entfeuchter (20 °C / 80 % rF)</td><td>${z(LKS_RICHTWERTE.entfKwhJeKg[0], 2)}–${z(LKS_RICHTWERTE.entfKwhJeKg[1], 2)}</td><td>${z(entf.kwhJeKg, 2)} (mit Lüfter)</td><td>–</td><td>${z(entf.kgJeTh)}</td></tr>
+      </tbody>
+    </table></div>
+    <h3>Spiel gegen Quelle</h3>
+    <p>Das Belüftungsmodell ist an zwei Angaben eingestellt: an der Grafik «Durchschnittlicher Wasserentzug» im «ABC der Heubelüftung» (FAT 1982, Abb. 29) und an der Ausnutzung des Sättigungsdefizits von 50 bis 65 % (LK Salzburg). Die Werte der LK Salzburg zu Strom und Trocknungsleistung in der Tabelle oben dienen als Prüfung.</p>
+${grafikAbb29()}
+    <p><strong>Was Annahme bleibt:</strong> Eine Messreihe mit Stockfläche, Heumenge, Luftzustand, Dauer und Strom enthalten die Unterlagen nicht. Wie schnell sich ungelüftetes, feuchtes Heu erwärmt und wann es schimmelt, rechnet das Spiel mit eigenen Annahmen (Erwärmung bei 65 % TS und 20 °C rund 0,3 K je Stunde; Schimmel, solange das Heu über 75 % rF im Gleichgewicht ist). Das Wetter nach dem vierten Spieltag ist erfunden, aus der Wetterlage abgeleitet. Der Luftdruck im Stock und weniger Luft bei hohem Stock sind nicht gerechnet.</p>
+    <div class="infobox"><p><strong>Im Spiel:</strong> Die Wette und der Zeitraffer rechnen mit dem Standardbetrieb: Intervall mit Feuchtesteuerung und Warmluft vom Dach. Zwei Szenarien zeigen andere Einstellungen: <a href="szenario/heudauer.html">Lüfter Tag und Nacht</a> und <a href="szenario/heugewitter.html">vor dem Gewitter</a>.</p></div>`;
+}
+
 const lernen = seite({
   pfad: 'lernen.html', tiefe: 0,
   titel: 'Futterkonservierung verstehen: Anwelken, Atmung, Erde, Gärqualität und Heu – Heureka',
-  beschreibung: 'Wie gute Silage und gutes Heu entstehen: Anwelken, Breitablage, Aufbereiter, Zetten, Heu ab 87 bis 88 % TS, Belüftung und Heustock-Kontrolle. Nach Unterlagen aus Österreich, der Schweiz und Deutschland.',
+  beschreibung: 'Wie gute Silage und gutes Heu entstehen: Anwelken, Breitablage, Aufbereiter, Zetten, Heu ab 87 bis 88 % TS, Heubelüftung mit Wasserentzug und Strom, Heustock-Kontrolle. Nach Unterlagen aus Österreich, der Schweiz und Deutschland.',
   krumen: [['Start', './'], ['Lernen']],
   h1: 'Futterkonservierung verstehen',
   // Gemeinsame AGFF-Mediathek: Liste und Skript liegen in futter (gleicher Host), siehe futter/static/v2/mediathek.js
@@ -119,6 +192,7 @@ const lernen = seite({
       <li><a href="#zetten">Zetten und Schwaden: Blätter schonen</a></li>
       <li><a href="#gaerung">Gärqualität bewerten: Labor oder Prozess?</a></li>
       <li><a href="#heu">Heu: Bodenheu, Heuballen oder Belüftung</a></li>
+      <li><a href="#belueftung">Heubelüftung: Luft, Wasser und Strom</a></li>
       <li><a href="#versuch">Spiel gegen Messung: der Versuch in Tänikon</a></li>
       <li><a href="#videos">Videos</a></li>
       <li><a href="#begriffe">Begriffe kurz erklärt</a></li>
@@ -261,6 +335,8 @@ ${grafikZucker()}
     <p><strong>Sonne und Regen:</strong> Trockenes Heu, das lange in der Sonne liegt, bleicht aus und verliert Vitamine (Carotin). Regen und Tau waschen aus, 1 bis 5 % und mehr (LK Salzburg). Gutes Heu riecht aromatisch, ist grünlich, blattreich und sauber. Das Spiel bewertet Heu nach Geruch, Farbe, Gefüge (Blätter) und Verunreinigung, angelehnt an die Sinnenprüfung und vereinfacht.</p>
     <div class="infobox"><p><strong>Im Spiel:</strong> Mit Aufbereiter und Breitablage ist Bodenheu bei Hochdruck ab dem Abend des zweiten Tages lagerfähig, ohne diese Hilfen später. Reicht das Wetterfenster nicht, rettet die Belüftung das Futter.</p></div>
 
+${belueftungsAbschnitt()}
+
     <h2 id="versuch">Spiel gegen Messung: der Versuch in Tänikon</h2>
     <p>Wie gut rechnet das Spiel? Im Juli 2001 hat die Forschungsanstalt FAT in Tänikon vier Aufbereiter für Belüftungsheu verglichen: Kunstwiese im 3. Aufwuchs, 30 % Klee, 32 dt TS pro ha, gemäht am Vorabend mit 14,6 % TS, wolkenloses Wetter um 27 °C. Gemessen wurden die TS im Tagesverlauf und die Verluste auf dem Feld. Das Spiel rechnet dieselben Verfahren mit demselben Wetter nach.</p>
 ${grafikTrocknung()}
@@ -307,6 +383,10 @@ ${PROGNOSEN.map((p) => `      <li><a href="szenario/${p.id}.html">${esc(p.name)}
 fs.writeFileSync(new URL('../public/lernen.html', import.meta.url), lernen);
 
 // ---------- Szenarioseiten
+function belueftungInWorten(b = {}) {
+  const e = { luefter: 'intervall', dach: true, entfeuchter: false, ...b };
+  return `Lüfter ${{ aus: 'aus', dauer: 'im Dauerbetrieb', intervall: 'im Intervall mit Feuchtesteuerung' }[e.luefter]}, ${e.dach ? 'mit' : 'ohne'} Warmluft vom Dach, ${e.entfeuchter ? 'mit' : 'ohne'} Entfeuchter`;
+}
 fs.mkdirSync(new URL('../public/szenario/', import.meta.url), { recursive: true });
 const sonne = (s) => (s >= 0.8 ? 'sonnig' : s >= 0.45 ? 'wechselnd bewölkt' : 'bewölkt');
 for (const p of PROGNOSEN) {
@@ -325,7 +405,7 @@ for (const p of PROGNOSEN) {
     <h2>Ausgangslage</h2>
     <ul>
       <li><strong>Wiese:</strong> ${esc(BESTAENDE[p.plan.bestand].name)}, Stadium ${esc(STADIEN[p.plan.stadium].name)}, ${p.plan.ertrag} dt TS/ha</li>
-      <li><strong>Maschinen:</strong> ${esc(AUFBEREITER[p.plan.aufbereiter].name)}, Schnitthöhe ${zahl(p.plan.schnitthoehe)} cm, Ablage auf ${ablageVon(p.plan)} % der Mähbreite</li>
+      <li><strong>Maschinen:</strong> ${esc(AUFBEREITER[p.plan.aufbereiter].name)}, Schnitthöhe ${zahl(p.plan.schnitthoehe)} cm, Ablage auf ${ablageVon(p.plan)} % der Mähbreite</li>${p.plan.siloart === 'belueftung' ? `\n      <li><strong>Belüftung:</strong> ${belueftungInWorten(p.plan.belueftung)}</li>` : ''}
       <li><strong>Ziel:</strong> ${esc(SILOARTEN[p.plan.siloart].name)}, ${heu && SILOARTEN[p.plan.siloart].ziel[1] >= 95 ? `ab ${SILOARTEN[p.plan.siloart].ziel[0]}` : `${SILOARTEN[p.plan.siloart].ziel[0]} bis ${SILOARTEN[p.plan.siloart].ziel[1]}`} % TS</li>
     </ul>
     <h2>Wetter: ${esc(w.name)}</h2>

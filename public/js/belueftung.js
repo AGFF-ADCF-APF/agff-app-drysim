@@ -10,7 +10,7 @@ export const ANLAGE = {
   luft: 0.11,       // m³/s je m² Stockfläche (Agroscope 2014: rund 0,11, Spielraum 0,07–0,14; FAT 1982: 0,10–0,12)
   luefterKw: 0.11,  // kW Motorleistung je m² Boxenfläche (Agroscope 2014)
   dichte: 78,       // kg TS je m³ Heustock, Beschickung mit Gebläse oder Verteiler (FAT 1982: Mittel 78, Greifer 65)
-  flaecheJeHa: 20,  // m² Stockfläche je ha Schnittfläche und Charge (Agroscope 2014: 14–24)
+  flaecheJeHa: 25,  // m² Box je ha Tagesschlagkraft (LK Salzburg S. 22; Agroscope 2014: 14–24 m² je ha und Charge)
   feldHa: 2,        // Annahme: Grösse der Parzelle im Spiel (nur für die Anzeige in Tonnen, kWh und L/h)
   dachFaktor: 2,    // Dachkollektor mindestens doppelte Stockfläche (Agroscope 2014; FAT 1982)
   dachW: 275,       // nutzbare Wärme in W je m² Dach bei 800 W/m² Einstrahlung (Agroscope 2014: 250–300)

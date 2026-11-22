@@ -42,3 +42,20 @@ import { Feld, spieleNach } from '../public/js/model.js';
   const n = simuliere({ ...GRUNDPLAN, stadium: 4, siloart: 'bodenheu', zetterHoehe: 4, schwaderHoehe: 4, zetten: [10, 14, 33], schwaden: [19, 62], ernte: 64 }, stundenwetter(WETTER[0]));
   zeig('Nachtschwad', n);
 }
+// Belüftung: Stand aus dem Protokoll der Schaltungen muss dem direkt gespielten Stand entsprechen
+import { Heustock, spieleBelueftungNach, STANDARD } from '../public/js/belueftung.js';
+{
+  const p = PROGNOSEN.find((x) => x.id === 'heufoehn').plan;
+  const log = [{ t: 5, art: 'maehen' }, { t: 10, art: 'zetten' }, { t: 14, art: 'zetten' }, { t: 34, art: 'zetten' }, { t: 40, art: 'schwaden' }];
+  const f = spieleNach(p, stundenwetter(WETTER.find((w) => w.id === 'foehn')), log, 42);
+  f.einfahren();
+  const start = f.heustockStart();
+  const schalt = [{ t: 50, art: 'luefter', wert: 'dauer' }, { t: 70, art: 'entfeuchter', wert: true }, { t: 90, art: 'luefter', wert: 'aus' }, { t: 95, art: 'luefter', wert: 'intervall' }];
+  const a = new Heustock(start), e = { ...STANDARD };
+  while (a.t < 120) { for (const x of schalt) if (x.t === a.t) e[x.art] = x.wert; a.stunde(e); }
+  const b = spieleBelueftungNach(start, schalt, 120);
+  const ok = a.t === b.t && Math.abs(a.tsMittel() - b.tsMittel()) < 1e-9 && Math.abs(a.kwh - b.kwh) < 1e-9;
+  console.log('Belüftung nachspielen identisch:', ok, a.t, a.tsMittel().toFixed(2), b.tsMittel().toFixed(2), a.kwh.toFixed(1));
+  const r1 = f.bewerte(b.ergebnis());
+  console.log('Belüftung bewertet:', r1.note, r1.heu.punkte, r1.faktoren.every((x) => x.tipp && !/undefined|NaN/.test(x.text + x.wert)));
+}

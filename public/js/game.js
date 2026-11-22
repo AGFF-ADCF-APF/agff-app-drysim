@@ -196,7 +196,7 @@ export class Spiel {
       this.stop();
       vergissRunde();
       this.knoepfeAktiv();
-      setTimeout(() => this.onEnde(res), 600);
+      setTimeout(() => this.onEnde(res, f, this.log.slice()), 600); // Feld und Protokoll: für die Belüftungsphase
       return;
     }
     this.speichere();

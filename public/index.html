@@ -21,6 +21,7 @@
   <link rel="apple-touch-icon" href="img/icon-192.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/heustock.css">
   <script src="js/boot.js"></script>
   <script type="application/ld+json">
   {"@context":"https://schema.org","@type":"WebApplication","name":"Heureka","url":"https://apps.graswachstum.ch/heureka/",
@@ -213,6 +214,76 @@
         <ul class="ticker" aria-live="polite"></ul>
       </div>
     </div>
+  </section>
+
+  <!-- Am Heustock (Belüftungsheu): js/heustock.js, Stil: css/heustock.css -->
+  <section id="heustock" class="bildschirm" hidden aria-labelledby="heustock-titel">
+    <h1 class="sr-only" id="heustock-titel" tabindex="-1">Am Heustock</h1>
+    <div class="spielfeld">
+      <div class="hud-oben">
+        <div class="uhrzeit" role="timer"></div>
+        <div class="jetzt"></div>
+        <div class="tempo" role="group" aria-label="Zeit steuern">
+          <button type="button" data-tempo="0" title="Pause (Leertaste)" aria-label="Pause">❚❚</button>
+          <button type="button" data-tempo="1" title="Normal (1)" aria-label="Normal">▶</button>
+          <button type="button" data-tempo="2" title="Schnell (2)" aria-label="Schnell">▶▶</button>
+          <button type="button" data-tempo="3" title="Sehr schnell (3)" aria-label="Sehr schnell">▶▶▶</button>
+          <button type="button" data-schritt="1" title="Eine Stunde weiter (+)" aria-label="Eine Stunde weiter">+1 h</button>
+          <button type="button" data-schritt="6" title="Sechs Stunden weiter" aria-label="Sechs Stunden weiter">+6 h</button>
+        </div>
+        <span class="zeitraffer-label">Automatik</span>
+      </div>
+      <div class="hs-oben">
+        <div class="hs-bild" role="img" aria-label="Heustock"></div>
+        <div class="hs-luft">
+          <div class="messer hs-zu"><span>Zuluft</span><strong></strong><small></small></div>
+          <div class="messer hs-ab"><span>Abluft</span><strong></strong><small></small></div>
+        </div>
+      </div>
+      <div class="messer-reihe">
+        <div class="messer ts hs-ts"><span>Heustock (<abbr title="Trockensubstanz">TS</abbr>)</span><strong></strong><div class="skala"><div class="ziel"></div><div class="nadel"></div></div><small></small></div>
+        <div class="messer hs-temp"><span>Stocktemperatur</span><strong></strong><div class="balken"><i></i></div><small></small></div>
+        <div class="messer hs-wasser"><span>Wasserentzug</span><strong></strong><div class="balken"><i></i></div><small></small></div>
+        <div class="messer hs-strom"><span>Strom</span><strong></strong><div class="balken"><i></i></div><small></small></div>
+      </div>
+      <div class="hs-steuer" role="group" aria-label="Belüftung steuern">
+        <div class="hs-gruppe"><b id="hs-luefter-titel">Lüfter</b>
+          <div class="chips" role="group" aria-labelledby="hs-luefter-titel">
+            <button type="button" class="chip" data-luefter="aus" aria-keyshortcuts="A">Aus <kbd>A</kbd></button>
+            <button type="button" class="chip" data-luefter="dauer" aria-keyshortcuts="D">Dauer <kbd>D</kbd></button>
+            <button type="button" class="chip" data-luefter="intervall" aria-keyshortcuts="I">Intervall <kbd>I</kbd></button>
+          </div>
+        </div>
+        <button type="button" class="hs-schalter hs-nur-dach" data-schalter="dach" aria-keyshortcuts="W"><b>Warmluft vom Dach <kbd>W</kbd></b><small></small></button>
+        <button type="button" class="hs-schalter hs-nur-entfeuchter" data-schalter="entfeuchter" aria-keyshortcuts="E"><b>Entfeuchter <kbd>E</kbd></b><small></small></button>
+        <button type="button" class="hs-knopf hs-rechnen-auf hs-nur-rechnen" aria-keyshortcuts="R">Nachrechnen <kbd>R</kbd></button>
+        <button type="button" class="hs-knopf hs-auto">Steuerung übernimmt (Zeitraffer)</button>
+      </div>
+      <p class="hinweis hs-info">Intervall: Die Steuerung lüftet, wenn die Luft das Heu trocknet. Sonst lüftet sie alle 4 Stunden eine halbe Stunde gegen Erwärmung und immer, wenn das Heu über 35 °C warm wird. Die ersten 24 Stunden läuft der Lüfter durch.</p>
+      <div class="unten">
+        <div class="bericht"></div>
+        <ul class="ticker" aria-live="polite"></ul>
+      </div>
+    </div>
+    <dialog id="hs-rechnen" aria-labelledby="hs-rechnen-titel">
+      <form method="dialog">
+        <h2 id="hs-rechnen-titel">Messen und rechnen: Wie viel Wasser trägt die Luft fort?</h2>
+        <p>Das zeigen die Fühler jetzt an. Rechne mit der Tabelle aus, wie viel Wasser die Luft aus dem Heu mitnimmt.</p>
+        <div class="kennzahlen" id="hs-messwerte"></div>
+        <details class="hs-tabelle-box" open><summary>Tabelle: Wasser in gesättigter Luft</summary><div class="tabelle" id="hs-tabelle"></div></details>
+        <div class="hs-eingaben">
+          <label>Zuluft, g Wasser je m³ <input name="zu" inputmode="decimal" autocomplete="off"></label>
+          <label>Abluft, g Wasser je m³ <input name="ab" inputmode="decimal" autocomplete="off"></label>
+          <label>Wasserentzug, g je m³ <input name="diff" inputmode="decimal" autocomplete="off"></label>
+          <label>Wasser je Stunde, L/h <input name="lh" inputmode="decimal" autocomplete="off"></label>
+        </div>
+        <div class="los">
+          <button type="button" class="gross-knopf gelb" id="hs-pruefen"><b>Prüfen und Auflösung zeigen</b></button>
+          <button class="gross-knopf"><b>Schliessen</b></button>
+        </div>
+        <div id="hs-aufloesung" aria-live="polite"></div>
+      </form>
+    </dialog>
   </section>
 
   <!-- Silo öffnen -->

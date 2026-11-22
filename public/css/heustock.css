@@ -1,0 +1,47 @@
+/* Bildschirm «Am Heustock» (Belüftungsheu). Farben nur über die Variablen aus app.css,
+   damit Nacht- und Kontrastmodus mitziehen. */
+.hs-oben { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 12px; }
+@media (max-width: 760px) { .hs-oben { grid-template-columns: minmax(0, 1fr); } }
+.hs-bild { background: var(--karte); border-radius: var(--radius); box-shadow: var(--schatten); padding: 8px; line-height: 0; }
+.hs-svg { width: 100%; height: auto; max-height: 320px; display: block; }
+.hs-svg text { fill: var(--text); }
+.hs-svg .hs-schicht { font-size: 15px; font-weight: 700; fill: #fff; paint-order: stroke; stroke: rgba(0, 0, 0, .55); stroke-width: 3px; }
+.hs-svg .hs-klein { font-size: 14px; font-weight: 700; }
+.hs-svg .leise { fill: var(--leise); font-weight: 400; }
+.hs-svg .hs-pfeil { stroke-dasharray: 8 6; animation: hs-strom 1s linear infinite; }
+.hs-svg .hs-luefter.dreht path { transform-origin: 0 0; animation: hs-dreh 1.2s linear infinite; }
+@keyframes hs-strom { to { stroke-dashoffset: -14; } }
+@keyframes hs-dreh { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .hs-svg .hs-pfeil, .hs-svg .hs-luefter.dreht path { animation: none; } }
+.hs-luft { display: grid; gap: 10px; align-content: start; }
+.hs-luft .messer strong { font-size: 1.35rem; }
+
+.hs-steuer { display: flex; flex-wrap: wrap; gap: 10px; align-items: stretch; background: var(--karte); border-radius: var(--radius); box-shadow: var(--schatten); padding: 10px 14px; }
+.hs-gruppe { display: grid; gap: 4px; }
+.hs-gruppe > b { font-size: .95rem; color: var(--leise); text-transform: uppercase; letter-spacing: .04em; }
+.hs-schalter, .hs-knopf { min-height: 48px; border: 2px solid var(--linie); background: var(--bg); color: var(--text); border-radius: 12px; padding: .35rem .9rem; cursor: pointer; display: grid; align-content: center; text-align: left; }
+.hs-schalter small { color: var(--leise); }
+.hs-schalter[aria-pressed="true"] { border-color: var(--gruen); background: var(--gruen-hell); }
+.hs-schalter[aria-pressed="true"] small { color: var(--gruen-text); font-weight: 700; }
+.hs-knopf { font-weight: 700; }
+.hs-knopf:disabled { opacity: .55; cursor: default; }
+.hs-rechnen-auf:not(:disabled) { border-color: var(--gelb); background: var(--gelb-hell); }
+.hs-info { margin: 0; font-size: .95rem; }
+#heustock.ohne-dach .hs-nur-dach, #heustock.ohne-entfeuchter .hs-nur-entfeuchter, #heustock.ohne-rechnen .hs-nur-rechnen { display: none; }
+#heustock.ruhig .tempo [data-tempo="1"], #heustock.ruhig .tempo [data-tempo="2"], #heustock.ruhig .tempo [data-tempo="3"] { display: none; }
+#heustock.automatik .tempo, #heustock.automatik .hs-steuer { opacity: .5; pointer-events: none; }
+#heustock.automatik .zeitraffer-label { display: inline; }
+
+/* Rechenaufgabe */
+#hs-rechnen { max-width: 680px; }
+#hs-rechnen .kennzahlen { margin: 10px 0; }
+.hs-tabelle-box summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; }
+.hs-tabelle-box .zahlen { font-size: .95rem; }
+.hs-eingaben { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 12px 0; }
+.hs-eingaben label { display: grid; gap: 4px; font-weight: 600; }
+.hs-eingaben input { min-height: 48px; border: 2px solid var(--linie); border-radius: 10px; padding: .3rem .6rem; background: var(--karte); font-size: 1.1rem; }
+.pruefung { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 4px; }
+.pruefung .richtig { color: var(--gruen-text); font-weight: 700; }
+.pruefung .falsch { color: var(--rot); font-weight: 700; }
+.rechenweg li { margin-bottom: 6px; }
+:root[data-outdoor="1"] .hs-schalter, :root[data-outdoor="1"] .hs-knopf, :root[data-outdoor="1"] .hs-eingaben input { min-height: 56px; border-color: #000; }
