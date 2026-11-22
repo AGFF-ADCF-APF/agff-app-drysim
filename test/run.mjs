@@ -12,14 +12,14 @@ for (const w of WETTER) {
   const wt = stundenwetter(w);
   zeig('Grundplan/' + w.id, simuliere(GRUNDPLAN, wt));
   zeig('Grund ohne Aufb/' + w.id, simuliere({ ...GRUNDPLAN, aufbereiter: 'ohne' }, wt));
-  zeig('Grund schwad/' + w.id, simuliere({ ...GRUNDPLAN, breit: false, zetten: [] }, wt));
+  zeig('Grund schwad/' + w.id, simuliere({ ...GRUNDPLAN, ablage: 35, zetten: [] }, wt));
   zeig('Grund 24h/' + w.id, simuliere({ ...GRUNDPLAN, zetten: [11, 14], schwaden: 33, ernte: 35 }, wt));
 }
 const w = stundenwetter(WETTER[0]);
 console.log(w.slice(0, 48).map(x => `${x.h}:${x.temp.toFixed(0)}°/${x.rh.toFixed(0)}%/${x.rad.toFixed(0)}`).join(' '));
 zeig('zufall', simuliere(GRUNDPLAN, stundenwetter(zufallswetter('ABC'))));
 // Trocknungsverlauf Hochdruck: Breitablage+Walzen+Zetten vs. Mähschwade ohne Zetten (TS je 2 h)
-for (const [name, p] of [['breit+walzen+zetten', {}], ['schwad ohne zetten', { breit: false, zetten: [] }], ['breit ohne Aufb.', { aufbereiter: 'ohne' }], ['zinken+buerste', { aufbereiter: 'buerste' }]]) {
+for (const [name, p] of [['breit+walzen+zetten', {}], ['schwad ohne zetten', { ablage: 35, zetten: [] }], ['breit ohne Aufb.', { aufbereiter: 'ohne' }], ['zinken+buerste', { aufbereiter: 'buerste' }]]) {
   const r = simuliere({ ...GRUNDPLAN, maehen: 9, zetten: [10], schwaden: 70, ernte: 71, ...p, ...(p.zetten ? { zetten: p.zetten } : {}) }, stundenwetter(WETTER[0]));
   console.log(name.padEnd(22), r.verlauf.filter((x, i) => i % 2 === 1).slice(0, 18).map(x => `${x.t % 24}h:${x.ts.toFixed(0)}`).join(' '));
 }

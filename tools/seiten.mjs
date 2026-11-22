@@ -4,7 +4,10 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { WETTER, PROGNOSEN } from '../public/js/scenarios.js';
-import { BESTAENDE, SILOARTEN, STADIEN, AUFBEREITER } from '../public/js/model.js';
+import { BESTAENDE, SILOARTEN, STADIEN, AUFBEREITER, ablageVon, KAL } from '../public/js/model.js';
+import { grafikTrocknung, grafikFeldverluste, grafikAblage, grafikInsekten, grafikZucker } from '../public/js/grafik.js';
+import { vergleicheAlle } from '../public/js/vergleich.js';
+import { QUELLE_FAT, QUELLE_TOPAGRAR, QUELLE_KOELN, QUELLE_HUMBERT } from '../public/js/versuche.js';
 import { BEGRIFFE } from '../public/js/begriffe.js';
 
 const BASIS = 'https://apps.graswachstum.ch/heureka/';
@@ -79,6 +82,11 @@ const QUELLEN_DACH = [
   ['LfL Bayern / AGGF 2016: Grassilage, TM-Gehalt (Pickert et al., PDF)', 'https://lfl.bayern.de/mam/cms07/ipz/dateien/aggf_2016_pickert_et_al.pdf'],
   ['top agrar: Gras zügig trocken – geht das nur mit Aufbereiter? (Deutschland)', 'https://www.topagrar.com/technik/news/krone-maehwerke-gras-zuegig-trocken-geht-das-nur-mit-aufbereiter-12748796.html'],
   ['Agrartechnik (Universität Hohenheim): Halmgutaufbereitung auf dem Feld (Deutschland)', 'https://440ejournals.uni-hohenheim.de/index.php/agrartechnik/article/view/2620/2352'],
+  [`${QUELLE_FAT.titel} (Schweiz)`, QUELLE_FAT.url],
+  [`${QUELLE_TOPAGRAR.titel} (Deutschland)`, QUELLE_TOPAGRAR.url],
+  [`${QUELLE_KOELN.titel} (Deutschland)`, QUELLE_KOELN.url],
+  [`${QUELLE_HUMBERT.titel} (Schweiz)`, QUELLE_HUMBERT.url],
+  ['Elite / top agrar 2024: Enges Erntefenster – wie lässt sich Gras schnell trocknen? (Beratungsempfehlungen von J.-H. Puckhaber und T. Kilcer)', 'https://www.topagrar.com/rind/news/enges-erntefenster-wie-lasst-sich-gras-schnell-trocknen-22845.html'],
 ];
 const QUELLEN_USA = [
   ['UW–Madison Extension: Field drying forage for hay and haylage', 'https://dairy.extension.wisc.edu/articles/field-drying-forage-for-hay-and-haylage'],
@@ -101,11 +109,13 @@ const lernen = seite({
     <nav aria-label="Inhalt dieser Seite"><ul>
       <li><a href="#anwelken">Warum anwelken?</a></li>
       <li><a href="#trocknung">Schnell trocknen: erst breit ablegen, dann aufbereiten</a></li>
+      <li><a href="#aufbereiter">Mit oder ohne Aufbereiter?</a></li>
       <li><a href="#zucker">Zucker schonen: Atmung, Tau und Regen</a></li>
       <li><a href="#sauber">Sauber arbeiten: Schnitthöhe, Zinken und Erde</a></li>
       <li><a href="#zetten">Zetten und Schwaden: Blätter schonen</a></li>
       <li><a href="#gaerung">Gärqualität bewerten: Labor oder Prozess?</a></li>
       <li><a href="#heu">Heu: Bodenheu, Heuballen oder Belüftung</a></li>
+      <li><a href="#versuch">Spiel gegen Messung: der Versuch in Tänikon</a></li>
       <li><a href="#videos">Videos</a></li>
       <li><a href="#begriffe">Begriffe kurz erklärt</a></li>
       <li><a href="#quellen">Quellen</a></li>
@@ -130,6 +140,20 @@ const lernen = seite({
     <p>In Deutschland gilt die «24-Stunden-Silage» mit rund 35 % TS als Ziel. Ältere Untersuchungen in der Zeitschrift Agrartechnik sehen den Effekt von Rotoraufbereitern bis etwa 60 % TS am grössten.</p>
     <p><strong>Anwelkgrad schätzen (Stängelprobe):</strong> Stängel in die Handfläche legen und mit dem Daumennagel in Längsrichtung ausstreichen. Tritt am Stängelende kein Wasser mehr aus, sind es mehr als 65 % TS (Agroscope 2014).</p>
     <div class="infobox"><p><strong>Im Spiel:</strong> Breitablage und ein früher Zettdurchgang bringen das Futter am gleichen Tag in den Zielbereich. Eine dichte Mähschwade ohne Zetten braucht bis zum nächsten Tag.</p></div>
+
+    <h2 id="aufbereiter">Mit oder ohne Aufbereiter?</h2>
+    <p>Ob es den Aufbereiter braucht, wird in der Praxis oft diskutiert. Was lässt sich belegen?</p>
+    <ul>
+      <li><strong>Er trocknet schneller.</strong> In Schweizer Versuchen verkürzte der Aufbereiter die Feldliegezeit um rund 25 bis 30 %; beim Einführen hatte das Futter 5 bis 7 % mehr TS als ohne Aufbereiter (FAT-Bericht 584). Im Versuch von top agrar 2021 hatte das aufbereitete Futter nach rund 5 Stunden 35 % TS.</li>
+      <li><strong>Es geht auch ohne, wenn breit abgelegt und gezettet wird.</strong> Im gleichen top-agrar-Versuch erreichte das Futter ohne Aufbereiter mit zweimal Wenden am gleichen Tag knapp 35 % TS. Ohne Wenden blieb es bei 27 % TS. Das war ein einzelner Versuchstag mit sehr gutem Wetter, ohne Wiederholungen.</li>
+      <li><strong>Schärfer einstellen bringt nicht immer mehr.</strong> An der TH Köln verdoppelte eine engere Einstellung die Knickstellen am Halm und erhöhte den Leistungsbedarf um bis zu 35 %. In der Dauerwiese trocknete das Futter aber nicht messbar schneller: Die Futtermatte am Boden bremst.</li>
+      <li><strong>Er braucht mehr Leistung.</strong> Gemessen wurden 61 kW ohne und 122 kW mit Aufbereiter für eine 10-m-Kombination (top agrar 2021); gezogene Heckaufbereiter brauchten 5 bis 12 kW (FAT-Bericht 584).</li>
+      <li><strong>Er tötet mehr Insekten.</strong> In einem Versuch von Agroscope starben mit Rotationsmähwerk 37 % der Raupen, mit Aufbereiter 69 % (Humbert et al. 2010).</li>
+      <li><strong>Zwei Stunden nach dem Mähen</strong> ist die Oberseite der Ablage angetrocknet, die Unterseite noch so nass wie beim Mähen. Die Beratung empfiehlt deshalb, spätestens dann zu zetten, besonders ohne Aufbereiter.</li>
+    </ul>
+${grafikInsekten()}
+    <p><strong>Nimmt der Zucker nach dem Schnitt zu?</strong> Manche Berater sagen, dass breit abgelegtes Gras in der Sonne noch Photosynthese betreibt und so mehr Zucker bildet, als es veratmet. Belegt ist, dass schnelles Trocknen die Atmung früher stoppt und damit Zucker spart. Eine Zunahme ist in begutachteten Versuchen nicht gesichert. Das Spiel rechnet deshalb nur mit dem Verlust durch die Atmung:</p>
+${grafikZucker()}
 
     <h2 id="zucker">Zucker schonen: Atmung, Tau und Regen</h2>
     <p>Gemähte Pflanzen leben noch eine Weile weiter und veratmen dabei Zucker (im Spiel, bis sie etwa 60 % TS erreichen). Je wärmer es ist und je länger das Futter liegt, desto mehr Zucker geht verloren. Bleibt das Futter länger als etwa 35 Stunden auf dem Feld oder wird es eingeregnet, sinkt der Zuckergehalt deutlich; zu langes Anwelken erhöht die Atmungs- und die Bröckelverluste (LK Salzburg). Der Zucker fehlt später den Milchsäurebakterien.</p>
@@ -208,7 +232,22 @@ const lernen = seite({
     </table></div>
     <p>Die frühe Information der örtlichen Feuerwehr ab 60 °C ist eine bewährte Praxisempfehlung (sie hat auch Messsonden und gibt Rat); die Quelle verlangt den Alarm ab 70 °C. Einen heissen Heustock niemals selbst abtragen: Luftsauerstoff und Hitze führen unweigerlich zum Brand. Erkennungsmerkmale sind Schwitzwasser, ein seltsam süsslicher Geruch, ein Temperaturanstieg über 50 °C und eine muldenförmige Einbuchtung (Verluste nach Philipsen 1965, in LK Salzburg). Bei der Kaltbelüftung gilt zudem: Stocktemperaturen über 35 °C im Intervallbetrieb beachten (Agroscope 2014).</p>
     <p><strong>Sonne und Regen:</strong> Trockenes Heu, das lange in der Sonne liegt, bleicht aus und verliert Vitamine (Carotin). Regen und Tau waschen aus, 1 bis 5 % und mehr (LK Salzburg). Gutes Heu riecht aromatisch, ist grünlich, blattreich und sauber. Das Spiel bewertet Heu nach Geruch, Farbe, Gefüge (Blätter) und Verunreinigung, angelehnt an die Sinnenprüfung und vereinfacht.</p>
-    <div class="infobox"><p><strong>Im Spiel:</strong> Bei Hochdruck ist Bodenheu am Nachmittag des dritten Tages lagerfähig. Reicht das Wetterfenster nicht, rettet die Belüftung das Futter.</p></div>
+    <div class="infobox"><p><strong>Im Spiel:</strong> Mit Aufbereiter und Breitablage ist Bodenheu bei Hochdruck ab dem Abend des zweiten Tages lagerfähig, ohne diese Hilfen später. Reicht das Wetterfenster nicht, rettet die Belüftung das Futter.</p></div>
+
+    <h2 id="versuch">Spiel gegen Messung: der Versuch in Tänikon</h2>
+    <p>Wie gut rechnet das Spiel? Im Juli 2001 hat die Forschungsanstalt FAT in Tänikon vier Aufbereiter für Belüftungsheu verglichen: Kunstwiese im 3. Aufwuchs, 30 % Klee, 32 dt TS pro ha, gemäht am Vorabend mit 14,6 % TS, wolkenloses Wetter um 27 °C. Gemessen wurden die TS im Tagesverlauf und die Verluste auf dem Feld. Das Spiel rechnet dieselben Verfahren mit demselben Wetter nach.</p>
+${grafikTrocknung()}
+    <div class="tabelle"><table class="zahlen">
+      <thead><tr><th>Verfahren</th><th>TS beim Einführen, gemessen</th><th>im Spiel</th></tr></thead>
+      <tbody>
+${vergleicheAlle().map((v) => `        <tr><td>${esc(v.name)}</td><td>${zahl(v.ende.toFixed(1))} %</td><td>${zahl(v.modell.tsEnde.toFixed(1))} %</td></tr>`).join('\n')}
+      </tbody>
+    </table></div>
+    <p>Im Mittel liegt das Spiel rund 3 bis 4 Prozentpunkte TS neben der Messung. Ohne Aufbereiter und beim nie gewendeten Futter trocknet es im Spiel etwas zu langsam. Die Trocknung im Spiel ist an diesem Versuch kalibriert (Grundtempo ${zahl(KAL.k)}, Wirkung der Ablagebreite ${zahl(KAL.ablage)}, Bröckelverluste ×${zahl(KAL.broeckel)}); vorher trocknete das Spielfutter rund einen Drittel zu langsam.</p>
+${grafikAblage()}
+    <p><strong>Weniger bearbeiten, weniger Verluste:</strong> Die Verluste auf dem Feld lagen für zweitägiges Dürrfutter bei 5 bis 6 % des Ertrags, also tief. Am wenigsten verlor das Verfahren, das nie gewendet wurde, nämlich weniger als die Hälfte. Mit den Bröckelverlusten gehen vor allem Blätter mit viel Eiweiss und Energie verloren.</p>
+${grafikFeldverluste()}
+    <p>Die Messwerte und die Tabelle stammen aus dem <a href="${QUELLE_FAT.url}" rel="noopener">FAT-Bericht 584</a>. Selber ausprobieren: <a href="szenario/taenikon.html">Szenario «Tänikon 2001»</a>.</p>
 
     <h2 id="videos">Videos</h2>
     <p>Filme zu Anwelken, Heu und Silage aus der gemeinsamen Mediathek der AGFF-Apps.</p>
@@ -259,7 +298,7 @@ for (const p of PROGNOSEN) {
     <h2>Ausgangslage</h2>
     <ul>
       <li><strong>Wiese:</strong> ${esc(BESTAENDE[p.plan.bestand].name)}, Stadium ${esc(STADIEN[p.plan.stadium].name)}, ${p.plan.ertrag} dt TS/ha</li>
-      <li><strong>Maschinen:</strong> ${esc(AUFBEREITER[p.plan.aufbereiter].name)}, Schnitthöhe ${zahl(p.plan.schnitthoehe)} cm, ${p.plan.breit || AUFBEREITER[p.plan.aufbereiter].breit ? 'Breitablage' : 'Mähschwade'}</li>
+      <li><strong>Maschinen:</strong> ${esc(AUFBEREITER[p.plan.aufbereiter].name)}, Schnitthöhe ${zahl(p.plan.schnitthoehe)} cm, Ablage auf ${ablageVon(p.plan)} % der Mähbreite</li>
       <li><strong>Ziel:</strong> ${esc(SILOARTEN[p.plan.siloart].name)}, ${heu && SILOARTEN[p.plan.siloart].ziel[1] >= 95 ? `ab ${SILOARTEN[p.plan.siloart].ziel[0]}` : `${SILOARTEN[p.plan.siloart].ziel[0]} bis ${SILOARTEN[p.plan.siloart].ziel[1]}`} % TS</li>
     </ul>
     <h2>Wetter: ${esc(w.name)}</h2>

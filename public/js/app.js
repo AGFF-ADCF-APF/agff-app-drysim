@@ -1,5 +1,5 @@
 import { stundenwetter, zufallswetter } from './weather.js';
-import { BESTAENDE, STADIEN, AUFBEREITER, SILOARTEN, zinken } from './model.js';
+import { BESTAENDE, STADIEN, AUFBEREITER, SILOARTEN, zinken, ablageVon } from './model.js';
 import { bestandBild, stadiumBild, ertragBild, bodenBild } from './wiese.js';
 import { schnittBild, aufbereiterBild, ablageBild, zinkenBild } from './maschinen.js';
 import { WETTER, PROGNOSEN, GRUNDPLAN } from './scenarios.js';
@@ -9,6 +9,7 @@ import { zeichne } from './chart.js';
 import { wetterSymbol, STERN } from './icons.js';
 import { BEGRIFFE, mitBegriffen } from './begriffe.js';
 import { Assistent } from './assistent.js';
+import { KARTEN_GRAFIK } from './grafik.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const z = (x, d = 1) => x.toFixed(d).replace('.', ',');
@@ -127,7 +128,6 @@ const OPTIONEN = {
   })),
   stadium: Object.entries(STADIEN).map(([k, v]) => ({ wert: Number(k), titel: v.name, text: BESCHREIBUNG.stadium[k], extra: stadiumBild(Number(k)) })),
   boden: [{ wert: 'eben', titel: 'Eben und sauber', extra: bodenBild('eben') }, { wert: 'maulwurf', titel: 'Maulwurfshaufen', extra: bodenBild('maulwurf') }],
-  breit: [{ wert: true, titel: 'Breitablage', text: 'über die ganze Fläche', extra: ablageBild(true) }, { wert: false, titel: 'Mähschwade', text: 'schmaler Streifen', extra: ablageBild(false) }],
   modus: [{ wert: 'live', titel: 'Live: die Uhr läuft' }, { wert: 'ruhig', titel: 'Ruhig: du bestimmst, wann die Zeit weiterläuft' }],
 };
 
@@ -182,6 +182,14 @@ function maschinenBilder() {
   $('#bild-zetter').innerHTML = zinkenBild(wahl.zetterHoehe, 'zetten', stoppel);
   $('#bild-schwader').innerHTML = zinkenBild(wahl.schwaderHoehe, 'schwaden', stoppel);
   $('#bild-ertrag').innerHTML = ertragBild(Number(setup.ertrag.value));
+  // Ablagebreite: der Intensivaufbereiter mit Bürste legt immer breit ab
+  const a = ablageVon(wahl), fest = a !== wahl.ablage;
+  $('#bild-ablage').innerHTML = ablageBild(a);
+  setup.ablage.value = wahl.ablage;
+  setup.ablageAus.value = `${a} % der Mähbreite${fest ? ' (Bürste)' : ''}`;
+  setup.ablage.setAttribute('aria-valuetext', setup.ablageAus.value);
+  $('#ablage-hinweis').textContent = fest ? 'Der Aufbereiter mit Zinken und Bürste legt das Futter selbst breit ab, auf rund 85 % der Mähbreite.'
+    : 'Ab 80 % der Mähbreite gilt es als Breitablage. Eine Mähschwade ist etwa ein Drittel so breit.';
 }
 
 // Einstellungen bleiben beim Neuladen oder App-Wechsel erhalten (nur für diese Sitzung, damit
@@ -190,7 +198,7 @@ const SK = 'drysim-einstellungen';
 const GUELTIG = {
   wetter: (v) => v === 'zufall' || WETTER.some((w) => w.id === v),
   bestand: (v) => v in BESTAENDE, stadium: (v) => String(v) in STADIEN, boden: (v) => ['eben', 'maulwurf'].includes(v),
-  aufbereiter: (v) => v in AUFBEREITER, breit: (v) => typeof v === 'boolean', siloart: (v) => v in SILOARTEN, modus: (v) => ['live', 'ruhig'].includes(v),
+  aufbereiter: (v) => v in AUFBEREITER, ablage: (v) => typeof v === 'number' && v >= 30 && v <= 100, siloart: (v) => v in SILOARTEN, modus: (v) => ['live', 'ruhig'].includes(v),
   schnitthoehe: (v) => v === null || (typeof v === 'number' && v >= 4 && v <= 12),
   zetterHoehe: (v) => v === null || (typeof v === 'number' && v >= 0 && v <= 8),
   schwaderHoehe: (v) => v === null || (typeof v === 'number' && v >= 0 && v <= 8),
@@ -202,6 +210,7 @@ function speichereEinstellungen() {
   const s = lies(sessionStorage, SK);
   if (s?.v === 1) {
     for (const k of Object.keys(GUELTIG)) if (k in s && GUELTIG[k](s[k])) wahl[k] = s[k];
+    if (!('ablage' in s) && typeof s.breit === 'boolean') wahl.ablage = s.breit ? 85 : 35; // Einstellung aus der Zeit vor dem Regler
     if (Number.isFinite(s.ertrag) && s.ertrag >= 20 && s.ertrag <= 45) { setup.ertrag.value = s.ertrag; setup.ertragAus.value = `${s.ertrag} dt TS/ha`; }
     if (typeof s.name === 'string') setup.name.value = s.name.slice(0, 30);
     if (typeof s.code === 'string') setup.code.value = s.code.slice(0, 12);
@@ -249,6 +258,7 @@ for (const feld of Object.keys(PFLICHT)) {
   regler.addEventListener('keyup', (e) => { if (e.key.startsWith('Arrow') || e.key === 'Home' || e.key === 'End') setze(); });
   reglerAnzeige(feld);
 }
+setup.ablage.addEventListener('input', () => { wahl.ablage = Number(setup.ablage.value); maschinenBilder(); aktualisiereOffen(); reglerTipp('ablage'); });
 setup.ertrag.addEventListener('input', () => { setup.ertragAus.value = `${setup.ertrag.value} dt TS/ha`; setup.ertrag.setAttribute('aria-valuetext', setup.ertragAus.value); maschinenBilder(); aktualisiereOffen(); });
 setup.name.addEventListener('input', speichereEinstellungen);
 setup.code.addEventListener('input', speichereEinstellungen);
@@ -295,7 +305,7 @@ Assistent.beiOeffnen = () => { if (spiel && !spiel.plan && !spiel.pause && !spie
 // Rückmeldung zu einer Wahl (Karte oder Knopf)
 function lerntipp(feld, wert) {
   const key = {
-    aufbereiter: `setup.aufb.${wert}`, breit: `setup.ablage.${wert ? 'breit' : 'schwade'}`, siloart: `setup.silo.${wert}`,
+    aufbereiter: `setup.aufb.${wert}`, siloart: `setup.silo.${wert}`,
     bestand: `setup.bestand.${wert}`, stadium: `setup.stadium.${wert}`, boden: wert === 'maulwurf' ? 'setup.boden.maulwurf' : null,
   }[feld];
   if (key) Assistent.hinweis(key);
@@ -308,7 +318,8 @@ function reglerTipp(feld) {
     const h = wahl[feld];
     if (h == null) return;
     let key;
-    if (feld === 'schnitthoehe') key = h < 5 ? 'setup.schnitt.tief' : h > 9 ? 'setup.schnitt.hoch' : 'setup.schnitt.gut';
+    if (feld === 'ablage') key = ablageVon(wahl) >= 80 ? 'setup.ablage.breit' : ablageVon(wahl) >= 60 ? 'setup.ablage.mittel' : 'setup.ablage.schwade';
+    else if (feld === 'schnitthoehe') key = h < 5 ? 'setup.schnitt.tief' : h > 9 ? 'setup.schnitt.hoch' : 'setup.schnitt.gut';
     else key = h < 2 ? 'setup.zinken.tief' : h > zinken(0, wahl.schnitthoehe ?? 7).schwelle ? 'setup.zinken.hoch' : 'setup.zinken.gut';
     Assistent.hinweis(key);
   }, 700);
@@ -384,17 +395,18 @@ function abzeichen(res) {
   const v = res.verlust, e = res.ernte, a = [];
   if (e.asche <= 100) a.push(['Saubere Sache', 'Kaum Erde im Futter']);
   if (v.atmung < 1.5) a.push(['Zuckerbewahrer', 'Wenig veratmet']);
+  if (res.plan.aufbereiter === 'ohne') a.push(['Insektenschoner', 'Ohne Aufbereiter gemäht']);
   if (res.art === 'heu') {
     const h = res.heu;
     if (h.abzug.farbe < 1 && e.regenFeld === 0) a.push(['Grünes Heu', 'Nicht verregnet, nicht ausgebleicht']);
-    if (v.broeckel < (res.plan.bestand === 'klee' ? 10 : 8)) a.push(['Blattschoner', 'Wenig Bröckelverluste']);
+    if (v.broeckel < (res.plan.bestand === 'klee' ? 5 : 3.5)) a.push(['Blattschoner', 'Wenig Bröckelverluste']);
     if (res.plan.siloart === 'belueftung' && h.belueftTage <= 3 && res.ernte.ts >= 60) a.push(['Belüftungsprofi', 'Rechtzeitig und genug angewelkt eingeführt']);
     if (h.temp >= 70) a.push(['Heustock heiss', 'Ab 70 °C: Feuerwehr alarmieren!', true]);
     else if (h.temp >= 60) a.push(['Heustock sehr warm', 'Feuerwehr vorinformieren, alle fünf Stunden messen', true]);
     else if (h.schimmel !== 'kein') a.push(['Muffig', 'Zu feucht eingelagert', true]);
   } else {
     if (e.stunden <= 12) a.push(['Blitzsilage', 'In unter 12 h im Silo']);
-    if (res.plan.bestand === 'klee' && v.broeckel < 4) a.push(['Kleeflüsterer', 'Blätter geschont']);
+    if (res.plan.bestand === 'klee' && v.broeckel < 1.6) a.push(['Kleeflüsterer', 'Blätter geschont']);
     if (res.silage.buttersaeure > 3) a.push(['Buttersäure-Alarm', '', true]);
   }
   if (e.regenFeld > 2) a.push(['Vom Regen erwischt', '', true]);
@@ -416,7 +428,8 @@ function zeigeDetail(f) {
   const [kopf, ...rest] = saetze(f.text);
   $('#detail-text').innerHTML = `<p class="kurz">${mitBegriffen(kopf)}</p>`
     + (rest.length ? `<ul>${rest.map((s) => `<li>${mitBegriffen(s)}</li>`).join('')}</ul>` : '')
-    + (f.tipp ? `<p class="tipp"><b>Tipp:</b> ${mitBegriffen(f.tipp)}</p>` : '');
+    + (f.tipp ? `<p class="tipp"><b>Tipp:</b> ${mitBegriffen(f.tipp)}</p>` : '')
+    + (KARTEN_GRAFIK[f.grafik]?.() ?? '');
   dialog.showModal();
 }
 const STUFE_TEXT = { gut: 'Gut gemacht', mittel: 'Geht besser', schlecht: 'Problem' };
@@ -468,7 +481,8 @@ function zeigeErgebnis(res, sz, tipp, einstellungen) {
     ];
     const total = zeilen.reduce((a, r) => a + r[3], 0);
     $('#tipp-vergleich').innerHTML = `<h2>Deine Wette: ${total} von 9 Punkten</h2><table class="vergleich"><thead><tr><th></th><th>Tipp</th><th>Ergebnis</th><th>Punkte</th></tr></thead><tbody>
-      ${zeilen.map(([a, b, c, p]) => `<tr><td>${a}</td><td>${b}</td><td>${c}</td><td class="${p === 3 ? 'treffer' : p ? '' : 'daneben'}">${p}</td></tr>`).join('')}</tbody></table>`;
+      ${zeilen.map(([a, b, c, p]) => `<tr><td>${a}</td><td>${b}</td><td>${c}</td><td class="${p === 3 ? 'treffer' : p ? '' : 'daneben'}">${p}</td></tr>`).join('')}</tbody></table>` +
+      (tipp.messung ? `<p class="messung"><b>Im echten Versuch gemessen:</b> ${z(tipp.messung.ts)} % TS beim Einführen, das Spiel rechnet ${z(e.ts)} %. ${esc(tipp.messung.text)} (${esc(tipp.messung.quelle)}). <a href="lernen.html#versuch">Spiel und Messung vergleichen</a></p>` : '');
     $('.punkte', $('#ergebnis')).hidden = true;
   } else {
     $('#tipp-vergleich').innerHTML = '';
@@ -556,7 +570,7 @@ tippText();
 tippform.addEventListener('submit', (ev) => {
   ev.preventDefault();
   if (!szenario) return;
-  const t = { ts: Number(tippform.ts.value), asche: Number(tippform.asche.value), note: tipp.note };
+  const t = { ts: Number(tippform.ts.value), asche: Number(tippform.asche.value), note: tipp.note, messung: szenario.messung ?? null };
   const { maehen, zetten, schwaden, ernte, ...einstellungen } = szenario.plan;
   starteSpiel({ einstellungen, sz: WETTER.find((x) => x.id === szenario.wetter), plan: { maehen, zetten, schwaden, ernte }, tipp: t });
 });

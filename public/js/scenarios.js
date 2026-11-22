@@ -39,6 +39,16 @@ export const WETTER = [
     ],
   },
   {
+    // Versuchswetter FAT Tänikon, 24.–26. Juli 2001 (FAT-Bericht 584, Tab. 3: max. 27,2/27,5 °C, rF min. 41/40 %, wolkenlos)
+    id: 'taenikon', name: 'Tänikon, Juli 2001', monat: 7, info: 'Das Wetter eines echten Trocknungsversuchs: stabil, wolkenlos, um 27 °C',
+    tage: [
+      { tmin: 14, tmax: 26, rhmax: 94, sonne: 0.95, wind: 2 },
+      { tmin: 14, tmax: 27.2, rhmax: 94, sonne: 0.95, wind: 2 },
+      { tmin: 14, tmax: 27.5, rhmax: 94, sonne: 0.95, wind: 2 },
+      { tmin: 15, tmax: 26, rhmax: 95, sonne: 0.8, wind: 2 },
+    ],
+  },
+  {
     id: 'wechselhaft', name: 'Wechselhaft, Mai', monat: 5, info: 'Bewölkt, kühl, viel Tau, Schauer am Tag 3',
     tage: [
       { tmin: 6, tmax: 17, rhmax: 99, sonne: 0.45, wind: 2 },
@@ -51,23 +61,26 @@ export const WETTER = [
 
 export const GRUNDPLAN = {
   bestand: 'ausgewogen', stadium: 3, ertrag: 30, boden: 'eben',
-  maehen: 9, schnitthoehe: 7, aufbereiter: 'walzen', breit: true,
+  maehen: 9, schnitthoehe: 7, aufbereiter: 'walzen', ablage: 85,
   zetten: [10], zetterHoehe: 3, schwaden: 17, schwaderHoehe: 3,
   ernte: 18, siloart: 'flachsilo',
 };
 // Heu: späteres Stadium, Zinken etwas höher (trockenes Futter liegt locker)
 const HEUPLAN = { ...GRUNDPLAN, stadium: 4, zetterHoehe: 4, schwaderHoehe: 4, siloart: 'bodenheu' };
+// Nachbau FAT-Versuch 1 (Tänikon 2001): Kunstwiese 3. Aufwuchs, 70 % Gräser / 30 % Klee, 32 dt TS/ha,
+// gemäht am Vorabend um 20:35 mit 14,6 % TS, Ziel Belüftungsheu ab 60 % TS
+export const FAT_PLAN = { ...GRUNDPLAN, bestand: 'ausgewogen', stadium: 3, ertrag: 32, tsFrisch: 14.6, zetterHoehe: 3, schwaderHoehe: 3, siloart: 'belueftung', maehen: 20 };
 
 export const PROGNOSEN = [
   {
-    id: 'bilderbuch', lernziel: 'So sieht eine gelungene Silage aus: nach dem Abtrocknen mähen, breit ablegen, kurz liegen lassen und am Abend einfahren.', name: 'Bilderbuch', wetter: 'hoch',
-    text: 'Raigrasreicher Bestand im Ähren-/Rispenschieben. Mähen um 9 Uhr, nachdem der Tau abgetrocknet ist, mit Walzenaufbereiter und Breitablage. Einmal zetten, um 17 Uhr schwaden, um 18 Uhr ins Flachsilo.',
-    plan: { ...GRUNDPLAN, bestand: 'graeser' },
+    id: 'bilderbuch', lernziel: 'So sieht eine gelungene Silage aus: nach dem Abtrocknen mähen, breit ablegen, kurz liegen lassen und am Nachmittag einfahren.', name: 'Bilderbuch', wetter: 'hoch',
+    text: 'Raigrasreicher Bestand im Ähren-/Rispenschieben. Mähen um 9 Uhr, nachdem der Tau abgetrocknet ist, mit Walzenaufbereiter und Breitablage. Einmal zetten, um 15 Uhr schwaden, um 16 Uhr ins Flachsilo.',
+    plan: { ...GRUNDPLAN, bestand: 'graeser', schwaden: 15, ernte: 16 },
   },
   {
     id: 'tiefgemaeht', lernziel: 'Erde, wenig Zucker und Regen: wie schnell kippt die Gärung, wenn mehrere Fehler zusammenkommen?', name: 'Tief gemäht, dann Gewitter', wetter: 'gewitter',
     text: 'Kleereicher Bestand, mit 5 cm Schnitthöhe am Morgen um 7 Uhr gemäht, mit Zinkenaufbereiter in die Schwade. Zetter und Schwader sind zu tief eingestellt, auf der Wiese hat es Maulwurfshaufen. Gezettet wird am Tag 2 um 9 Uhr; das Futter liegt breit, als am Nachmittag das Gewitter kommt. Schwaden am Tag 3 um 10 Uhr, einfahren um 12 Uhr ins Flachsilo.',
-    plan: { ...GRUNDPLAN, bestand: 'klee', schnitthoehe: 5, maehen: 7, aufbereiter: 'zinken', breit: false, boden: 'maulwurf',
+    plan: { ...GRUNDPLAN, bestand: 'klee', schnitthoehe: 5, maehen: 7, aufbereiter: 'zinken', ablage: 35, boden: 'maulwurf',
       zetten: [33], zetterHoehe: 1, schwaden: 58, schwaderHoehe: 0.5, ernte: 60 },
   },
   {
@@ -78,7 +91,7 @@ export const PROGNOSEN = [
   {
     id: 'ohneaufbereiter', lernziel: 'Nass gemäht, schmale Schwade, Nacht im Tau: wie lange dauert das Anwelken ohne Aufbereiter?', name: 'Nass gemäht, über Nacht', wetter: 'wechselhaft',
     text: 'Ausgewogener Bestand, am Morgen um 7 Uhr in den Tau gemäht, ohne Aufbereiter in die Schwade, nie gezettet. Am Tag 2 um 13 Uhr schwaden, um 15 Uhr ins Flachsilo.',
-    plan: { ...GRUNDPLAN, maehen: 7, aufbereiter: 'ohne', breit: false, zetten: [], schwaden: 37, ernte: 39 },
+    plan: { ...GRUNDPLAN, maehen: 7, aufbereiter: 'ohne', ablage: 35, zetten: [], schwaden: 37, ernte: 39 },
   },
   {
     id: 'heubilderbuch', lernziel: 'So gelingt Bodenheu: drei schöne Tage, fleissig zetten, solange das Futter feucht ist, und am Nachmittag des dritten Tages trocken einlagern.', name: 'Bodenheu wie im Bilderbuch', wetter: 'hoch',
@@ -87,8 +100,8 @@ export const PROGNOSEN = [
   },
   {
     id: 'heutau', lernziel: 'Fast trocken ist nicht trocken: Was passiert, wenn Heu am Morgen mit Tau eingefahren wird?', name: 'Heu am Morgen eingefahren', wetter: 'hoch',
-    text: 'Gleich wie das Bilderbuch-Heu, aber am Tag 3 soll es schnell gehen: Um 8 Uhr wird geschwadet und um 9 Uhr eingefahren, solange noch Tau liegt. Das Heu kommt auf den Heustock, ohne Belüftung.',
-    plan: { ...HEUPLAN, zetten: [10, 14, 34, 38], schwaden: 56, ernte: 57 },
+    text: 'Gleich wie das Bilderbuch-Heu, aber am Tag 3 soll es schnell gehen: Um 6 Uhr wird geschwadet und um 7 Uhr eingefahren, solange noch Tau liegt. Das Heu kommt auf den Heustock, ohne Belüftung.',
+    plan: { ...HEUPLAN, zetten: [10, 14, 34, 38], schwaden: 54, ernte: 55 },
   },
   {
     id: 'heufoehn', lernziel: 'Wenn das Wetterfenster nicht für Bodenheu reicht: Wie rettet die Belüftung das Heu vor dem Regen?', name: 'Föhn: Belüftung vor dem Regen', wetter: 'foehn',
@@ -99,5 +112,11 @@ export const PROGNOSEN = [
     id: 'kleeheu', lernziel: 'Die Blätter sind das Beste am Heu: Was kostet es, kleereiches Heu trocken und oft zu zetten?', name: 'Kleeheu zu oft gezettet', wetter: 'sommer',
     text: 'Kleereicher Bestand bei Beginn Blüte, gemäht um 9 Uhr mit Zinkenaufbereiter und Breitablage. Gezettet wird jeden Tag mehrmals, auch über Mittag, wenn das Futter schon raschelt: am Tag 1 um 10 und 14 Uhr, am Tag 2 um 10, 13 und 16 Uhr und am Tag 3 um 11 Uhr. Schwaden am Tag 3 um 14 Uhr, Einfahren um 16 Uhr in den Heustock.',
     plan: { ...HEUPLAN, bestand: 'klee', aufbereiter: 'zinken', zetten: [10, 14, 34, 37, 40, 59], schwaden: 62, ernte: 64 },
+  },
+  {
+    id: 'taenikon', lernziel: 'Ein echter Versuch: Wie gut trifft das Spiel die Messung der FAT Tänikon? Tippe zuerst, dann vergleiche Tipp, Spiel und Messung.', name: 'Tänikon 2001: echter Versuch', wetter: 'taenikon',
+    text: 'Kunstwiese im 3. Aufwuchs (70 % Gräser, 30 % Klee), 32 dt TS/ha. Gemäht am Vorabend um 20:35 Uhr mit Zinkenaufbereiter, Ablage auf 70 % der Mähbreite. Am nächsten Tag um 14:30 Uhr gezettet, am Tag darauf um 10:30 Uhr gewendet, um 14 Uhr geschwadet und um 15:50 Uhr in die Belüftung eingeführt.',
+    plan: { ...FAT_PLAN, aufbereiter: 'zinken', ablage: 70, zetten: [38, 58], schwaden: 62, ernte: 64 },
+    messung: { ts: 66.3, text: 'FAT Tänikon, Aufbereiter Kurmann K 618, Breitablage, 2× bearbeitet', quelle: 'FAT-Bericht 584 (Frick 2002)' },
   },
 ];

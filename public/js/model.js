@@ -46,11 +46,25 @@ export function zinken(cm, stoppelCm = 7, nass = false) {
 export const SILOARTEN = {
   flachsilo: { name: 'Flachsilo (Ladewagen)', art: 'silage', ziel: [30, 40], ernteverlust: 1.0, gaerverlust: 6 },
   ballen: { name: 'Rundballen (Silage)', art: 'silage', ziel: [40, 55], ernteverlust: 1.5, gaerverlust: 5 },
-  belueftung: { name: 'Belüftungsheu', art: 'heu', ziel: [60, 80], ernteverlust: 1.5, lagerverlust: 4, grenze: 60 },
+  belueftung: { name: 'Belüftungsheu', art: 'heu', ziel: [60, 80], ernteverlust: 1.9, lagerverlust: 4, grenze: 60 },
   bodenheu: { name: 'Bodenheu (Heustock)', art: 'heu', ziel: [85, 95], ernteverlust: 2.0, lagerverlust: 5, grenze: 85 },
   heuballen: { name: 'Heuballen', art: 'heu', ziel: [85, 95], ernteverlust: 2.5, lagerverlust: 4, grenze: 85 },
 };
 export const istHeu = (siloart) => SILOARTEN[siloart]?.art === 'heu';
+
+// Ablagebreite in % der Mähbreite (30–100). Ältere Einstellungen kennen nur breit/Schwade.
+// Der Intensivaufbereiter mit Bürste legt immer breit ab (rund 85 %, FAT-Bericht 584).
+export function ablageVon(p) {
+  const a = p.ablage ?? (p.breit === false ? 35 : 85);
+  return AUFBEREITER[p.aufbereiter]?.breit ? Math.max(a, 85) : a;
+}
+// Schwadfaktor (g TS je m² Ablage / g TS je m² Feld), kalibriert: 85 % → 1,0, Mähschwade 35 % → 1,7
+export const schwadfaktor = (ablage) => (85 / ablage) ** KAL.ablage;
+
+// Kalibrierung der Trocknung (siehe README und test/fat.mjs): k = Grundtempo, ablage = Wirkung der
+// Ablagebreite, schub = Beschleunigung ab 55 % TS innen (Heu)
+// broeckel = Massstab aller Bröckelverluste (FAT 2001: 55–118 kg TS/ha bei 32 dt TS/ha)
+export const KAL = { k: 0.78, ablage: 0.9, schub: 0.5, broeckel: 0.4 };
 
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 
@@ -73,6 +87,8 @@ export class Feld {
     this.b = BESTAENDE[setup.bestand]; this.st = STADIEN[setup.stadium];
     this.auf = AUFBEREITER[setup.aufbereiter]; this.silo = SILOARTEN[setup.siloart];
     this.leg = this.b.leg;
+    this.ablage = ablageVon(setup);
+    this.tsFrisch = setup.tsFrisch ?? this.st.ts; // TS des stehenden Bestandes (Versuchsnachbau: gemessen)
     [this.schnittAsche, this.ertragsF] = schnitt(setup.schnitthoehe);
     this.bodenF = setup.boden === 'maulwurf' ? 1.8 : 1;
     this.phase = 'stehend'; // stehend → gemaeht → schwad → geerntet
@@ -87,7 +103,7 @@ export class Feld {
   get ende() { return this.t >= this.wetter.length; }
   tsInnen() { return this.dm / (this.dm + this.wi); }
   ts() {
-    if (this.phase === 'stehend') return 100 * this.st.ts / (100 + this.wo / (this.p.ertrag * 10) * this.st.ts);
+    if (this.phase === 'stehend') return 100 * this.tsFrisch / (100 + this.wo / (this.p.ertrag * 10) * this.tsFrisch);
     return 100 * this.dm / (this.dm + this.wi + this.wo);
   }
   zustand() {
@@ -102,6 +118,7 @@ export class Feld {
 
   // Verlust an TS; Zucker trägt den Anteil `zAnteil` davon
   verliere(art, g, zAnteil) {
+    if (art === 'broeckel') g *= KAL.broeckel;
     g = Math.min(g, this.dm * 0.5);
     const z = Math.min(this.zucker, g * zAnteil);
     this.zucker -= z; this.asche -= this.asche / this.dm * (g - z); this.dm -= g; this.verlust[art] += g;
@@ -125,11 +142,11 @@ export class Feld {
     if (this.phase !== 'stehend') return false;
     const p = this.p, b = this.b, st = this.st;
     this.dm0 = this.dm = p.ertrag * 10 * this.ertragsF; // dt TS/ha -> g/m²
-    this.wi = this.dm * (100 - st.ts) / st.ts;
+    this.wi = this.dm * (100 - this.tsFrisch) / this.tsFrisch;
     this.zucker = this.dm * b.zucker / 1000;
     this.asche = this.dm * (b.asche + this.schnittAsche * this.bodenF) / 1000;
     this.tsMahd = this.ts(); this.woMahd = this.wo; this.maehZeit = this.t;
-    this.sd = p.breit || this.auf.breit ? 1.0 : 1.7; // Schwadfaktor: g TS je m² Schwad / g TS je m² Feld
+    this.sd = schwadfaktor(this.ablage);
     this.locker = 1; // Lockerungsbonus nach Zetten
     this.phase = 'gemaeht';
     this.verliere('broeckel', this.dm * (1 + this.leg * this.auf.broeckel) / 100, 0);
@@ -210,13 +227,13 @@ export class Feld {
     dr *= this.locker;
     // Kalibrierung (Rotz & Chen kennt weder Schwadbreite noch Wind): Breitablage erreicht bei
     // gutem Wetter 35 % TS in rund 8–10 h, eine schmale Schwade erst am Folgetag (Univ. Wisconsin)
-    dr *= 0.6 * sd ** -0.75 * (1 + 0.05 * (w.wind - 2));
+    dr *= KAL.k * sd ** -0.75 * (1 + 0.05 * (w.wind - 2));
     // Hohe Stoppeln: Futter liegt luftiger
     dr *= 1 + Math.max(0, this.p.schnitthoehe - 7) * 0.02;
     dr *= Math.max(0.2, 1 - this.wo / (0.3 * this.dm));
     // Heu: Ab etwa 55 % TS ist das Futter locker und dünn, Stängel und Blätter geben das Restwasser rascher ab
     // (kalibriert: Bodenheu bei gutem Wetter nach rund 2½ Tagen lagerfähig)
-    dr *= 1 + clamp((this.tsInnen() - 0.55) / 0.15, 0, 1);
+    dr *= 1 + KAL.schub * clamp((this.tsInnen() - 0.55) / 0.15, 0, 1);
     const we = this.dm * (0.1 + 0.25 * (w.rh / 100) ** 4); // Gleichgewicht (Trockenbasis)
     this.wi -= (this.wi - we) * (1 - Math.exp(-dr));
     this.locker = 1 + (this.locker - 1) * 0.94;
@@ -377,7 +394,7 @@ export function lagereHeu(e, silo, v, rest, leg) {
     geruch: Math.min(60, defizit * 5 + Math.max(0, temp - 40) * 0.6 + Math.max(0, belueftTage - 3) * 6),
     // Bodenheu braucht rund zwei Sonnentage auf trockenem Futter (ca. 35 MJ/m²); erst was darüber geht, bleicht sichtbar
     farbe: Math.min(25, Math.max(0, e.bleiche - 35) * 0.6 + e.regenTrocken * 2.5),
-    gefuege: Math.min(25, Math.max(0, v.broeckel - 9) * (1 + 2 * leg)),
+    gefuege: Math.min(25, Math.max(0, v.broeckel - 4) * (2.5 + 5 * leg)),
     verunreinigung: Math.min(30, Math.max(0, e.asche - 100) * 0.8),
   };
   const punkte = Math.round(clamp(100 - Object.values(abzug).reduce((a, x) => a + x, 0), 0, 100));
@@ -421,35 +438,56 @@ function erklaere(r, c) {
     id: 'tau', titel: 'Mähzeitpunkt und Tau', wert: `${uhr(p.maehen)}, ${z(r.woMahd / r.dm0 * 100, 0)} g Oberflächenwasser/100 g TS`,
     stufe: stufe(r.woMahd < 0.1 * r.dm0, r.woMahd < 0.4 * r.dm0),
     text: r.woMahd > 0.1 * r.dm0
-      ? `Beim Mähen war das Futter noch nass (TS ${z(r.tsMahd)} % statt ${c.st.ts} %). Dieses Wasser muss zuerst verdunsten, erst dann trocknet die Pflanze selbst. Auf dem Boden im Schwad trocknet Tau viel langsamer ab als am stehenden Bestand.`
+      ? `Beim Mähen war das Futter noch nass (TS ${z(r.tsMahd)} % statt ${z(c.tsFrisch)} %). Dieses Wasser muss zuerst verdunsten, erst dann trocknet die Pflanze selbst. Auf dem Boden im Schwad trocknet Tau viel langsamer ab als am stehenden Bestand.`
       : `Der Bestand war beim Mähen abgetrocknet (TS ${z(r.tsMahd)} %). Die Trocknung konnte sofort beginnen.`,
   });
 
   f.push({
     id: 'aufbereiter', titel: 'Aufbereitung', wert: c.auf.name,
-    stufe: stufe(p.aufbereiter !== 'ohne' && !(c.auf.broeckel > 1 && c.leg > 0.4), p.aufbereiter !== 'ohne'),
+    // Ohne Aufbereiter geht es auch (top agrar 2021), darum höchstens «geht besser»
+    stufe: stufe(p.aufbereiter !== 'ohne' && !(c.auf.broeckel > 1 && c.leg > 0.4), true),
     text: 'Nach dem Schnitt schliessen sich die Spaltöffnungen (Stomata) innerhalb etwa einer Stunde, sobald die Pflanze Wasser verliert. Danach muss das Wasser durch die Wachsschicht (Kutikula) und über die Stängel nach aussen. ' +
       'Der Aufbereiter verletzt Wachsschicht und Stängel. Das beschleunigt genau diese zweite, langsame Phase; die Stomata hält er nicht offen. ' +
-      (p.aufbereiter === 'ohne' ? 'Ohne Aufbereiter dauert das Anwelken deutlich länger.' :
+      (p.aufbereiter === 'ohne' ? 'Ohne Aufbereiter dauert das Anwelken länger, in Schweizer Versuchen rund einen Viertel. Mit breiter Ablage und frühem Zetten reicht es bei gutem Wetter trotzdem für Silage am gleichen Tag.' :
         `Die Kehrseite: Die verletzte Oberfläche nimmt Regen und Tau schneller auf, und mehr Zucker wird ausgewaschen (Faktor ${z(c.auf.kutikula)} gegenüber unbehandelt). ` +
         (p.aufbereiter === 'buerste' ? 'Zinkenrotor und Bürste rauen die Wachsschicht besonders stark auf, und das Futter wird breit verteilt. Es trocknet am schnellsten, ist bei Regen und Tau aber am empfindlichsten. ' : '') +
         (c.auf.broeckel > 1 && c.leg > 0.3 ? 'Bei kleereichem Futter schlagen Zinken die Blätter ab; ein Walzenaufbereiter ist schonender.' : '')) +
       ' In der ersten Phase direkt nach dem Mähen hilft der Aufbereiter wenig; die Breitablage ist wichtiger.',
+    grafik: 'trocknung',
   });
 
+  // Abwägung: schneller trocken gegen Leistung, Gewicht und Insekten (gemessene Werte, Quellen in versuche.js)
+  const mitAuf = p.aufbereiter !== 'ohne';
   f.push({
-    id: 'breit', titel: 'Ablage', wert: p.breit || c.auf.breit ? 'Breitablage' : 'Schwadablage',
-    stufe: stufe(p.breit || c.auf.breit || c.zetten.length > 0 && c.zetten[0] - p.maehen <= 2, c.zetten.length > 0),
-    text: p.breit || c.auf.breit
-      ? 'Das Futter liegt über die ganze Fläche verteilt. Sonne und Wind erreichen mehr Futter, deshalb ist die Trocknung am ersten Tag am schnellsten. ' +
+    id: 'insekten', titel: 'Aufbereiter: Preis und Insekten', wert: mitAuf ? 'mehr Leistung, mehr tote Insekten' : 'insektenschonender',
+    stufe: mitAuf ? 'mittel' : 'gut',
+    text: (mitAuf ? 'Der Aufbereiter hat seinen Preis. ' : 'Ohne Aufbereiter trocknet das Futter langsamer, dafür schont die Mahd Tiere und Energie. ') +
+      'In einem Versuch von Agroscope starben beim Mähen mit Rotationsmähwerk 37 % der Raupen auf der Fläche, mit Aufbereiter 69 %, mit dem Motormäher 20 % (Humbert et al. 2010). ' +
+      'Der Aufbereiter quetscht das Futter und mit ihm die Tiere darin. ' +
+      'top agrar mass 2021 bei einer 10-m-Kombination ohne Aufbereiter 61 kW, mit Aufbereiter 122 kW Antriebsleistung; die Aufbereiterkombination war zudem 2,1 t schwerer. ' +
+      'Dafür verkürzt der Aufbereiter die Feldliegezeit um rund einen Viertel (FAT-Bericht 584).',
+    grafik: 'insekten',
+  });
+
+  const breit = c.ablage >= 80, frueh = c.zetten.length > 0 && c.zetten[0] - p.maehen <= 2;
+  f.push({
+    id: 'breit', titel: 'Ablage', wert: `${c.ablage} % der Mähbreite`,
+    stufe: stufe(breit || frueh, c.ablage >= 60 || c.zetten.length > 0),
+    text: (breit
+      ? 'Das Futter liegt über fast die ganze Fläche verteilt. Sonne und Wind erreichen mehr Futter, deshalb ist die Trocknung am ersten Tag am schnellsten. ' +
         (heu ? 'Für Heu braucht es trotzdem zwei bis drei gute Tage; jede Stunde am ersten Tag zählt.' : 'So ist Silage oft am gleichen Tag erntereif.')
-      : 'In der Mähschwade liegt das Futter dicht. Die Trocknung wird gebremst, bis gezettet wird. Wird erst spät gezettet, geht wertvolle Trocknungszeit am ersten Tag verloren.',
+      : c.ablage >= 60 ? 'Das Futter liegt recht breit, aber noch nicht auf der ganzen Fläche. Wo es dicker liegt, trocknet es langsamer. Früh zetten gleicht das aus.'
+        : 'In der Mähschwade liegt das Futter dicht. Die Trocknung wird gebremst, bis gezettet wird. Wird erst spät gezettet, geht wertvolle Trocknungszeit am ersten Tag verloren.') +
+      ' Als Breitablage gelten mindestens 80 % der Mähbreite. Im Versuch der FAT legten die Aufbereiter je nach Gerät 55 bis 85 % breit ab; die breiteste und gleichmässigste Ablage trocknete am schnellsten (FAT-Bericht 584).' +
+      (frueh || breit ? '' : ' Zwei Stunden nach dem Mähen ist die Oberseite angetrocknet, unten ist das Futter noch so nass wie beim Mähen: Spätestens dann zetten.'),
+    grafik: 'ablage',
   });
 
   const zt = c.zetten.map((t) => uhr(t)).join(', ');
   f.push({
     id: 'zetten', titel: 'Zetten', wert: c.zetten.length ? `${c.zetten.length}× (${zt})` : 'nie',
-    stufe: heu ? stufe(v.broeckel < 6 + 10 * c.leg && c.zetten.length > 0, v.broeckel < 10 + 15 * c.leg) : stufe(v.broeckel < 3 && (c.zetten.length > 0 || p.breit), v.broeckel < 5),
+    stufe: heu ? stufe(v.broeckel < 3 + 4 * c.leg && c.zetten.length > 0, v.broeckel < 5 + 6 * c.leg) : stufe(v.broeckel < 1.5 && (c.zetten.length > 0 || breit), v.broeckel < 2.5),
+    grafik: 'feldverluste',
     text: (c.zetten.length ? 'Zetten lockert das Futter und dreht die feuchte Unterseite nach oben. Am wirksamsten ist es direkt nach dem Mähen. ' :
       heu ? 'Ohne Zetten bleibt die Unterseite feucht; für Heu reicht das nicht. ' : 'Ohne Zetten bleibt die Unterseite feucht; bei Breitablage und gutem Wetter reicht das für Silage oft. ') +
       (heu ? 'Bei Heu wird anfangs fleissig gezettet. Ab etwa 60 % TS werden die Blätter spröde: dann vorsichtig und lieber am Morgen, solange noch etwas Tau die Blätter zäh hält. ' : '') +
@@ -539,10 +577,11 @@ function erklaere(r, c) {
     aufbereiter: c.auf.broeckel > 1 && c.leg > 0.4 ? 'Bei viel Klee den Walzenaufbereiter wählen. Er schont die Blätter.'
       : p.aufbereiter === 'ohne' ? 'Mit Aufbereiter wird das Futter in der zweiten Trocknungsphase schneller trocken, besonders bei Gras.'
         : 'Der Aufbereiter hilft erst nach dem ersten Anwelken. Am Anfang bringt die Breitablage mehr.',
-    breit: p.breit || c.auf.breit ? 'Bleib bei der Breitablage, wenn du am gleichen Tag einfahren willst.' : 'Wähle die Breitablage oder zette gleich nach dem Mähen. Sonst bremst die dichte Schwade.',
+    breit: breit ? 'Bleib bei der Breitablage, wenn du am gleichen Tag einfahren willst.' : 'Stell die Ablage auf mindestens 80 % der Mähbreite, oder zette spätestens zwei Stunden nach dem Mähen.',
+    insekten: mitAuf ? 'Wäge ab: Wenn das Wetterfenster reicht, geht es auch ohne Aufbereiter – breit ablegen und früh zetten.' : 'Ohne Aufbereiter gilt umso mehr: breit ablegen und früh zetten.',
     zetten: heu ? (v.broeckel > 8 ? 'Zette trockenes Heu (über 60 % TS) nur noch am Morgen mit etwas Tau, oder lass einen Durchgang weg. Die Blätter sind das Beste am Heu.'
       : !c.zetten.length ? 'Heu braucht Zetten: am ersten Tag gleich nach dem Mähen und nochmals am Nachmittag.' : 'Gut dosiert: genug gezettet, und die Blätter blieben dran.')
-      : !c.zetten.length && !(p.breit || c.auf.breit) ? 'Zette einmal früh am Tag, damit auch die feuchte Unterseite abtrocknet.'
+      : !c.zetten.length && !breit ? 'Zette einmal früh am Tag, damit auch die feuchte Unterseite abtrocknet.'
       : v.broeckel > 5 ? 'Zette nur, solange das Futter noch feucht ist (unter etwa 40 % TS). Trocken bröckelt es.' : 'Ein früher Durchgang genügt meist.',
     asche: e.asche > 100 ? 'Stell die Zinken höher ein (mindestens 3 cm) und mähe nicht tiefer als 6 cm. Auf nassem Boden besonders vorsichtig sein.' : 'Sauber gearbeitet: Die Zinken haben den Boden kaum berührt.',
     wetter: e.regenFeld > 0 ? (heu ? 'Heu braucht ein sicheres Wetterfenster von zwei bis drei Tagen. Reicht es nicht, rettet die Belüftung oder Silage das Futter.' : 'Schau den Wetterbericht an: Mähe später oder fahre früher ein, wenn Regen kommt.')

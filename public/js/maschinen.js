@@ -95,10 +95,11 @@ export function aufbereiterBild(typ) {
   return `<svg viewBox="0 0 120 90" class="symbol gross" aria-hidden="true">${inhalt}</svg>`;
 }
 
-// Ablage von oben: breit über die ganze Fläche oder schmale Schwade
-export function ablageBild(breit) {
+// Ablage von oben: Anteil der Mähbreite (rote Leiste = Mähwerk), 30–100 %
+export function ablageBild(prozent) {
   let halme = '';
-  const x0 = breit ? 8 : 42, x1 = breit ? 112 : 78;
+  const breite = 104 * Math.min(100, Math.max(30, prozent)) / 100;
+  const x0 = 60 - breite / 2, x1 = 60 + breite / 2;
   for (let i = 0; i < 46; i++) {
     const x = x0 + ((i * 37) % 100) / 100 * (x1 - x0), y = 30 + ((i * 53) % 100) / 100 * 52;
     halme += `<path d="M${x} ${y} l${(i % 5) - 2} 7" stroke="#6f9c35" stroke-width="2.4" stroke-linecap="round"/>`;

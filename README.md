@@ -83,13 +83,31 @@ Wie in Futter v2 gibt ein Traktor unten rechts kurze Lerntipps (`public/js/assis
 ### Heu (seit 7.11.2026)
 
 - **Lagerarten**: Belüftungsheu (Einführen ab 60 % TS, Ziel 60–80 %), Bodenheu und Heuballen (ab 85 % TS). In der Einsatzplanung unter «4 · Silage oder Heu?».
-- **Trocknung**: Ab 55 % TS innen trocknet das lockere Futter schneller (Faktor bis 2 bei 70 %). Kalibriert: Bodenheu bei Hochdruck nach rund 2½ Tagen lagerfähig. Nachts nimmt Heu über Tau und Gleichgewichtsfeuchte wieder Wasser auf.
+- **Trocknung**: Ab 55 % TS innen trocknet das lockere Futter schneller (Schub, siehe Kalibrierung). Mit Aufbereiter und Breitablage ist Bodenheu bei Hochdruck ab dem Abend des zweiten Tages lagerfähig. Nachts nimmt Heu über Tau und Gleichgewichtsfeuchte wieder Wasser auf.
 - **Nachtschwad**: Zetten ist auch aus dem Schwad möglich (Knopf heisst dann «Breit streuen»). Im Schwad fällt weniger Tau an. Pläne dürfen mehrere Schwadzeiten haben (`schwaden: [19, 62]`).
 - **Bröckeln**: Zusätzlicher Verlust ab 60 % TS beim Zetten, Schwaden und Pressen, bei Klee stark. Tau oder Restfeuchte auf der Oberfläche halbiert die Sprödigkeit.
 - **Regen und Sonne**: Auswaschung bei über 60 % TS doppelt. Sonne auf Futter über 50 % TS bleicht (MJ/m², im Schwad ein Drittel).
 - **Lager** (`lagereHeu`): TS-Defizit unter der Grenze → Erwärmung (Temperatur im Stock), Schimmel, Lagerverlust und Energieabzug. Belüftung: Dauer aus dem Restwasser und dem Dampfdruckdefizit der Folgetage; über 3 Tage gibt es Abzüge. Ab 70 °C Note 5.
-- **Heuqualität**: 100 Punkte minus Abzüge für Geruch (Defizit, Temperatur, lange Belüftung), Farbe (Bleiche über 35 MJ/m², Regen auf trockenes Futter), Gefüge (Bröckeln über 9 %) und Erde. Angelehnt an die Sinnenprüfung, Punkte vereinfacht. Notenstufen wie bei der Silage.
+- **Heuqualität**: 100 Punkte minus Abzüge für Geruch (Defizit, Temperatur, lange Belüftung), Farbe (Bleiche über 35 MJ/m², Regen auf trockenes Futter), Gefüge (Bröckeln über 4 %) und Erde. Angelehnt an die Sinnenprüfung, Punkte vereinfacht. Notenstufen wie bei der Silage.
 - **Szenarien**: Wetterlage «Heuwetter, Juli»; Prognosen Bodenheu wie im Bilderbuch, Heu am Morgen eingefahren, Föhn mit Belüftung vor dem Regen, Kleeheu zu oft gezettet.
+
+
+### Kalibrierung an Schweizer Messungen (seit 22.11.2026)
+
+- **Modell gegen Messung**: `public/js/versuche.js` enthält die Messwerte des FAT-Versuchs 2001 (FAT-Bericht 584: TS-Verläufe, TS beim Einführen, Aufnahme- und Bröckelverluste je Verfahren, Ablagebreiten), dazu Humbert et al. 2010 (Insekten) und top agrar 12/2021 (Leistungsbedarf). `public/js/vergleich.js` rechnet die Verfahren mit dem Spielmodell nach (Wetterlage `taenikon`, `FAT_PLAN` in `scenarios.js`).
+- **Kalibrierung** (`KAL` in `model.js`): Grundtempo 0,78 (vorher 0,6), Wirkung der Ablagebreite 0,9, Schub ab 55 % TS 0,5, alle Bröckelverluste ×0,4. Mittlere Abweichung zur Messung rund 3,5 Prozentpunkte TS; vorher 11. Ohne Aufbereiter und nie gewendet trocknet das Modell etwas zu langsam. Der top-agrar-Versuch (ein Tag, Ackergras) wird nicht getroffen: dort wirkte der Aufbereiter stärker als im Modell.
+
+```
+docker run --rm -v "$PWD":/app -w /app node:22-alpine node test/fat.mjs          # Vergleich je Verfahren
+docker run --rm -v "$PWD":/app -w /app node:22-alpine node test/kalibrierung.mjs # Parametersuche
+```
+
+- **Ablagebreite**: Regler 30–100 % der Mähbreite statt breit/Schwade (Schwadfaktor `(85/Ablage)^0,9`). Der Aufbereiter mit Bürste legt immer auf 85 % ab. Alte Einstellungen (`breit`) werden umgerechnet.
+- **Aufbereiter-Abwägung**: Erklärkarte «Aufbereiter: Preis und Insekten», Abzeichen «Insektenschoner». Ohne Aufbereiter ist die Aufbereitungskarte höchstens «geht besser» (es geht auch ohne).
+- **Zwei-Stunden-Hinweis**: Zwei Stunden nach dem Mähen meldet der Ticker, dass die Unterseite noch nass ist (Beratungsregel, ohne Messdaten).
+- **Grafiken** (`public/js/grafik.js`): Trocknung Spiel gegen Messung, Feldverluste, Ablagebreite, Insekten und Leistung, Zucker nach dem Mähen. In den Erklärkarten (Feld `grafik`) und auf der Lernseite (Abschnitte «Mit oder ohne Aufbereiter?» und «Spiel gegen Messung»).
+- **Szenario** «Tänikon 2001: echter Versuch»: Die Wette zeigt zusätzlich die gemessene TS.
+- Nicht übernommen: die Aussage, der Zucker nehme nach dem Schnitt durch Photosynthese zu (Beratung Kilcer/Puckhaber, ohne gesicherte Versuche). Die Lernseite erklärt das.
 
 ## Offen / im Büro weiterentwickeln
 

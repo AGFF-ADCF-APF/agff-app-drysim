@@ -161,8 +161,10 @@
             <div class="wahl bilder" data-feld="aufbereiter"></div>
           </div>
           <div class="maschine">
-            <h3>Ablage</h3>
-            <div class="wahl bilder" data-feld="breit"></div>
+            <h3>Ablagebreite</h3>
+            <div class="bild" id="bild-ablage"></div>
+            <label class="regler"><input type="range" name="ablage" min="30" max="100" step="5" value="85" aria-label="Ablagebreite in Prozent der Mähbreite"><output name="ablageAus">85 % der Mähbreite</output></label>
+            <small class="hinweis" id="ablage-hinweis">Ab 80 % der Mähbreite gilt es als Breitablage. Eine Mähschwade ist etwa ein Drittel so breit.</small>
           </div>
         </div>
       </div>

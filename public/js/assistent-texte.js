@@ -136,6 +136,12 @@ export const T = {
     fachlich: 'Intensivaufbereiter besitzen meist eine Bürstenwalze und eine Breitstreuvorrichtung (LK Salzburg). Im Spiel verliert Klee bei dieser Bauart am meisten Blätter.',
     lernen: 'trocknung',
   },
+  'setup.ablage.mittel': {
+    titel: 'Halb breit',
+    einfach: 'Das Futter liegt schon recht breit, aber noch nicht auf der ganzen Fläche. Wo es dicker liegt, trocknet es langsamer. Ab 80 % der Mähbreite gilt es als Breitablage.',
+    fachlich: 'Im FAT-Versuch 2001 legten die Aufbereiter 55 bis 85 % der Mähbreite ab. Je breiter und gleichmässiger, desto schneller trocknete das Futter: Am Abend des ersten Tages hatte es 33 % TS bei 55 % Ablagebreite, 40 % TS bei 70 % und 47 % TS bei 85 % (FAT-Bericht 584).',
+    lernen: 'versuch',
+  },
   'setup.ablage.breit': {
     titel: 'Breit ablegen',
     einfach: 'Sonne und Wind erreichen mehr Futter, so trocknet es am ersten Tag am schnellsten.',
@@ -261,6 +267,12 @@ export const T = {
     einfach: 'Besser früh schwaden: Im Schwad trocknet das Futter im Wind nach, und es bröckelt weniger. Eine breite Ablage schont das Futter beim Aufnehmen.',
     fachlich: 'Doppelkreiselschwader mit Mittelablage schleifen das Futter weniger über den Boden. Trocknungszustand und Fahrgeschwindigkeit wirken sich direkt auf die Bröckelverluste aus (LK Salzburg).',
     lernen: 'zetten',
+  },
+  'ev.zweistunden': {
+    titel: 'Zwei Stunden nach dem Mähen',
+    einfach: 'Oben ist das Futter schon angetrocknet, unten ist es noch so nass wie beim Mähen. Jetzt zetten bringt die nasse Seite an die Sonne.',
+    fachlich: 'Beratungsempfehlung (Puckhaber, Kilcer, in Elite/top agrar 2024): spätestens zwei Stunden nach dem Mähen wenden, bei viel Masse nach weiteren zwei Stunden nochmals. Im top-agrar-Versuch 2021 blieb Futter ohne Aufbereiter und ohne Wenden bei 27 % TS, mit Wenden erreichte es 35 % TS am gleichen Tag.',
+    lernen: 'aufbereiter',
   },
   'ev.regen': {
     titel: 'Regen!',

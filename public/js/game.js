@@ -1,7 +1,7 @@
 // Spielablauf: Die Uhr läuft, die Spieler lösen die Arbeitsgänge aus (oder im
 // Zeitraffer der vorgegebene Plan). Anzeigen, Ticker und Szene werden jede Stunde nachgeführt.
 // Der Stand wird als Protokoll der Arbeitsgänge gesichert und lässt sich exakt nachspielen.
-import { Feld, SILOARTEN, AUFBEREITER, spieleNach } from './model.js';
+import { Feld, SILOARTEN, AUFBEREITER, spieleNach, ablageVon } from './model.js';
 import { stundenwetter } from './weather.js';
 import { Szene } from './scene.js';
 import { wetterSymbol, stundenSymbol, AKTION } from './icons.js';
@@ -225,6 +225,11 @@ export class Spiel {
       einmal('regen' + f.t, `${t}: Regen zieht auf – ${z(w.regen, 1)} mm in dieser Stunde!`, true);
       this.tipp('ev.regen');
     }
+    // Zwei Stunden nach dem Mähen: oben angetrocknet, unten noch nass (Beratungsregel: spätestens jetzt zetten)
+    if (zs.phase === 'gemaeht' && f.t - f.maehZeit === 2 && !f.zetten.length && w.rad > 0 && !f.auf.breit) {
+      einmal('zweistunden', `${t}: Zwei Stunden nach dem Mähen – oben ist das Futter angetrocknet, unten noch so nass wie beim Mähen. Jetzt zetten?`, true);
+      this.tipp('ev.zweistunden');
+    }
     if (zs.phase === 'stehend' && alt.nass > 0.08 && zs.nass <= 0.08) einmal('tauweg' + w.tag, `${t}: Der Tau ist abgetrocknet.`);
     if (zs.phase !== 'stehend' && w.h === 20) einmal('abend' + w.tag, `${t}: Es wird Abend. Über Nacht fällt Tau aufs Futter.${this.heu && zs.phase === 'gemaeht' && !this.gemeldet.has('nachtschwad') ? ' Tipp: Ein Nachtschwad nimmt weniger Tau auf; am Morgen wieder zetten.' : ''}`);
     if (this.heu && zs.phase === 'gemaeht' && w.h === 20) this.gemeldet.add('nachtschwad');
@@ -264,7 +269,7 @@ export class Spiel {
   baueKnoepfe() {
     const s = this.setup;
     const info = {
-      maehen: `${String(s.schnitthoehe).replace('.', ',')} cm · ${AUFBEREITER[s.aufbereiter].name}${s.breit || AUFBEREITER[s.aufbereiter].breit ? ' · breit' : ''}`,
+      maehen: `${String(s.schnitthoehe).replace('.', ',')} cm · ${AUFBEREITER[s.aufbereiter].name} · Ablage ${ablageVon(s)} %`,
       zetten: `Zinken ${z(s.zetterHoehe, 1)} cm`,
       schwaden: `Zinken ${z(s.schwaderHoehe, 1)} cm`,
       ernte: SILOARTEN[s.siloart].name,
@@ -344,7 +349,7 @@ export class Spiel {
       m.querySelector('i').style.width = `${Math.min(100, (wert / max) * 100)}%`;
       m.classList.toggle('warnung', schlecht);
     };
-    if (this.heu) balken('.messer.zucker', zs.broeckel ?? 0, 20, `${z(zs.broeckel ?? 0, 1)} %`, (zs.broeckel ?? 0) > 9);
+    if (this.heu) balken('.messer.zucker', zs.broeckel ?? 0, 10, `${z(zs.broeckel ?? 0, 1)} %`, (zs.broeckel ?? 0) > 4);
     else balken('.messer.zucker', zs.zucker, 200, `${z(zs.zucker)} g/kg`, zs.zucker < 60);
     balken('.messer.erde', Math.max(0, zs.asche - 70), 130, `${z(zs.asche)} g/kg`, zs.asche > 100);
     balken('.messer.verlust', zs.verlust, 25, `${z(zs.verlust, 1)} %`, zs.verlust > 10);

@@ -515,3 +515,23 @@ a.logo small { opacity: .85; font-size: .95rem; }
 @media (max-width: 640px) { .wahl.wiese { grid-template-columns: minmax(0, 1fr); } }
 .wiese-unten { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
 @media (max-width: 700px) { .wiese-unten { grid-template-columns: minmax(0, 1fr); } }
+
+/* Grafiken aus Messwerten (js/grafik.js): Erklärkarten und Lernseite */
+.grafik { margin: 16px 0; padding: 12px 14px; border: 1px solid var(--linie); border-radius: 12px; background: var(--karte); }
+.grafik figcaption { display: grid; gap: 6px; margin-bottom: 8px; }
+.grafik-legende { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .9rem; color: var(--leise); }
+.grafik-legende i { display: inline-block; width: 14px; height: 10px; border-radius: 3px; background: var(--f); margin-right: 6px; vertical-align: middle; }
+.grafik-legende i.nur-text { display: none; }
+.grafik-quelle { font-size: .85rem; color: var(--leise); margin: 8px 0 0; }
+.gb { display: grid; gap: 6px; }
+.gb-zeile { display: grid; grid-template-columns: minmax(8rem, 40%) 1fr auto; gap: 8px; align-items: center; font-size: .92rem; }
+.gb-zeile.hervor .gb-label { font-weight: 700; }
+.gb-balken { display: flex; height: 16px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+.gb-balken i { display: block; height: 100%; background: var(--f); }
+.gb-zeile b { font-variant-numeric: tabular-nums; min-width: 4.5rem; text-align: right; }
+@media (max-width: 520px) { .gb-zeile { grid-template-columns: 1fr auto; } .gb-label { grid-column: 1 / -1; } }
+.gv { width: 100%; height: auto; display: block; font-size: 15px; fill: var(--text); }
+.gv .leise { fill: var(--leise); font-size: 13px; }
+.messung { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--gelb-hell); }
+#detail .grafik { margin-top: 14px; }
+#bild-ablage svg { display: block; width: 100%; max-width: 240px; height: auto; margin: 0 auto; }
