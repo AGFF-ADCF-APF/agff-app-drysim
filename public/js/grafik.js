@@ -111,4 +111,7 @@ export function grafikZucker() {
 }
 
 // Grafiken für die Erklärkarten im Spiel (Schlüssel aus model.js, Feld «grafik»)
-export const KARTEN_GRAFIK = { trocknung: () => grafikTrocknung(), ablage: grafikAblage, feldverluste: grafikFeldverluste, insekten: grafikInsekten };
+export const KARTEN_GRAFIK = {
+  trocknung: () => grafikTrocknung(), ablage: grafikAblage, feldverluste: grafikFeldverluste,
+  insekten: () => grafikInsekten() + '<p><a class="knopflink" href="lernen.html#bff">Exkurs: Biodiversitätsförderflächen und schlau mähen</a></p>',
+};

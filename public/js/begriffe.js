@@ -20,6 +20,7 @@ export const BEGRIFFE = [
   { begriff: 'Heusonde', lang: 'Thermometer für den Heustock', text: 'Lange Messstange für die Temperatur im Heustock. Gemessen wird nach Messkalender bis zu zwölf Wochen lang. Ab 45 °C erhöhte Aufmerksamkeit. Ab 60 °C die örtliche Feuerwehr vorinformieren und um Rat fragen (sie hat auch Messsonden), bei 60 bis 70 °C alle fünf Stunden messen, ab 70 °C sofort alarmieren: Feuchtes Heu kann sich selbst entzünden.' },
   { begriff: 'Aufbereiter', lang: 'Mähaufbereiter, Knicker', text: 'Gerät am Mähwerk, das die Halme knickt oder quetscht und die Wachsschicht verletzt, damit das Wasser leichter austritt. Es gibt Zinken (Schlägel), Walzen und Intensivaufbereiter mit Bürstenwalze und Breitstreuvorrichtung.' },
   { begriff: 'Kreiselzetter', lang: 'Kreiselheuer, Kreiselzettwender', text: 'Gerät, das das Futter auflockert und breit verteilt. Der erste Durchgang heisst Zetten, spätere Durchgänge Wenden. In der Schweiz sagt man auch Kreiselheuer, in Österreich Kreiselzettwender.' },
+  { begriff: 'BFF', lang: 'Biodiversitätsförderfläche', text: 'Fläche, die für Tiere und Pflanzen bewirtschaftet wird, zum Beispiel eine extensiv genutzte Wiese. Es gelten Auflagen zu Schnittzeitpunkt, Düngung und teils zur Mähtechnik; auf Flächen der Qualitätsstufe II und in vielen Vernetzungsprojekten ist der Mähaufbereiter verboten.' },
   { begriff: 'Schwad', lang: 'Futterstreifen', text: 'Der Streifen, in den der Schwader das Futter zusammenlegt, damit der Ladewagen oder die Presse es aufnehmen kann.' },
 ];
 

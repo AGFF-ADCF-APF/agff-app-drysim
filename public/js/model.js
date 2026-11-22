@@ -465,7 +465,8 @@ function erklaere(r, c) {
       'In einem Versuch von Agroscope starben beim Mähen mit Rotationsmähwerk 37 % der Raupen auf der Fläche, mit Aufbereiter 69 %, mit dem Motormäher 20 % (Humbert et al. 2010). ' +
       'Der Aufbereiter quetscht das Futter und mit ihm die Tiere darin. ' +
       'top agrar mass 2021 bei einer 10-m-Kombination ohne Aufbereiter 61 kW, mit Aufbereiter 122 kW Antriebsleistung; die Aufbereiterkombination war zudem 2,1 t schwerer. ' +
-      'Dafür verkürzt der Aufbereiter die Feldliegezeit um rund einen Viertel (FAT-Bericht 584).',
+      'Dafür verkürzt der Aufbereiter die Feldliegezeit um rund einen Viertel (FAT-Bericht 584). ' +
+      'Auf BFF der Qualitätsstufe II und in vielen Vernetzungsprojekten ist der Aufbereiter verboten, zum Beispiel im Kanton Bern auf extensiv genutzten Wiesen in der Vernetzung.',
     grafik: 'insekten',
   });
 

@@ -86,6 +86,9 @@ const QUELLEN_DACH = [
   [`${QUELLE_TOPAGRAR.titel} (Deutschland)`, QUELLE_TOPAGRAR.url],
   [`${QUELLE_KOELN.titel} (Deutschland)`, QUELLE_KOELN.url],
   [`${QUELLE_HUMBERT.titel} (Schweiz)`, QUELLE_HUMBERT.url],
+  ['Schweizer Bauernverband u. a.: schlaumaehen.ch – tierschonend mähen (Schweiz)', 'https://schlaumaehen.ch/de/'],
+  ['FiBL, Vogelwarte, AGRIDEA: agrinatur.ch – Extensiv genutzte Wiese, Auflagen (Schweiz)', 'https://www.agrinatur.ch/bff/extensiv-genutzte-wiese'],
+  ['Kanton Bern, LANAT: Anforderungen an Biodiversitätsförderflächen in der Vernetzung (Stand 7.11.2024)', 'https://www.weu.be.ch/content/dam/weu/dokumente/lanat/de/landwirtschaft/biodiversitaet-landschaftsqualitaet/lanat-bewirtschaftungsauflagen-biodiversit%C3%A4tsf%C3%B6rderfl%C3%A4chen-vernetzung-de.pdf'],
   ['Elite / top agrar 2024: Enges Erntefenster – wie lässt sich Gras schnell trocknen? (Beratungsempfehlungen von J.-H. Puckhaber und T. Kilcer)', 'https://www.topagrar.com/rind/news/enges-erntefenster-wie-lasst-sich-gras-schnell-trocknen-22845.html'],
 ];
 const QUELLEN_USA = [
@@ -110,6 +113,7 @@ const lernen = seite({
       <li><a href="#anwelken">Warum anwelken?</a></li>
       <li><a href="#trocknung">Schnell trocknen: erst breit ablegen, dann aufbereiten</a></li>
       <li><a href="#aufbereiter">Mit oder ohne Aufbereiter?</a></li>
+      <li><a href="#bff">Exkurs: Biodiversitätsförderflächen und tierschonendes Mähen</a></li>
       <li><a href="#zucker">Zucker schonen: Atmung, Tau und Regen</a></li>
       <li><a href="#sauber">Sauber arbeiten: Schnitthöhe, Zinken und Erde</a></li>
       <li><a href="#zetten">Zetten und Schwaden: Blätter schonen</a></li>
@@ -154,6 +158,29 @@ const lernen = seite({
 ${grafikInsekten()}
     <p><strong>Nimmt der Zucker nach dem Schnitt zu?</strong> Manche Berater sagen, dass breit abgelegtes Gras in der Sonne noch Photosynthese betreibt und so mehr Zucker bildet, als es veratmet. Belegt ist, dass schnelles Trocknen die Atmung früher stoppt und damit Zucker spart. Eine Zunahme ist in begutachteten Versuchen nicht gesichert. Das Spiel rechnet deshalb nur mit dem Verlust durch die Atmung:</p>
 ${grafikZucker()}
+
+    <h2 id="bff">Exkurs: Biodiversitätsförderflächen und tierschonendes Mähen</h2>
+    <p>Auf artenreichen Wiesen leben Insekten, Spinnen, Amphibien, Bodenbrüter und junge Wildtiere. Wie gemäht wird, entscheidet mit, wie viele davon überleben. Auf Biodiversitätsförderflächen (<abbr title="Biodiversitätsförderfläche">BFF</abbr>) gelten dafür zum Teil verbindliche Regeln.</p>
+    <div class="infobox">
+      <p><strong>Schlau mähen – das Wichtigste in Kürze</strong> (nach <a href="https://schlaumaehen.ch/de/" rel="noopener">schlaumaehen.ch</a>, einem Projekt des Schweizer Bauernverbandes mit AGRIDEA, apisuisse, IP-Suisse, SVLT und der Vogelwarte, fachlich unterstützt unter anderem von der AGFF):</p>
+      <ul>
+        <li><strong>Ohne Aufbereiter</strong> in blühenden und artenreichen Beständen und auf BFF. Mit Aufbereiter nur, wenn weniger als eine Biene pro 2 m² fliegt, oder vor 7 Uhr und nach 18 Uhr, wenn kaum Insekten fliegen.</li>
+        <li><strong>Hoch mähen:</strong> 10 bis 12 cm schonen Raupen, Amphibien und Reptilien. Bei Amphibien sank die Verlustrate von 27 % auf 5 %, als von 5 auf 12 cm erhöht wurde. Für die Futterqualität genügen ab 8 cm, und es kommt weniger Erde ins Futter.</li>
+        <li><strong>Von innen nach aussen</strong> mähen, damit Tiere fliehen können, und vorher nach Rehkitzen und Junghasen suchen.</li>
+        <li><strong>Altgrasstreifen:</strong> 5 bis 10 % der Fläche stehen lassen, bei jedem Schnitt an einer anderen Stelle.</li>
+        <li><strong>Gestaffelt mähen</strong> statt alles am gleichen Tag, und auf Ökoflächen den Messerbalken dem Rotationsmähwerk vorziehen.</li>
+        <li><strong>Heu statt Silage</strong> hilft Kleintieren: Das Futter liegt länger, viele Tiere können noch abwandern.</li>
+      </ul>
+      <p>Vertiefung: <a href="https://schlaumaehen.ch/de/was-tun.html" rel="noopener">Was tun?</a> · <a href="https://schlaumaehen.ch/de/technik.html" rel="noopener">Technik</a> · <a href="https://schlaumaehen.ch/de/weitere-tipps.html" rel="noopener">Weitere Tipps</a> · <a href="https://schlaumaehen.ch/images/2023_Schlaumaehen_Merkblatt_A5_DE_untereinander.pdf" rel="noopener">Merkblatt (PDF)</a> · <a href="https://schlaumaehen.ch/de/links-und-download.html" rel="noopener">Links und Downloads</a></p>
+    </div>
+    <p><strong>Was ist Pflicht?</strong> Die Regeln kommen aus zwei Ebenen:</p>
+    <ul>
+      <li><strong>Bund, Qualitätsstufe II:</strong> Auf extensiv genutzten Wiesen der Qualitätsstufe II ist der Einsatz von Mähaufbereitern verboten (Auflagen gemäss Direktzahlungsverordnung, zusammengestellt auf <a href="https://www.agrinatur.ch/bff/extensiv-genutzte-wiese" rel="noopener">agrinatur.ch</a>). Für alle BFF-Wiesen empfiehlt agrinatur.ch, auf den Aufbereiter zu verzichten und den Messerbalken vorzuziehen.</li>
+      <li><strong>Kantone, Vernetzung:</strong> Vernetzungsprojekte legen eigene, teils strengere Auflagen fest. Beispiel Kanton Bern: Auf extensiv und wenig intensiv genutzten Wiesen, Streueflächen und Uferwiesen in der Vernetzung ist der Mähaufbereiter verboten. Dürrfutter soll zwei Nächte am Boden liegen, Haylage mindestens eine Nacht, und bei jedem Schnitt bleiben 10 % der Wiese als Rückzugsfläche stehen (<a href="https://www.weu.be.ch/content/dam/weu/dokumente/lanat/de/landwirtschaft/biodiversitaet-landschaftsqualitaet/lanat-bewirtschaftungsauflagen-biodiversit%C3%A4tsf%C3%B6rderfl%C3%A4chen-vernetzung-de.pdf" rel="noopener">Anforderungen an BFF in der Vernetzung, Kanton Bern, Stand 7.11.2024, PDF</a>).</li>
+      <li>Eine schweizweite Zusammenstellung der kantonalen Regeln gibt es nicht. Massgebend sind die Vereinbarung mit dem eigenen Vernetzungsprojekt und die kantonale Fachstelle. Einen Überblick über alle BFF-Typen gibt <a href="https://www.agrinatur.ch/bff" rel="noopener">agrinatur.ch</a> (FiBL, Vogelwarte, AGRIDEA).</li>
+    </ul>
+    <p><strong>Auf der Karte:</strong> Die landwirtschaftlichen Nutzungsflächen mit den BFF zeigt der Bund auf <a href="https://map.geo.admin.ch/#/map?lang=de&layers=ch.blw.landwirtschaftliche-nutzungsflaechen&bgLayer=ch.swisstopo.pixelkarte-grau&center=2610000,1197000&z=8" rel="noopener">map.geo.admin.ch (Ebene «Nutzungsflächen»)</a>; ein Klick auf eine Fläche zeigt Nutzung und BFF-Qualität. Die Daten zu BFF der Qualitätsstufe II und zur Vernetzung stellen die Kantone auf <a href="https://www.geodienste.ch/services/lwb_biodiversitaetsfoerderflaechen" rel="noopener">geodienste.ch</a> bereit, für die meisten Kantone frei.</p>
+    <div class="infobox"><p><strong>Im Spiel:</strong> Die Wiesen im Spiel sind Futterwiesen, keine BFF. Die Karte «Aufbereiter: Preis und Insekten» zeigt, was der Aufbereiter Tiere und Energie kostet, und wer ohne ihn mäht, bekommt das Abzeichen «Insektenschoner».</p></div>
 
     <h2 id="zucker">Zucker schonen: Atmung, Tau und Regen</h2>
     <p>Gemähte Pflanzen leben noch eine Weile weiter und veratmen dabei Zucker (im Spiel, bis sie etwa 60 % TS erreichen). Je wärmer es ist und je länger das Futter liegt, desto mehr Zucker geht verloren. Bleibt das Futter länger als etwa 35 Stunden auf dem Feld oder wird es eingeregnet, sinkt der Zuckergehalt deutlich; zu langes Anwelken erhöht die Atmungs- und die Bröckelverluste (LK Salzburg). Der Zucker fehlt später den Milchsäurebakterien.</p>
