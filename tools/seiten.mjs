@@ -105,7 +105,10 @@ function belueftungsAbschnitt() {
   const z = (x, d = 1) => x.toFixed(d).replace('.', ',');
   // Rechenbeispiel: Zuluft 22 °C / 55 %, Abluft 18 °C / 85 %, 100 m² Box
   const bsp = { zu: { t: 22, rh: 55 }, ab: { t: 18, rh: 85 }, V: 11 };
-  const gZu = LUFT.gm3(bsp.zu.t, bsp.zu.rh), gAb = LUFT.gm3(bsp.ab.t, bsp.ab.rh), d = gAb - gZu;
+  // gerundete Zwischenwerte, wie von Hand gerechnet
+  const r1 = (x) => Math.round(x * 10) / 10;
+  const sZu = r1(LUFT.gm3(bsp.zu.t, 100)), sAb = r1(LUFT.gm3(bsp.ab.t, 100));
+  const gZu = r1(sZu * bsp.zu.rh / 100), gAb = r1(sAb * bsp.ab.rh / 100), d = r1(gAb - gZu);
   const verf = LKS_VERFAHREN.map((v) => ({ ...v, spiel: konstant({ ts: 65, rh: v.rh, stunden: 12, dach: v.dach }) }));
   const entf = konstant({ ts: 65, rh: 80, stunden: 12, entfeuchter: true });
   return `
@@ -146,8 +149,8 @@ function belueftungsAbschnitt() {
     <h3 id="rechnen">Selber rechnen: Wie viel Wasser trägt die Luft fort?</h3>
     <p>Mit zwei Fühlern, einem unter dem Rost (Zuluft) und einem über dem Heu (Abluft), lässt sich der Wasserentzug ausrechnen. Beispiel: Zuluft ${bsp.zu.t} °C und ${bsp.zu.rh} % rF, Abluft ${bsp.ab.t} °C und ${bsp.ab.rh} % rF, ${bsp.V} m³/s Luft (100 m² Box).</p>
     <ol>
-      <li>Gesättigte Luft enthält bei ${bsp.zu.t} °C höchstens ${z(LUFT.gm3(bsp.zu.t, 100))} g Wasser je m³. Bei ${bsp.zu.rh} % rF: ${z(LUFT.gm3(bsp.zu.t, 100))} × ${z(bsp.zu.rh / 100, 2)} = <strong>${z(gZu)} g/m³</strong>.</li>
-      <li>Abluft: ${z(LUFT.gm3(bsp.ab.t, 100))} × ${z(bsp.ab.rh / 100, 2)} = <strong>${z(gAb)} g/m³</strong>.</li>
+      <li>Gesättigte Luft enthält bei ${bsp.zu.t} °C höchstens ${z(sZu)} g Wasser je m³. Bei ${bsp.zu.rh} % rF: ${z(sZu)} × ${z(bsp.zu.rh / 100, 2)} = <strong>${z(gZu)} g/m³</strong>.</li>
+      <li>Abluft: ${z(sAb)} × ${z(bsp.ab.rh / 100, 2)} = <strong>${z(gAb)} g/m³</strong>.</li>
       <li>Jeder Kubikmeter nimmt ${z(gAb)} − ${z(gZu)} = <strong>${z(d)} g Wasser</strong> mit.</li>
       <li>${bsp.V} m³/s sind ${z(bsp.V * 3600, 0)} m³ je Stunde: ${z(d)} × ${z(bsp.V * 3600, 0)} = ${z(d * bsp.V * 3600, 0)} g, also rund <strong>${z(d * bsp.V * 3.6, 0)} Liter Wasser je Stunde</strong>.</li>
     </ol>

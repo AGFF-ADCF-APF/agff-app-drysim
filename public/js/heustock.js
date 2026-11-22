@@ -13,7 +13,7 @@ import { START } from './game.js';
 const TEMPO = { 1: 800, 2: 280, 3: 80, 4: 25 };
 const RUNDE = 'drysim-runde';
 const $ = (s, el = document) => el.querySelector(s);
-const z = (x, d = 0) => (Number.isFinite(x) ? x.toFixed(d).replace('.', ',') : '–');
+const z = (x, d = 0) => (Number.isFinite(x) ? (Math.abs(x) < 0.5 * 10 ** -d ? 0 : x).toFixed(d).replace('.', ',') : '–'); // ohne «−0,0»
 const zeit = (t) => `${String(t % 24).padStart(2, '0')}:00`;
 const tagZeit = (t) => `Tag ${Math.floor(t / 24) + 1}, ${zeit(t)}`;
 
@@ -49,7 +49,7 @@ export class HeustockSpiel {
     this.bindeGlobal();
     $('#hs-pruefen').onclick = () => this.pruefeRechnung($('#hs-rechnen form'));
     const s = this.stock;
-    if (resume) this.melde(`${tagZeit(s.t)}: Runde am Heustock fortgesetzt. Weiter mit ▶ oder Leertaste.`);
+    if (resume) this.melde(`${tagZeit(s.t)}: Runde am Heustock fortgesetzt. ${this.ruhig ? 'Weiter mit +1 h oder +6 h.' : 'Weiter mit ▶ oder Leertaste.'}`);
     else {
       this.melde(`${tagZeit(s.t)}: ${z(s.mengeTonnen(), 1)} t Heu mit ${z(s.tsEin, 1)} % TS liegen ${z(s.hoehe, 1)} m hoch auf ${s.flaeche} m² Rost. Bis ${ANLAGE.zielTs} % TS müssen noch rund ${z(Math.round(s.restWasser() / 10) * 10)} Liter Wasser weg.`);
       this.melde(this.ruhig ? 'Die ersten 24 Stunden läuft der Lüfter durch. Du bestimmst, wann die Zeit weiterläuft.' : 'Die ersten 24 Stunden läuft der Lüfter durch (LK Salzburg). Starte die Uhr mit ▶.', true);
@@ -261,7 +261,7 @@ export class HeustockSpiel {
     balken('.messer.hs-temp', zs.temp - 10, 60, `${z(zs.temp)} °C`, zs.temp > 40 ? 'nie über 40 °C!' : zs.temp > 35 ? 'über 35 °C: belüften' : 'im Heu, wärmste Schicht', zs.temp > 35);
     const laeuft = p?.f > 0;
     balken('.messer.hs-wasser', laeuft ? Math.max(0, p.gm3) : 0, 4, laeuft ? `${z(p.gm3, 1)} g/m³` : 'Lüfter steht',
-      laeuft ? `${z(p.lh / p.f)} L/h${p.f < 1 ? ' während des Laufs' : ''} · noch ${z(Math.round(zs.rest / 10) * 10)} L bis ${ANLAGE.zielTs} % TS` : `noch ${z(Math.round(zs.rest / 10) * 10)} L bis ${ANLAGE.zielTs} % TS`, laeuft && p.gm3 < 0);
+      laeuft ? `${z(p.lh / p.f)} L/h${p.f < 1 ? ' während des Laufs' : ''} · noch ${z(Math.round(zs.rest / 10) * 10)} L bis ${ANLAGE.zielTs} % TS` : `noch ${z(Math.round(zs.rest / 10) * 10)} L bis ${ANLAGE.zielTs} % TS`, laeuft && p.gm3 < -0.05);
     balken('.messer.hs-strom', zs.kwh, Math.max(200, zs.kwh), `${z(zs.kwh)} kWh`, `${z(zs.kwh / s.mengeTonnen())} kWh je t Heu`, false);
 
     // Zuluft und Abluft
@@ -295,12 +295,15 @@ export class HeustockSpiel {
   pruefeRechnung(form) {
     const m = this.messung; if (!m) return;
     const zahl = (n) => Number(String(form[n].value).replace(',', '.'));
-    const zu = LUFT.gm3(m.zuT, m.zuRh), ab = LUFT.gm3(m.abT, m.abRh), d = ab - zu, lh = d * m.V * 3.6;
+    // Rechenweg mit gerundeten Zwischenwerten, wie von Hand mit der Tabelle
+    const r1 = (x) => Math.round(x * 10) / 10;
+    const satZu = r1(LUFT.gm3(m.zuT, 100)), satAb = r1(LUFT.gm3(m.abT, 100));
+    const zu = r1(satZu * m.zuRh / 100), ab = r1(satAb * m.abRh / 100), d = r1(ab - zu), lh = d * m.V * 3.6;
     const eingabe = { zu: zahl('zu'), ab: zahl('ab'), d: zahl('diff'), lh: zahl('lh') };
     const ok = (x, soll, tol) => Number.isFinite(x) && x !== 0 && Math.abs(x - soll) <= Math.max(tol, Math.abs(soll) * 0.12);
     const z1 = (x) => z(x, 1);
     const zeile = (name, x, soll, tol, einheit) => `<li class="${ok(x, soll, tol) ? 'richtig' : 'falsch'}">${ok(x, soll, tol) ? '✓' : '✗'} ${name}: ${Number.isFinite(x) && x !== 0 ? z1(x) : '–'} ${einheit} (richtig etwa ${z1(soll)} ${einheit})</li>`;
-    const satZu = LUFT.gm3(m.zuT, 100), satAb = LUFT.gm3(m.abT, 100), sp = m.p.lh / m.p.f;
+    const sp = m.p.lh / m.p.f;
     $('#hs-aufloesung').innerHTML = `<ul class="pruefung">${zeile('Zuluft', eingabe.zu, zu, 0.3, 'g/m³')}${zeile('Abluft', eingabe.ab, ab, 0.3, 'g/m³')}${zeile('Wasserentzug', eingabe.d, d, 0.2, 'g/m³')}${zeile('Wasser je Stunde', eingabe.lh, lh, 3, 'L/h')}</ul>` +
       `<h3>Rechenweg</h3><ol class="rechenweg">` +
       `<li>Zuluft: Bei ${z1(m.zuT)} °C passen höchstens ${z1(satZu)} g Wasser in 1 m³ Luft. Bei ${m.zuRh} % rF sind es ${m.zuRh} % davon: ${z1(satZu)} × ${z(m.zuRh / 100, 2)} = <b>${z1(zu)} g/m³</b>.</li>` +
@@ -319,8 +322,8 @@ function stockBild(zs, p, e, w, opt) {
   const hS = (yRost - yOben) / n, laeuft = p?.f > 0, nacht = w.rad <= 0;
   const teile = [];
   // Dach mit Sonne (Warmluft) und Gebäude
-  teile.push(`<path d="M40 52 L180 10 L320 52" fill="none" stroke="var(--leise)" stroke-width="4"/>`);
-  if (opt.dach) teile.push(`<path d="M60 46 L180 16 L300 46" fill="none" stroke="${e.dach && laeuft && !nacht ? 'var(--sonne)' : 'var(--linie)'}" stroke-width="6" stroke-linecap="round"><title>Dachkollektor</title></path>`);
+  teile.push(`<path d="M40 40 L180 4 L320 40" fill="none" stroke="var(--leise)" stroke-width="4"/>`);
+  if (opt.dach) teile.push(`<path d="M60 34 L180 10 L300 34" fill="none" stroke="${e.dach && laeuft && !nacht ? 'var(--sonne)' : 'var(--linie)'}" stroke-width="6" stroke-linecap="round"><title>Dachkollektor</title></path>`);
   teile.push(`<rect x="${x0 - 4}" y="${yOben - 4}" width="${x1 - x0 + 8}" height="${yRost - yOben + 8}" fill="none" stroke="var(--leise)" stroke-width="2" rx="4"/>`);
   zs.schichten.forEach((s, i) => {
     const y = yRost - (i + 1) * hS;
@@ -334,9 +337,10 @@ function stockBild(zs, p, e, w, opt) {
   if (laeuft) {
     for (const x of [110, 180, 250]) teile.push(`<path d="M${x} ${yRost + 22} L${x} ${yOben - 14}" class="hs-pfeil" stroke="var(--blau)" stroke-width="3" fill="none" marker-end="url(#hs-spitze)"/>`);
   }
-  teile.push(`<text x="${x1 + 8}" y="${yOben + 10}" class="hs-klein">${laeuft ? `${z(p.abRh)} %` : ''}</text>`);
-  teile.push(`<text x="${x1 + 8}" y="${yRost + 8}" class="hs-klein">${laeuft ? `${z(p.zuRh)} %` : ''}</text>`);
-  teile.push(`<text x="${x1 + 8}" y="${yOben + 28}" class="hs-klein leise">${laeuft ? 'Abluft' : ''}</text><text x="${x1 + 8}" y="${yRost - 10}" class="hs-klein leise">${laeuft ? 'Zuluft' : ''}</text>`);
+  if (laeuft) {
+    teile.push(`<text x="${x1 + 8}" y="${yOben + 20}" class="hs-klein leise">Abluft</text><text x="${x1 + 8}" y="${yOben + 38}" class="hs-klein">${z(p.abRh)} %</text>`);
+    teile.push(`<text x="${x1 + 8}" y="${yRost - 14}" class="hs-klein leise">Zuluft</text><text x="${x1 + 8}" y="${yRost + 4}" class="hs-klein">${z(p.zuRh)} %</text>`);
+  }
   return `<svg viewBox="0 0 ${B} ${H}" class="hs-svg" aria-hidden="true"><defs><marker id="hs-spitze" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--blau)"/></marker></defs>${teile.join('')}</svg>`;
 }
 
