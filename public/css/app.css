@@ -543,13 +543,11 @@ a.logo small { opacity: .85; font-size: .95rem; }
   display: grid; gap: 2px; text-align: left; min-height: 48px; padding: 12px 14px; border-radius: 14px; cursor: pointer;
   border: 2px solid var(--linie); border-left-width: 8px; background: var(--bg); color: var(--text);
 }
-.niveau-knopf.einstieg { border-left-color: var(--gruen); }
-.niveau-knopf.praxis { border-left-color: var(--blau); }
-.niveau-knopf.profi { border-left-color: var(--gelb-dunkel); }
+/* Die Stufe zeigen nur die Punkte (●○○ bis ●●●), ohne eigene Farbe: Grün bedeutet allein «gewählt». */
 .niveau-knopf b { font-size: 1.15rem; }
 .niveau-knopf small { color: var(--leise); font-size: .95rem; }
 .niveau-knopf .niveau-fuer { color: var(--text); font-weight: 700; }
-.niveau-zeichen { letter-spacing: .15em; color: var(--leise); }
+.niveau-zeichen { letter-spacing: .15em; color: var(--text); font-size: 1.15rem; }
 .niveau-knopf[aria-pressed="true"] { border-color: var(--gruen); background: var(--gruen-hell); }
 .niveau-knopf[aria-pressed="true"] b::after { content: " ✓"; color: var(--gruen-text); }
 .niveau-knopf:focus-visible, .aktion:focus-visible { outline: 3px solid var(--blau); outline-offset: 2px; }

@@ -1,5 +1,5 @@
 // Automatisch erzeugt von tools/seiten.mjs – nicht von Hand ändern
-const CACHE = 'drysim-2026-11-23-d9b1d4c623';
+const CACHE = 'drysim-2026-11-23-cb99403796';
 const DATEIEN = ['./', 'css/app.css', 'css/heustock.css', 'img/icon-192.png', 'img/icon-512.png', 'img/icon.svg', 'img/og.png', 'img/og.svg', 'index.html', 'js/app.js', 'js/assistent-texte.js', 'js/assistent.js', 'js/begriffe.js', 'js/belueftung-vergleich.js', 'js/belueftung.js', 'js/boot.js', 'js/chart.js', 'js/game.js', 'js/grafik.js', 'js/halten.js', 'js/heustock.js', 'js/icons.js', 'js/maschinen.js', 'js/model.js', 'js/modus.js', 'js/niveau.js', 'js/scenarios.js', 'js/scene.js', 'js/vergleich.js', 'js/versuche.js', 'js/weather.js', 'js/wiese.js', 'lernen.html', 'manifest.webmanifest', 'sitemap.xml', 'szenario/bilderbuch.html', 'szenario/foehn.html', 'szenario/heubilderbuch.html', 'szenario/heudauer.html', 'szenario/heufoehn.html', 'szenario/heugewitter.html', 'szenario/heutau.html', 'szenario/kleeheu.html', 'szenario/lueftermagnicht.html', 'szenario/nest.html', 'szenario/ohneaufbereiter.html', 'szenario/taenikon.html', 'szenario/tiefgemaeht.html', 'szenario/zuhoch.html', 'unterricht.html'];
 
 self.addEventListener('install', (e) => {
