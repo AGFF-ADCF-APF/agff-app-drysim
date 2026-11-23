@@ -43,6 +43,12 @@ export class HeustockSpiel {
     root.classList.toggle('ohne-dach', !this.optionen.dach);
     root.classList.toggle('ohne-entfeuchter', !this.optionen.entfeuchter);
     root.classList.toggle('ohne-rechnen', !this.optionen.rechnen);
+    // Niveau Einstieg: Ampel und kurze Worte statt Zahlen (Option `ampel`)
+    this.ampel = !!this.optionen.ampel;
+    const titel = (sel, t) => { $(sel, root).querySelector('span').innerHTML = t; };
+    titel('.messer.hs-ts', this.ampel ? 'Wie trocken ist das Heu?' : 'Heustock (<abbr title="Trockensubstanz">TS</abbr>)');
+    titel('.messer.hs-temp', this.ampel ? 'Wärme im Heustock' : 'Stocktemperatur');
+    titel('.messer.hs-wasser', this.ampel ? 'Nimmt die Luft Wasser mit?' : 'Wasserentzug');
     $('.ticker', root).replaceChildren();
     this.baueBericht();
     this.baueSteuerung();
@@ -174,14 +180,14 @@ export class HeustockSpiel {
       if (tipp && !this.auto) Assistent.hinweis(tipp);
     };
     const nacht = `${w.tag}-${w.h < 12 ? 'm' : 'a'}`;
-    if (p?.f > 0 && p.gm3 < -0.05) einmal('feucht' + nacht, `${t}: Die Luft ist zu feucht (${z(p.aussenRh)} % rF): Der Lüfter befeuchtet das Heu wieder. Intervall oder aus?`, this.e.luefter === 'dauer', 'hs.feucht');
+    if (p?.f > 0 && p.gm3 < -0.05) einmal('feucht' + nacht, this.ampel ? `${t}: Die Luft ist zu feucht: Der Lüfter macht das Heu wieder feuchter. Intervall oder aus?` : `${t}: Die Luft ist zu feucht (${z(p.aussenRh)} % rF): Der Lüfter befeuchtet das Heu wieder. Intervall oder aus?`, this.e.luefter === 'dauer', 'hs.feucht');
     else if (p?.f > 0 && p.gm3 < 0.3 && seit > 24) einmal('wenig' + nacht, `${t}: ${w.rad > 0 ? 'Die Luft' : 'Die Nachtluft'} ist zu feucht: Der Lüfter bringt jetzt wenig (${z(p.gm3, 1)} g/m³).`);
     if (zs.temp > 35 && alt.temp <= 35) einmal('warm35-' + Math.floor(seit / 12), `${t}: Über 35 °C im Heu! Jetzt muss belüftet werden (LK Salzburg).`, true, 'hs.warm');
     if (zs.temp > 40 && alt.temp <= 40) einmal('warm40-' + Math.floor(seit / 12), `${t}: ${z(zs.temp)} °C im Heustock – die Temperatur im Heu darf nie über 40 °C steigen.`, true, 'hs.warm');
     if (zs.temp >= 60 && alt.temp < 60) einmal('warm60', `${t}: ${z(zs.temp)} °C! Örtliche Feuerwehr vorinformieren, alle fünf Stunden messen.`, true);
     if (p && p.f === 0 && zs.ts < ANLAGE.hauptTs && s.seitLauf === 6) einmal('still' + s.t, `${t}: Seit 6 Stunden kein Luftzug: Das feuchte Heu atmet und erwärmt sich (jetzt ${z(zs.temp)} °C).`);
-    if (s.hauptBei === s.t) einmal('haupt', `${t}: Haupttrocknung geschafft – auch die oberste Schicht hat 80 % TS (nach ${z(seit)} Stunden). Jetzt nur noch nachbelüften.`, true, 'hs.haupt');
-    if (seit === 80 && s.hauptBei == null) einmal('80h', `${t}: 80 Stunden – die Haupttrocknung sollte jetzt vorbei sein (LK Salzburg). Die oberste Schicht hat erst ${z(zs.tsMin, 1)} % TS.`, true);
+    if (s.hauptBei === s.t) einmal('haupt', this.ampel ? `${t}: Das Gröbste ist geschafft – auch die oberste Schicht ist fast trocken. Jetzt nur noch ab und zu belüften.` : `${t}: Haupttrocknung geschafft – auch die oberste Schicht hat 80 % TS (nach ${z(seit)} Stunden). Jetzt nur noch nachbelüften.`, true, 'hs.haupt');
+    if (seit === 80 && s.hauptBei == null) einmal('80h', this.ampel ? `${t}: Schon über drei Tage – das Heu sollte jetzt fast trocken sein. Die oberste Schicht ist noch feucht.` : `${t}: 80 Stunden – die Haupttrocknung sollte jetzt vorbei sein (LK Salzburg). Die oberste Schicht hat erst ${z(zs.tsMin, 1)} % TS.`, true);
     if (p?.f > 0 && p.dachK > 1 && !this.gemeldet.has('dach')) einmal('dach', `${t}: Die Sonne wärmt das Dach: Die Zuluft ist ${z(p.dachK, 1)} °C wärmer und nimmt mehr Wasser auf.`, false, 'hs.dach');
     if (this.e.entfeuchter && p?.f > 0 && p.entfLh === 0) einmal('entf-kalt' + w.tag, `${t}: Der Entfeuchter bringt bei ${z(w.temp)} °C und ${z(w.rh)} % rF kaum etwas (unter 10 °C oder 40 % rF).`);
     if (w.h === 20) einmal('abend' + w.tag, `${t}: Es wird Abend. Die Luft kühlt ab und wird feuchter.${this.e.luefter === 'dauer' ? ' Dauerbetrieb in der Nacht bringt meist wenig.' : ''}`);
@@ -240,6 +246,7 @@ export class HeustockSpiel {
     $('.jetzt', r).innerHTML = `${stundenSymbol(w)}<span>Aussen ${z(w.temp)} °C · ${z(w.rh)} % rF</span>`;
     r.querySelectorAll('.tageskarte').forEach((k) => k.classList.toggle('heute', Number(k.dataset.tag) === w.tag));
     $('.hs-bild', r).innerHTML = stockBild(zs, p, this.e, w, this.optionen);
+    if (this.ampel) return this.zeichneAmpel(zs, p);
     $('.hs-bild', r).setAttribute('aria-label', `Heustock mit ${s.n} Schichten: ${zs.schichten.map((x, i) => `Schicht ${i + 1} ${z(x.ts)} % TS, ${z(x.temp)} °C`).join('; ')}`);
 
     const pos = (v) => `${Math.min(100, Math.max(0, (v - 50) / (95 - 50) * 100))}%`;
@@ -269,6 +276,39 @@ export class HeustockSpiel {
     luft('.hs-zu', p?.zuT ?? null, p?.zuRh, p ? (p.f > 0 ? `nach Lüfter${p.dachK > 0.5 ? ` und Dach (+${z(p.dachK, 1)} °C)` : ''}${p.entfLh > 0 ? `, Entfeuchter ${z(p.entfLh)} L/h` : ''}` : 'noch nicht gemessen') : 'Lüfter starten');
     luft('.hs-ab', laeuft ? p.abT : null, p?.abRh, laeuft ? (p.abRh > 90 ? 'fast gesättigt: das Heu ist noch feucht' : p.abRh < 50 ? 'unter 50 %: fast lagerfähig' : 'über dem Heu gemessen') : 'Lüfter steht');
     r.querySelector('.hs-rechnen-auf').disabled = !laeuft || this.fertig;
+    r.querySelector('.hs-auto').disabled = this.fertig || this.auto;
+  }
+
+  // Niveau Einstieg: dieselben Messer, aber mit Ampelfarbe und einem kurzen Wort statt der Zahl
+  zeichneAmpel(zs, p) {
+    const r = this.root, s = this.stock, laeuft = p?.f > 0;
+    const setze = (sel, farbe, wort, klein, anteil) => {
+      const m = $(sel, r);
+      ['gelb', 'gruen', 'rot', 'aus'].forEach((x) => m.classList.toggle(`ampel-${x}`, x === farbe));
+      m.classList.remove('warnung', 'im-ziel');
+      m.querySelector('strong').textContent = wort;
+      m.querySelector('small').textContent = klein;
+      const i = m.querySelector('.balken i'); if (i) i.style.width = `${Math.round(100 * anteil)}%`;
+    };
+    const pos = (v) => `${Math.min(100, Math.max(0, (v - 50) / (95 - 50) * 100))}%`;
+    const ts = $('.messer.hs-ts', r);
+    ts.querySelector('.ziel').style.left = pos(ANLAGE.lagerTs);
+    ts.querySelector('.ziel').style.width = `calc(${pos(95)} - ${pos(ANLAGE.lagerTs)})`;
+    ts.querySelector('.nadel').style.left = pos(zs.ts);
+    const fast = zs.tsMin >= ANLAGE.lagerTs - 5;
+    setze('.messer.hs-ts', s.lagerfaehig ? 'gruen' : 'gelb', s.lagerfaehig ? 'trocken genug' : fast ? 'fast trocken' : 'noch zu feucht',
+      s.lagerfaehig ? 'Das Heu kann so lagern.' : 'Weiter belüften, bis auch die feuchteste Schicht trocken ist.');
+    setze('.messer.hs-temp', zs.temp > 40 ? 'rot' : zs.temp > 35 ? 'gelb' : 'gruen', zs.temp > 40 ? 'zu heiss!' : zs.temp > 35 ? 'wird warm' : 'kühl',
+      zs.temp > 35 ? 'Sofort belüften: Die Luft kühlt den Heustock.' : 'So soll es sein.', Math.min(1, Math.max(0, (zs.temp - 10) / 60)));
+    const g = laeuft ? p.gm3 : 0;
+    setze('.messer.hs-wasser', !laeuft ? 'aus' : g < -0.05 ? 'rot' : g < 0.3 ? 'gelb' : 'gruen', !laeuft ? 'Lüfter steht' : g < -0.05 ? 'nein, sie macht das Heu feuchter' : g < 0.3 ? 'kaum' : g < 1.2 ? 'ja' : 'ja, viel',
+      !laeuft ? 'Ohne Luft trocknet das Heu nicht.' : g < 0.3 ? 'Feuchte Luft bringt wenig: Der Lüfter kostet jetzt nur Strom.' : 'Trockene, warme Luft trocknet am besten.', Math.min(1, Math.max(0, g / 4)));
+    const jeT = zs.kwh / s.mengeTonnen();
+    setze('.messer.hs-strom', null, jeT < 40 ? 'wenig' : jeT < 90 ? 'mittel' : 'viel', 'Strom kostet Geld: nur lüften, wenn es etwas bringt.', Math.min(1, jeT / 150));
+    const luft = (sel, wort, klein) => { const el = $(sel, r); el.querySelector('strong').textContent = wort; el.querySelector('small').textContent = klein; };
+    luft('.hs-zu', !p ? '–' : p.zuRh < 60 ? 'trocken' : p.zuRh < 80 ? 'mittel' : 'feucht', !p ? 'Lüfter starten' : 'Luft, die ins Heu geblasen wird');
+    luft('.hs-ab', !laeuft ? '–' : p.abRh > 90 ? 'sehr feucht' : p.abRh < 50 ? 'trocken' : 'feucht', !laeuft ? 'Lüfter steht' : p.abRh > 90 ? 'Das Heu gibt noch viel Wasser ab.' : p.abRh < 50 ? 'Das Heu ist fast fertig.' : 'Luft, die oben aus dem Heu kommt');
+    r.querySelector('.hs-rechnen-auf').disabled = true;
     r.querySelector('.hs-auto').disabled = this.fertig || this.auto;
   }
 
@@ -329,7 +369,8 @@ function stockBild(zs, p, e, w, opt) {
     const y = yRost - (i + 1) * hS;
     const nass = Math.min(1, Math.max(0, (uAusTs(s.ts) - uAusTs(87)) / (uAusTs(55) - uAusTs(87))));
     teile.push(`<rect x="${x0}" y="${y}" width="${x1 - x0}" height="${hS}" fill="var(--gelb)"/><rect x="${x0}" y="${y}" width="${x1 - x0}" height="${hS}" fill="var(--gruen-dunkel)" fill-opacity="${(0.15 + 0.8 * nass).toFixed(2)}"${s.temp > 35 ? ' stroke="var(--rot)" stroke-width="3"' : ''}/>`);
-    teile.push(`<text x="${(x0 + x1) / 2}" y="${y + hS / 2 + 6}" text-anchor="middle" class="hs-schicht">${z(s.ts)} % · ${z(s.temp)} °C</text>`);
+    const text = opt.ampel ? `${s.ts >= ANLAGE.lagerTs ? 'trocken' : s.ts >= ANLAGE.lagerTs - 5 ? 'fast trocken' : 'feucht'}${s.temp > 35 ? ' · warm!' : ''}` : `${z(s.ts)} % · ${z(s.temp)} °C`;
+    teile.push(`<text x="${(x0 + x1) / 2}" y="${y + hS / 2 + 6}" text-anchor="middle" class="hs-schicht">${text}</text>`);
   });
   // Rost, Lüfter, Pfeile
   teile.push(`<line x1="${x0}" x2="${x1}" y1="${yRost + 6}" y2="${yRost + 6}" stroke="var(--leise)" stroke-width="3" stroke-dasharray="6 4"/>`);
@@ -337,7 +378,7 @@ function stockBild(zs, p, e, w, opt) {
   if (laeuft) {
     for (const x of [110, 180, 250]) teile.push(`<path d="M${x} ${yRost + 22} L${x} ${yOben - 14}" class="hs-pfeil" stroke="var(--blau)" stroke-width="3" fill="none" marker-end="url(#hs-spitze)"/>`);
   }
-  if (laeuft) {
+  if (laeuft && !opt.ampel) {
     teile.push(`<text x="${x1 + 8}" y="${yOben + 20}" class="hs-klein leise">Abluft</text><text x="${x1 + 8}" y="${yOben + 38}" class="hs-klein">${z(p.abRh)} %</text>`);
     teile.push(`<text x="${x1 + 8}" y="${yRost - 14}" class="hs-klein leise">Zuluft</text><text x="${x1 + 8}" y="${yRost + 4}" class="hs-klein">${z(p.zuRh)} %</text>`);
   }

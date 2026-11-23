@@ -567,13 +567,13 @@ dialog .niveau-wahl { grid-template-columns: minmax(0, 1fr); }
 /* Feld im Einstieg: Ampel, Worte statt Zahlen, Vorschlag des Traktors */
 .spielfeld.einfach .nur-zahlen, .einfach .nur-zahlen { display: none; }
 .einfach .messer.ts strong { font-size: 1.6rem; }
-.messer.ts[class*="ampel-"] strong::before { content: "● "; }
-.messer.ts.ampel-aus strong::before { color: var(--leise); }
-.messer.ts.ampel-gelb strong::before { color: var(--gelb); }
-.messer.ts.ampel-gruen strong::before { color: var(--gruen); }
-.messer.ts.ampel-rot strong::before { color: var(--rot); }
-.messer.ts.ampel-gelb { box-shadow: inset 0 0 0 3px var(--gelb), var(--schatten); }
-.messer.ts.ampel-rot { box-shadow: inset 0 0 0 3px var(--rot), var(--schatten); }
+.messer[class*="ampel-"] strong::before { content: "● "; }
+.messer.ampel-aus strong::before { color: var(--leise); }
+.messer.ampel-gelb strong::before { color: var(--gelb); }
+.messer.ampel-gruen strong::before { color: var(--gruen); }
+.messer.ampel-rot strong::before { color: var(--rot); }
+.messer.ampel-gelb { box-shadow: inset 0 0 0 3px var(--gelb), var(--schatten); }
+.messer.ampel-rot { box-shadow: inset 0 0 0 3px var(--rot), var(--schatten); }
 .vorschlag { margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--gruen-hell); border-left: 6px solid var(--gruen); font-size: 1.05rem; }
 .aktion.empfohlen { box-shadow: 0 0 0 4px var(--gruen), var(--schatten); }
 .aktion.empfohlen b::after { content: " ←"; color: var(--gruen-text); }

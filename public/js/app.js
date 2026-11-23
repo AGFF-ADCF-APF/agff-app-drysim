@@ -396,7 +396,7 @@ function starteHeustock({ feld, einstellungen, sz, wetterRef, feldLog, resume = 
   zeige('heustock');
   spiel = new HeustockSpiel($('#heustock'), {
     // Was der Heustock je Niveau zeigt (Tabelle in niveau.js): Einstieg ohne Entfeuchter, Rechenaufgabe nur wo vorgesehen
-    feld, setup: { ...einstellungen, belueftungOptionen: { entfeuchter: zeigt('belueftung.steuerung') !== 'ein-aus', rechnen: !!zeigt('belueftung.aufgabe') } },
+    feld, setup: { ...einstellungen, belueftungOptionen: { entfeuchter: zeigt('belueftung.steuerung') !== 'ein-aus', rechnen: !!zeigt('belueftung.aufgabe'), ampel: zeigt('belueftung.anzeige') === 'ampel' } },
     wetterSzenario: sz, wetterRef, feldLog, resume,
     onEnde: (lauf) => zeigeErgebnis(feld.bewerte(lauf), sz, null, einstellungen),
   });
