@@ -29,8 +29,8 @@ export const TABELLE = {
     feld: { ampel: false, vorschlag: false, zahlen: true, profi: false },
     ergebnis: { karten: ['einstieg', 'praxis'], kurz: false, zahlen: true, rueckblick: true, rechenweg: false, export: false, aufgaben: false },
     assistent: { stufe: null, nurAufWunsch: false },
-    // Lüfter und Warmluft wählen, Höhe sehen und verteilen, Heusonde als Handlung, dazu Umschichten und Lüfter holen; Nachrechnen freiwillig
-    belueftung: { steuerung: 'praxis', anzeige: 'zahlen', aufgabe: 'wasserentzug', anlage: ['luefter', 'dach'], kennlinie: false, einfuellen: ['verteilen', 'start'], messen: 'hand',
+    // Lüfter, Warmluft und Entfeuchter wählen (Entfeuchter auf Wunsch des Auftraggebers auch in Praxis), Höhe sehen und verteilen, Heusonde als Handlung, dazu Umschichten und Lüfter holen; Nachrechnen freiwillig
+    belueftung: { steuerung: 'praxis', anzeige: 'zahlen', aufgabe: 'wasserentzug', anlage: ['luefter', 'dach', 'entfeuchter'], kennlinie: false, einfuellen: ['verteilen', 'start'], messen: 'hand',
       eingriffe: ['umschichten', 'luefterHolen'], ernstfall: 'warnung', pannen: false, kosten: false, karten: 'alle' },
   },
   profi: {

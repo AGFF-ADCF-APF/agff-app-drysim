@@ -165,14 +165,14 @@ Umsetzung des Konzepts `docs/konzept-heubelueftung-bedienung.md`: Die Lernenden 
 
 | | Einstieg | Praxis | Profi |
 |---|---|---|---|
-| Anlage | vorgegeben (Standardlüfter, Warmdach, passende Box) | Lüfter und Warmluft wählen | alles wählen, Kennlinie und Kosten sichtbar |
+| Anlage | vorgegeben (Standardlüfter, Warmdach, passende Box) | Lüfter, Warmluft und Entfeuchter wählen | dazu Boxfläche, Kennlinie und Kosten sichtbar |
 | Einfüllen | automatisch richtig | Höhe sehen, Verteilen, Lüfterstart | dazu zwei Lagen und Nachfüllen |
 | Messen | automatisch, Ampel | Heusonde (drei Stellen) | dazu «nur Mitte»; Messkalender in der Karte «Kontrolle» |
 | Eingriffe | Lüfter, Feuerwehr | dazu Umschichten, Lüfter holen | dazu Auslagern, Pannen |
 | Ernstfall | Warnung mit Handlungsvorschlag | Warnung beim Messen, Anzeichen (Geruch) | nur die Messwerte |
 | Ergebnis | Karten Lüften, Wärme, Ernstfall in einfachen Sätzen | alle Karten, Kosten | dazu Rechenweg der Kosten, Preise änderbar |
 
-Abweichung zum bisherigen Stand: Im Niveau Praxis gibt es keinen Entfeuchter mehr (laut Konzept wählt Praxis nur Lüfter und Warmluft); er ist Teil der Anlagewahl im Profi. Szenarien ohne `plan.anlage` rechnen mit der bisherigen Standardanlage und liefern dieselben Zahlen wie vor dem Ausbau (`test/run.mjs`, `test/belueftung.mjs` unverändert).
+Abweichung zum Konzept (Entscheid des Auftraggebers vom 23.11.2026): Der Entfeuchter ist auch im Niveau Praxis wählbar. Er gehört zur Anlagewahl im Einsatz (Vorgabe: ohne); wer ihn wählt, hat am Heustock den Schalter «Entfeuchter» (Taste E) wie bisher. Szenarien ohne `plan.anlage` rechnen mit der bisherigen Standardanlage und liefern dieselben Zahlen wie vor dem Ausbau (`test/run.mjs`, `test/belueftung.mjs` unverändert).
 
 **Belegt** (Quelle bei den Konstanten in `belueftung.js`):
 
