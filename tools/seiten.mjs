@@ -204,7 +204,7 @@ ${(() => { const h = fuellhoehe(0.45 * 0.94, 'klein'), d = druckSchaetzung({ hoe
     <ul>
       <li><strong>Über 35 °C:</strong> belüften. <strong>Ab ${ERNSTFALL.achtung} °C:</strong> Gefahr, öfter messen.</li>
       <li><strong>Ab ${ERNSTFALL.vorinfo} °C:</strong> Feuerwehr vorinformieren, alle ${ERNSTFALL.messenAlle} Stunden messen, den Stock nicht mehr öffnen. Wer im Spiel jetzt noch umschichtet oder abträgt, löst den Brand aus.</li>
-      <li><strong>Ab ${ERNSTFALL.alarm} °C:</strong> sofort alarmieren (Knopf gedrückt halten). Die Runde endet mit «Abbruch»: Das Heu ist verloren, das Gebäude steht, es gibt wenige Punkte und das Abzeichen «Rechtzeitig gehandelt».</li>
+      <li><strong>Ab ${ERNSTFALL.alarm} °C:</strong> sofort alarmieren. Die Runde endet mit «Abbruch»: Das Heu ist verloren, das Gebäude steht, es gibt wenige Punkte und das Abzeichen «Rechtzeitig gehandelt».</li>
       <li><strong>Nicht alarmiert:</strong> Bleibt der Stock ${ERNSTFALL.brandStunden} Stunden über ${ERNSTFALL.alarm} °C, endet die Runde mit «Brand» und null Punkten.</li>
     </ul>
     <p><strong>Annahmen des Spiels:</strong> Die Unterlagen nennen Temperaturstufen, aber keine Zeiten. Wie schnell ein Stock über 60 °C weiter heiss wird (chemische Erwärmung nach Philipsen 1965) und nach wie vielen Stunden über 70 °C er brennt, ist für das Spiel angenommen. Auch wie stark nasses und dichtes Heu den Druck erhöht, wie ungleich ein schlecht verteilter Stock ist, die Arbeitszeiten und der Bröckelverlust beim Umschichten sind Annahmen.</p>
@@ -248,7 +248,7 @@ const lernen = seite({
       <li><a href="#aufbereiter">Mit oder ohne Aufbereiter?</a></li>
       <li><a href="#bff">Exkurs: Biodiversitätsförderflächen und tierschonendes Mähen</a></li>
       <li><a href="#zucker">Zucker schonen: Atmung, Tau und Regen</a></li>
-      <li><a href="#sauber">Sauber arbeiten: Schnitthöhe, Zinken und Erde</a></li>
+      <li><a href="#sauber">Sauber arbeiten: Stoppelhöhe, Zinken und Erde</a></li>
       <li><a href="#zetten">Zetten und Schwaden: Blätter schonen</a></li>
       <li><a href="#gaerung">Gärqualität bewerten: Labor oder Prozess?</a></li>
       <li><a href="#heu">Heu: Bodenheu, Heuballen oder Belüftung</a></li>
@@ -335,10 +335,10 @@ ${grafikZucker()}
     </table></div>
     <p>Das Ziel sind Konservierungsverluste möglichst unter 10 %. Bodenheu und Nasssilage liegen oft bei 20 bis 40 %, Anwelksilage und Kaltbelüftung bei 15 bis 25 %, Eintagessilage mit Warmbelüftung unter 10 % (LK Salzburg).</p>
 
-    <h2 id="sauber">Sauber arbeiten: Schnitthöhe, Zinken und Erde</h2>
+    <h2 id="sauber">Sauber arbeiten: Stoppelhöhe, Zinken und Erde</h2>
     <p>Sauberes Futter hat etwa 90 g Rohasche je kg TS. Alles deutlich darüber ist meistens Erde. Ab 10 % (100 g je kg TS) ist bei Silage mit einer explosionsartigen Vermehrung der Buttersäurebakterien zu rechnen, vor allem bei starker Verschmutzung und ungenügendem Anwelken (LK Salzburg). Die Sporen stammen aus dem Boden und gelangen mit jeder Futterverschmutzung ins Silo. Zu tiefes Mähen, lückige Bestände, Narbenverletzungen und sporenhaltige Humusteilchen sind die Hauptursachen. Clostridien bilden Buttersäure: Das macht die Silage stinkend, und sie gefährden die Hartkäseherstellung (Lochung, Risse im Teig). Gute Milch enthält unter 200 Sporen je Liter. Heu enthält nahezu keine sporenbildenden Bakterien, das ist für Hartkäse- und Heumilch entscheidend (Agroscope 2014; LK Salzburg).</p>
     <ul>
-      <li><strong>Schnitthöhe:</strong> Mindestens 5 bis 7 cm vom Boden aus gemessen sollen stehen bleiben, teils wird auf 8 bis 9 cm gemäht (LK Salzburg). Tiefe Schnitte schaden dem nächsten Aufwuchs: Die Pflanze verliert ihr grünes Assimilationsgewebe und muss aus den Wurzelreserven nachschieben, und das viele Licht am Boden fördert die Keimung von Ampfer. Eine richtige Schnitthöhe bringt weniger Erde im Futter, eine bessere Feldtrocknung durch den grösseren Abstand zum Boden, eine dichte Grasnarbe und einen rascheren Folgeaufwuchs. Im Spiel kommt unter 6 cm deutlich mehr Erde ins Futter, und über 7 cm bleiben rund 4 % Ertrag je Zentimeter stehen.</li>
+      <li><strong>Stoppelhöhe:</strong> Mindestens 5 bis 7 cm vom Boden aus gemessen sollen stehen bleiben (im Spiel stellst du diese effektive Stoppelhöhe ein, nicht das Mass am Mähwerk), teils wird auf 8 bis 9 cm gemäht (LK Salzburg). Tiefe Schnitte schaden dem nächsten Aufwuchs: Die Pflanze verliert ihr grünes Assimilationsgewebe und muss aus den Wurzelreserven nachschieben, und das viele Licht am Boden fördert die Keimung von Ampfer. Eine richtige Schnitthöhe bringt weniger Erde im Futter, eine bessere Feldtrocknung durch den grösseren Abstand zum Boden, eine dichte Grasnarbe und einen rascheren Folgeaufwuchs. Im Spiel kommt unter 6 cm deutlich mehr Erde ins Futter, und über 7 cm bleiben rund 4 % Ertrag je Zentimeter stehen.</li>
       <li><strong>Zinkenhöhe:</strong> Sie wird auf festem, ebenem Boden eingestellt. Auf dem Feld sinken die Räder ein, auf nassem Boden stärker, die Zinken laufen also tiefer. Unter etwa 2 cm reissen sie im Spiel Erde mit. Kleine Kreiseldurchmesser und eine flache Kreiselstellung passen sich dem Boden besser an (LK Salzburg; Agroscope 2014).</li>
       <li><strong>Futter bleibt liegen:</strong> Das Schwad liegt auf den niedergedrückten Stoppeln. Stehen die Zinken darüber, bleibt Futter liegen. Bei hohen Stoppeln darf die Einstellung höher sein. Doppelkreiselschwader mit Mittelablage schleifen das Futter weniger über den Boden (LK Salzburg).</li>
       <li><strong>Maulwurfshaufen</strong> und ein nasser Boden verstärken das Problem.</li>
@@ -472,7 +472,7 @@ for (const p of PROGNOSEN) {
     <h2>Ausgangslage</h2>
     <ul>
       <li><strong>Wiese:</strong> ${esc(BESTAENDE[p.plan.bestand].name)}, Stadium ${esc(STADIEN[p.plan.stadium].name)}, ${p.plan.ertrag} dt TS/ha</li>
-      <li><strong>Maschinen:</strong> ${esc(AUFBEREITER[p.plan.aufbereiter].name)}, Schnitthöhe ${zahl(p.plan.schnitthoehe)} cm, Ablage auf ${ablageVon(p.plan)} % der Mähbreite</li>${p.plan.siloart === 'belueftung' ? `\n      <li><strong>Belüftung:</strong> ${belueftungInWorten(p.plan.belueftung, p.plan)}</li>` : ''}
+      <li><strong>Maschinen:</strong> ${esc(AUFBEREITER[p.plan.aufbereiter].name)}, Stoppelhöhe ${zahl(p.plan.schnitthoehe)} cm, Ablage auf ${ablageVon(p.plan)} % der Mähbreite</li>${p.plan.siloart === 'belueftung' ? `\n      <li><strong>Belüftung:</strong> ${belueftungInWorten(p.plan.belueftung, p.plan)}</li>` : ''}
       <li><strong>Ziel:</strong> ${esc(SILOARTEN[p.plan.siloart].name)}, ${heu && SILOARTEN[p.plan.siloart].ziel[1] >= 95 ? `ab ${SILOARTEN[p.plan.siloart].ziel[0]}` : `${SILOARTEN[p.plan.siloart].ziel[0]} bis ${SILOARTEN[p.plan.siloart].ziel[1]}`} % TS</li>
     </ul>
     <h2>Wetter: ${esc(w.name)}</h2>
@@ -513,7 +513,7 @@ const AUFTRAEGE = {
   ],
   praxis: [
     { titel: 'Klassenwettkampf: Gewitter am Tag 2', zeit: '30 Minuten', link: '?niveau=praxis&wetter=gewitter',
-      ziel: 'Das Wetterfenster lesen und Maschinen sauber einstellen: Schnitthöhe, Zinkenhöhe, Ablage. Wer schafft die meiste Energie im Trog vor dem Gewitter?',
+      ziel: 'Das Wetterfenster lesen und Maschinen sauber einstellen: Stoppelhöhe, Zinkenhöhe, Ablage. Wer schafft die meiste Energie im Trog vor dem Gewitter?',
       auftrag: 'Alle spielen mit demselben Link und tragen einen Namen ein. Danach vergleicht ihr die Punkte und besprecht die Karten der besten und der schwächsten Runde.' },
     { titel: `Wette «${szenario('tiefgemaeht').name}»`, zeit: '20 Minuten', link: '?niveau=praxis&szenario=tiefgemaeht',
       ziel: szenario('tiefgemaeht').lernziel,

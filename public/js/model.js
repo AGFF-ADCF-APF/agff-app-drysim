@@ -70,7 +70,7 @@ export const KAL = { k: 0.78, ablage: 0.9, schub: 0.5, broeckel: 0.4 };
 
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 
-// Zusätzliche Rohasche (g/kg TS) durch die Schnitthöhe und Ertragsfaktor (Ertrag bezieht sich auf 7 cm)
+// Zusätzliche Rohasche (g/kg TS) durch die Stoppelhöhe (effektiv, nach dem Mähen) und Ertragsfaktor (Ertrag bezieht sich auf 7 cm)
 // Stützpunkte [cm, Rohasche-Zuschlag g/kg TS, Ertragsfaktor], dazwischen linear (stufenlos 4–12 cm)
 const SCHNITT = [[4, 30, 1.09], [5, 18, 1.06], [6, 8, 1.03], [7, 2, 1.0], [8, 0, 0.96], [12, 0, 0.8]];
 export function schnitt(cm) {
@@ -456,7 +456,7 @@ function erklaere(r, c) {
   const zahl = (x) => String(x).replace('.', ',');
 
   f.push({
-    id: 'schnitthoehe', titel: 'Schnitthöhe', wert: `${zahl(p.schnitthoehe)} cm`,
+    id: 'schnitthoehe', titel: 'Stoppelhöhe', wert: `${zahl(p.schnitthoehe)} cm`,
     stufe: stufe(p.schnitthoehe >= 6.5 && p.schnitthoehe <= 8.5, p.schnitthoehe >= 5.5 && p.schnitthoehe <= 10.5),
     text: `Bei ${zahl(p.schnitthoehe)} cm kommen ${z(c.schnittAsche * c.bodenF, 0)} g Rohasche/kg TS durch Erde dazu` +
       (c.bodenF > 1 ? ' (Maulwurfshaufen verstärken das stark)' : '') +

@@ -40,7 +40,7 @@ export function schnittBild(wert) {
   const leer = wert == null, cm = leer ? 7 : wert;
   const y = BODEN - cm * PX;
   const erde = !leer && cm <= 5;
-  return `<svg viewBox="0 0 260 150" class="maschinenbild" role="img" aria-label="Mähwerk, Schnitthöhe ${leer ? 'nicht eingestellt' : fmt(cm) + ' cm'}">
+  return `<svg viewBox="0 0 260 150" class="maschinenbild" role="img" aria-label="Mähwerk, Stoppelhöhe ${leer ? 'nicht eingestellt' : fmt(cm) + ' cm'}">
     ${boden()}
     ${stoppeln(8, 120, cm)}
     ${stoppeln(150, 214, 20, '#4f8f32').replace(/stroke-width="2.4"/g, 'stroke-width="2"')}

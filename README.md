@@ -35,7 +35,6 @@ Ablauf im Spiel: Start → Einsatz planen (Wetter, Wiese, Maschinen, Silo) → S
 | `public/js/belueftung.js` | Heubelüftung im Heustock, Stunde für Stunde (Luft wie drywatch, Sorption, Lüfter, Dach, Entfeuchter, Wärme, Schimmel, Strom) |
 | `public/js/heustock.js`, `css/heustock.css` | Spielphase «Am Heustock» nach dem Einführen von Belüftungsheu, Rechenaufgabe |
 | `public/js/belueftung-vergleich.js` | Belüftung unter festen Bedingungen nachrechnen (Tests, Lernseite) |
-| `public/js/halten.js` | Knopf «gedrückt halten» für unumkehrbare Handlungen am Heustock |
 | `test/bedienung.mjs` | Prüfungen zur Bedienung am Heustock: Ernstfall, Kennlinie, Säulen, Eingriffe, Pannen, Nachspielen |
 | `test/run.mjs` | Modell-Durchlauf aller Szenarien auf der Konsole |
 
@@ -49,7 +48,7 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine node test/run.mjs
 Umgesetzt nach zwei UX-Gutachten (Handy/Beamer, Lesbarkeit/SEO):
 
 - **Handy:** feste Daumenleiste unten mit den vier Arbeitsgängen, dichte Anzeigen, Touch-Ziele mindestens 48 px, grosse Regler-Griffe mit +/−-Knöpfen.
-- **Fehltipps:** Mähen und Einfahren sind nicht umkehrbar und müssen 0,7 s gedrückt gehalten werden (Tastatur: zweimal drücken innert 2 s).
+- **Bedienung ohne Halten:** Alle Knöpfe lösen mit einem Klick oder einer Taste aus, auch Mähen, Einfahren, die Eingriffe am Heustock und der Feueralarm (Entscheid des Auftraggebers vom 23.11.2026; vorher mussten unumkehrbare Handlungen 0,7 s gedrückt gehalten werden).
 - **Tastatur (Beamer):** Leertaste Pause, `1`–`3` Tempo, `+` eine Stunde weiter, `M` `Z` `S` `E` Arbeitsgänge.
 - **Datensicherheit:** Die Runde wird als Protokoll der Arbeitsgänge im Browser gesichert (12 h) und lässt sich exakt nachspielen („Runde fortsetzen“). Einstellungen bleiben pro Sitzung erhalten. Beim Wechsel in den Hintergrund pausiert das Spiel.
 - **Ruhiger Modus:** Die Zeit läuft nur auf Knopfdruck (+1 h, +3 h), ohne Zeitdruck.
@@ -68,7 +67,7 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine node tools/seiten.mjs
 
 Drei Niveaus von EBA bis Hochschule. **Das Rechenmodell ist für alle gleich**, Punkte und Ranglisten bleiben vergleichbar. Unterschiedlich ist nur, wie viel man einstellt, wie viel Text und Zahlen man sieht und welche Aufgaben gestellt werden.
 
-- **Einstieg** (EBA, 1. Lehrjahr EFZ): Im Einsatz nur Wetter und Silage/Heu; Wiese und Maschinen sind voreingestellt (Grundplan: 7 cm Schnitthöhe, Zinken 3 cm) und hinter «Mehr einstellen» erreichbar. Ruhiger Modus als Standard. Auf dem Feld eine Ampel mit Worten («noch zu nass / genau richtig / zu trocken») statt Zahlen, der Traktor schlägt den nächsten Schritt vor (Regeln aus den Assistententexten) und hebt den passenden Knopf hervor. Im Ergebnis nur die vier wichtigsten Karten mit je einem einfachen Satz, ohne Abkürzungen.
+- **Einstieg** (EBA, 1. Lehrjahr EFZ): Im Einsatz nur Wetter und Silage/Heu; Wiese und Maschinen sind voreingestellt (Grundplan: 7 cm Stoppelhöhe, Zinken 3 cm) und hinter «Mehr einstellen» erreichbar. Ruhiger Modus als Standard. Auf dem Feld eine Ampel mit Worten («noch zu nass / genau richtig / zu trocken») statt Zahlen, der Traktor schlägt den nächsten Schritt vor (Regeln aus den Assistententexten) und hebt den passenden Knopf hervor. Im Ergebnis nur die vier wichtigsten Karten mit je einem einfachen Satz, ohne Abkürzungen.
 - **Praxis** (EFZ, Betriebsleiterschule): wie bisher, Standard.
 - **Profi** (HF, Hochschule): zusätzliche Werte auf dem Feld (Strahlung, Dampfdruckdefizit, Wind, TS innen, Oberflächenwasser), im Ergebnis Rechenwege (Punkte, FK, kritischer pH, DLG bzw. Sinnenprüfung, Wasserentzug bei Belüftung), Verlustbilanz, Kalibrierparameter `KAL`, Link «Modell gegen Messung», CSV-Export der Runde (Ergebniswerte, Arbeitsgänge, stündlicher Verlauf; Semikolon, Dezimalpunkt, UTF-8) und Aufgaben zum Begründen. Der Traktor meldet sich nur auf Wunsch.
 
@@ -91,12 +90,12 @@ Wie in Futter v2 gibt ein Traktor unten rechts kurze Lerntipps (`public/js/assis
 ## Modell (Lehrmodell, vereinfacht)
 
 - **Trocknung**: Trocknungskonstante nach Rotz & Chen (1985) aus Strahlung, Dampfdruckdefizit, Bodenfeuchte und Schwaddichte (am ersten Tag schneller). Kalibriert auf Feldversuche der Univ. Wisconsin (Breitablage ≥ 70 % der Fläche: 35 % TS nach rund 8–10 h bei gutem Wetter; schmale Schwade erst am Folgetag; Breitablage wichtiger als Aufbereitung): Schwadfaktor hoch −0,75 (Breitablage 1, Mähschwade 1,7, Schwad 5), Wind, hohe Stoppeln (+2 %/cm über 7 cm). Der Aufbereiter wirkt erst in der zweiten Phase (ab ca. 22–30 % TS), nach dem Schliessen der Stomata.
-- **Maschinen**: Schnitthöhe 4–12 cm (Erde unter 6 cm, Ertrag −4 %/cm über 7 cm). Aufbereiter ohne / Zinken / Walzen / Zinken mit Bürste (raut die Wachsschicht stark auf, verteilt breit, bei Regen empfindlicher). Zinkenhöhe von Zetter und Schwader stufenlos 0–8 cm, ohne Vorgabe: unter ca. 2 cm Erde, über 4 cm bleibt Futter liegen bzw. der Zetter wirkt schwächer.
+- **Maschinen**: Stoppelhöhe 4–12 cm (effektiv, was nach dem Mähen stehen bleibt; intern weiterhin `schnitthoehe`) (Erde unter 6 cm, Ertrag −4 %/cm über 7 cm). Aufbereiter ohne / Zinken / Walzen / Zinken mit Bürste (raut die Wachsschicht stark auf, verteilt breit, bei Regen empfindlicher). Zinkenhöhe von Zetter und Schwader stufenlos 0–8 cm, ohne Vorgabe: unter ca. 2 cm Erde, über 4 cm bleibt Futter liegen bzw. der Zetter wirkt schwächer.
 - **Oberflächenwasser** (Tau, Regen) liegt in einem eigenen Speicher. Es verdunstet zuerst und bremst die Trocknung des Gewebes. Ein Teil dringt ins Gewebe ein, bei verletzter Wachsschicht (Aufbereiter) mehr.
 - **Atmung**: ca. 0,2 %/h der TS bei 20 °C (Q10 = 2), nimmt bis 60 % TS auf null ab und verbraucht Zucker.
 - **Auswaschung** durch Regen: höher bei angewelktem und aufbereitetem Futter, zur Hälfte Zucker.
 - **Bröckelverluste** je Arbeitsgang, steigen mit TS und Kleeanteil.
-- **Rohasche**: Grundgehalt je Bestand + Schnitthöhe + Arbeitsgänge (Zinkenhöhe). Verstärkt durch Maulwurfshaufen, nassen Boden und tiefe Stoppeln.
+- **Rohasche**: Grundgehalt je Bestand + Stoppelhöhe + Arbeitsgänge (Zinkenhöhe). Verstärkt durch Maulwurfshaufen, nassen Boden und tiefe Stoppeln.
 - **Silierung**: Vergärbarkeitskoeffizient FK = TS + 8·Z/PK (Weissbach). Buttersäure aus FK-Defizit, Nässe und Erde; pH gegen kritischen pH (0,0257·TS + 3,71). Gärbewertung angelehnt an den DLG-Schlüssel 2006, Siloverluste (Gärung, Nacherwärmung, Sickersaft).
 - **Punkte** = MJ NEL/ha im Trog × Gärfaktor bzw. Heufaktor (Note 1–5) × Abzug für TS ausserhalb des Zielbereichs, geteilt durch 100.
 
@@ -156,8 +155,8 @@ Umsetzung des Konzepts `docs/konzept-heubelueftung-bedienung.md`: Die Lernenden 
 - **Luftmenge**: Betriebspunkt aus Lüfterkennlinie und Stockwiderstand statt fester 0,11 m³/s je m². Der Lüfter ist auf den Sollwert gedrosselt; reicht sein Druck nicht, sinkt die Luftmenge (Anzeige «Luftmenge: … % vom Soll», Druck in Pa). Stärkeren Lüfter während der Belüftung holen: läuft nach 24 Stunden, kostet Miete.
 - **Einfüllen** (Dialog zwischen Einfahren und Belüften, `einstellungen.einfuellen`): alles auf einmal oder in zwei Lagen, gleichmässig verteilen oder abladen, wie es kommt, Lüfter sofort oder erst nach dem Einfüllen. Ungleich abgeladen ergibt drei **Säulen** (vorne locker und niedrig = Kamin, hinten hoch und dicht = Nest) mit eigener Luftmenge; gleichmässig gefüllt ist es eine Säule, und das Modell rechnet genau wie vor dem Ausbau.
 - **Messen**: Stocktemperatur und Schichtfeuchte sind nur nach dem Stecken der Heusonde sichtbar (drei Stellen; Profi auch «nur Mitte»), mit dem Alter der Messung. Dauernd sichtbar sind Zuluft, Abluft, Wasserentzug, Luftmenge und Strom. Einstieg: automatisch mit Ampel.
-- **Eingriffe** (gedrückt halten, Tastatur zweimal innert 2 s): Umschichten (mischt alles, löst Kamine und Nester auf, lockert auf 65 kg TS/m³), Nachfüllen der zweiten Lage, oberste Lage auslagern, stärkeren Lüfter holen, Sicherung einschalten.
-- **Ernstfall**: Feuerwehr vorinformieren (Taste F), alarmieren (halten). Alarm ab 60 °C beendet die Runde mit «Abbruch» (10 Punkte, Abzeichen «Rechtzeitig gehandelt»), darunter ist es ein Fehlalarm. Bleibt der Stock 12 Stunden über 70 °C, oder wird er ab 60 °C umgeschichtet oder abgetragen, endet die Runde mit «Brand» (null Punkte, eigener Schluss). Die Rangliste trägt beide Enden mit Vermerk ein.
+- **Eingriffe** (ein Klick): Umschichten (mischt alles, löst Kamine und Nester auf, lockert auf 65 kg TS/m³), Nachfüllen der zweiten Lage, oberste Lage auslagern, stärkeren Lüfter holen, Sicherung einschalten.
+- **Ernstfall**: Feuerwehr vorinformieren (Taste F), alarmieren (Knopf). Alarm ab 60 °C beendet die Runde mit «Abbruch» (10 Punkte, Abzeichen «Rechtzeitig gehandelt»), darunter ist es ein Fehlalarm. Bleibt der Stock 12 Stunden über 70 °C, oder wird er ab 60 °C umgeschichtet oder abgetragen, endet die Runde mit «Brand» (null Punkte, eigener Schluss). Die Rangliste trägt beide Enden mit Vermerk ein.
 - **Pannen** (nur Profi, abschaltbar mit `?pannen=aus`): Stromausfall in der zweiten Nacht oder gefallene Sicherung, aus Wetterlage und Code abgeleitet, für alle in der Klasse gleich.
 - **Ergebnis**: Zeitstrahl mit den eigenen Handlungen und den Wendepunkten («Feuchtes Nest hinten … nicht gemessen»), Karten Anlage, Einfüllen, Lüften, Kontrolle, Eingriffe, Lager (Wert als «% Verlust») und Kosten. Kosten in Franken je Tonne Heu stehen neben den Punkten und zählen nicht für sie; im Profi mit Rechenweg und änderbaren Preisen, CSV mit Handlungen und stündlichem Verlauf am Heustock.
 - **Wetten**: «Standardlüfter bei 55 % TS», «zu hoch gefüllt», «Nest übersehen» (`plan.anlage`, `plan.einfuellen`, `plan.belueftungLog`).

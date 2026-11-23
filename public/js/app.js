@@ -91,7 +91,7 @@ $('#begriffe-auf').addEventListener('click', () => dialogOeffnen($('#begriffe'))
 // ---------- Einsatz planen: Auswahlkarten und Chips
 // Schnitt- und Zinkenhöhen ohne Vorgabe: die Spieler müssen sie selbst einstellen
 const PFLICHT = { schnitthoehe: 'cm', zetterHoehe: 'cm über Boden', schwaderHoehe: 'cm über Boden' };
-const PFLICHT_NAME = { schnitthoehe: 'Schnitthöhe', zetterHoehe: 'Zinkenhöhe Kreiselzetter', schwaderHoehe: 'Zinkenhöhe Schwader' };
+const PFLICHT_NAME = { schnitthoehe: 'Stoppelhöhe', zetterHoehe: 'Zinkenhöhe Kreiselzetter', schwaderHoehe: 'Zinkenhöhe Schwader' };
 // Anlage der Heubelüftung (anl…): Standardlüfter, Warmdach, ohne Entfeuchter, passende Box
 const ANLAGE_WAHL = { anlLuefter: 'standard', anlDach: true, anlEntf: false, anlBox: 'passend' };
 const ANLAGE_FELD = { luefter: 'anlLuefter', dach: 'anlDach', entfeuchter: 'anlEntf', box: 'anlBox' };

@@ -11,7 +11,6 @@ import { zeigt } from './niveau.js';
 
 export const START = 5; // Tag 1, 05:00
 const TEMPO = { 1: 800, 2: 280, 3: 80 };
-const HALTEN = { maehen: 700, ernte: 700 }; // nicht umkehrbare Arbeitsgänge: gedrückt halten
 const TASTE = { maehen: 'M', zetten: 'Z', schwaden: 'S', ernte: 'E' };
 const NAMEN = { maehen: 'Mähen', zetten: 'Zetten', schwaden: 'Schwaden', ernte: 'Einfahren' };
 const $ = (s, el = document) => el.querySelector(s);
@@ -47,7 +46,6 @@ export class Spiel {
     this.pause = !plan;
     this.beschaeftigt = false;
     this.gemeldet = new Set();
-    this.bereit = null; // Doppel-Druck mit Tastatur: { art, bis }
     this.vorher = this.feld.zustand();
 
     root.classList.toggle('zeitraffer', !!plan);
@@ -117,15 +115,10 @@ export class Spiel {
     document.addEventListener('keydown', this.beiTaste);
   }
 
-  // Arbeitsgang auslösen: nicht umkehrbare Gänge brauchen mit der Tastatur zwei Druck innerhalb von 2 Sekunden
+  // Arbeitsgang auslösen (Knopf oder Taste), ohne Halten oder Bestätigen
   druecke(art) {
     if (this.beschaeftigt || this.plan) return;
-    if (!HALTEN[art]) return this.aktion(art);
-    const jetzt = Date.now();
-    if (this.bereit?.art === art && jetzt < this.bereit.bis) { this.bereit = null; return this.aktion(art); }
-    if (!this.moeglich(art)) return;
-    this.bereit = { art, bis: jetzt + 2000 };
-    this.melde(`Zum ${art === 'ernte' ? 'Einfahren' : 'Mähen'} nochmals ${TASTE[art]} oder den Knopf drücken (innert 2 Sekunden).`, true);
+    return this.aktion(art);
   }
 
   moeglich(art) {
@@ -189,7 +182,7 @@ export class Spiel {
     this.knoepfeAktiv();
     await this.szene.traktor(art, dauer);
     const t = `Tag ${Math.floor(f.t / 24) + 1}, ${zeit(f.t)}`;
-    if (art === 'maehen') { f.maehen(); this.melde(`${t}: Gemäht mit ${String(this.setup.schnitthoehe).replace('.', ',')} cm Schnitthöhe${this.vorher.nass > 0.1 ? ', das Gras war noch nass' : ''}.`); }
+    if (art === 'maehen') { f.maehen(); this.melde(`${t}: Gemäht mit ${String(this.setup.schnitthoehe).replace('.', ',')} cm Stoppelhöhe${this.vorher.nass > 0.1 ? ', das Gras war noch nass' : ''}.`); }
     if (art === 'zetten') { const ausSchwad = f.phase === 'schwad'; f.zettenJetzt(); this.melde(`${t}: ${ausSchwad ? 'Schwad wieder breit gestreut' : 'Gezettet'}${this.tsAngabe(f.ts())}.`); }
     if (art === 'schwaden') { f.schwaden(); if (this.heu) this.gemeldet.add('nachtschwad'); this.melde(`${t}: Geschwadet${this.tsAngabe(f.ts())}.`); }
     if (art !== 'ernte') this.log.push({ t: f.t, art });
@@ -284,7 +277,7 @@ export class Spiel {
       if (regenBald) return [null, `Gleich regnet es. Warte mit dem Mähen.${weiter}`];
       if (h >= (this.heu ? 13 : 15) || h < 5) return [null, this.heu ? `Heu mähst du am Vormittag, wenn der Tau weg ist. Warte bis morgen.${weiter}` : `Heute nicht mehr mähen: Am Abend zu mähen bringt nichts. Warte bis morgen.${weiter}`];
       if (zs.nass > 0.08) return [null, `Noch liegt Tau auf dem Gras. Warte, bis er abgetrocknet ist.${weiter}`];
-      return ['maehen', 'Der Tau ist weg: Jetzt mähen. Knopf «Mähen» gedrückt halten.'];
+      return ['maehen', 'Der Tau ist weg: Jetzt mähen.'];
     }
     if (zs.phase === 'gemaeht') {
       if (zs.ts >= a) return ['schwaden', 'Die Ampel ist grün: Jetzt schwaden, danach einfahren.'];
@@ -294,7 +287,7 @@ export class Spiel {
       return [null, h >= 20 || h < 6 ? `Nacht: Das Futter muss warten, bis die Sonne wieder scheint.${weiter}` : `Jetzt trocknen lassen und auf die Ampel schauen.${weiter}`];
     }
     if (zs.phase === 'schwad') {
-      if (zs.ts >= a) return ['ernte', 'Jetzt einfahren! Knopf «Einfahren» gedrückt halten.'];
+      if (zs.ts >= a) return ['ernte', 'Jetzt einfahren!'];
       if (this.heu && w.rad > 0 && h >= 8 && h < 17 && zs.nass < 0.15) return ['zetten', 'Das Heu ist noch nicht trocken genug: Breit streuen, damit es weiter trocknet.'];
       return [null, `Im Schwad trocknet das Futter nur langsam weiter.${weiter}`];
     }
@@ -332,28 +325,8 @@ export class Spiel {
       const b = document.createElement('button');
       b.type = 'button'; b.className = `aktion ${art}`; b.dataset.art = art;
       b.setAttribute('aria-keyshortcuts', TASTE[art]);
-      b.innerHTML = `${AKTION[art]}<span><b>${NAMEN[art]} <kbd>${TASTE[art]}</kbd></b><small><span class="nur-zahlen">${info[art]}</span>${HALTEN[art] ? '<span class="nur-zahlen"> · </span>halten' : ''}</small></span>`;
-      if (!HALTEN[art]) {
-        b.addEventListener('click', () => this.aktion(art));
-      } else {
-        // Gedrückt halten: schützt vor Fehltipps (Erschütterung, Scrollen). Tastatur/Screenreader: zweimal drücken.
-        let timer = null, gehalten = false;
-        const ab = () => { clearTimeout(timer); b.classList.remove('haelt'); };
-        b.addEventListener('pointerdown', (e) => {
-          if (b.disabled || e.button > 0) return;
-          gehalten = false;
-          b.classList.add('haelt');
-          timer = setTimeout(() => { gehalten = true; ab(); navigator.vibrate?.(30); this.aktion(art); }, HALTEN[art]);
-        });
-        b.addEventListener('pointerup', () => {
-          const zuKurz = !gehalten && b.classList.contains('haelt');
-          ab();
-          if (zuKurz) { b.classList.add('wackelt'); setTimeout(() => b.classList.remove('wackelt'), 400); this.melde(`${NAMEN[art]}: Knopf gedrückt halten.`); }
-        });
-        ['pointercancel', 'pointerleave'].forEach((t) => b.addEventListener(t, ab));
-        b.addEventListener('contextmenu', (e) => e.preventDefault());
-        b.addEventListener('click', (e) => { if (e.detail === 0) this.druecke(art); }); // Tastatur und Screenreader
-      }
+      b.innerHTML = `${AKTION[art]}<span><b>${NAMEN[art]} <kbd>${TASTE[art]}</kbd></b><small><span class="nur-zahlen">${info[art]}</span></small></span>`;
+      b.addEventListener('click', () => this.aktion(art));
       return b;
     }));
   }

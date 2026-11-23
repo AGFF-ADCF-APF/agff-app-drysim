@@ -89,7 +89,7 @@ export const T = {
   },
   'setup.maschinen': {
     titel: 'Maschinen einstellen',
-    einfach: 'Drei Einstellungen entscheiden über saubere Arbeit: <b>Schnitthöhe</b>, <b>Zinkenhöhe</b> von Zetter und Schwader und die <b>Ablage</b>. Stell sie selbst ein, ich sage dir, was sie bewirken.',
+    einfach: 'Drei Einstellungen entscheiden über saubere Arbeit: <b>Stoppelhöhe</b>, <b>Zinkenhöhe</b> von Zetter und Schwader und die <b>Ablage</b>. Stell sie selbst ein, ich sage dir, was sie bewirken.',
     fachlich: 'Mindestens 5–7 cm Stoppeln, Zinken nicht im Boden, Futter breit ablegen: weniger Erde, bessere Feldtrocknung und weniger Bröckelverluste. Legt der Mäher das aufbereitete Futter schon breit ab, entfällt das Ausbreiten (LK Salzburg).',
     lernen: 'sauber',
   },
@@ -220,13 +220,13 @@ export const T = {
   },
   'spiel.stehend': {
     titel: 'Das Gras steht noch',
-    einfach: 'Mähe erst, wenn der Tau abgetrocknet ist, meist am späteren Vormittag. Am Abend zu mähen bringt nichts: Der Zucker wird nachts wieder veratmet. Zum Mähen den Knopf gedrückt halten.',
+    einfach: 'Mähe erst, wenn der Tau abgetrocknet ist, meist am späteren Vormittag. Am Abend zu mähen bringt nichts: Der Zucker wird nachts wieder veratmet.',
     fachlich: 'Gemäht wird frühestens nach dem Abtrocknen des Taus. Der tagsüber gebildete Zucker wird in der Nacht veratmet, dazu kommt das zusätzliche Wetterrisiko (LK Salzburg).',
     lernen: 'zucker',
   },
   'spiel.stehend.heu': {
     titel: 'Heu braucht schöne Tage',
-    einfach: 'Schau den Wetterbericht an und mähe erst nach dem Tau. Mit Belüftung genügen oft zwei Tage, Bodenheu braucht mehr. Zum Mähen den Knopf gedrückt halten.',
+    einfach: 'Schau den Wetterbericht an und mähe erst nach dem Tau. Mit Belüftung genügen oft zwei Tage, Bodenheu braucht mehr.',
     fachlich: 'Belüftungsheu wird meist am Folgetag nach dem Mähen eingefahren (Agroscope 2014), mit modernen Anlagen genügen oft zwei Sonnentage (LK Salzburg). Beim Bodenheu ist das Wetterrisiko am grössten.',
     lernen: 'heu',
   },

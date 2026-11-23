@@ -152,9 +152,10 @@
         <h2>3 · Maschinen einstellen</h2>
         <div class="maschinen">
           <div class="maschine">
-            <h3>Mähwerk – Schnitthöhe</h3>
+            <h3>Mähwerk – Stoppelhöhe</h3>
             <div class="bild" id="bild-schnitt"></div>
-            <label class="regler pflicht leer"><input type="range" name="schnitthoehe" min="4" max="12" step="0.5" aria-label="Schnitthöhe in cm" aria-valuetext="nicht eingestellt"><output name="schnittAus">bitte einstellen</output></label>
+            <label class="regler pflicht leer"><input type="range" name="schnitthoehe" min="4" max="12" step="0.5" aria-label="Stoppelhöhe in cm" aria-valuetext="nicht eingestellt"><output name="schnittAus">bitte einstellen</output></label>
+            <small class="hinweis">Gemeint ist, was nach dem Mähen tatsächlich stehen bleibt, vom Boden bis zur Schnittkante gemessen. Die Einstellung am Mähwerk kann davon abweichen, je nach Gleitkufen, Oberlenker und Boden.</small>
           </div>
           <div class="maschine">
             <h3>Kreiselzetter – Zinkenhöhe</h3>
@@ -285,11 +286,11 @@
         <button type="button" class="hs-knopf hs-sonde hs-nur-sonde" aria-keyshortcuts="S"><span><b>Heusonde stecken <kbd>S</kbd></b><small>alle drei Stellen</small></span></button>
         <button type="button" class="hs-knopf hs-sonde-mitte hs-nur-raster"><span><b>Heusonde: nur Mitte</b><small>schneller, eine Stelle</small></span></button>
         <button type="button" class="hs-knopf hs-vorinfo" aria-keyshortcuts="F" aria-pressed="false"><span>Feuerwehr vorinformieren <kbd>F</kbd></span></button>
-        <button type="button" class="hs-knopf hs-alarm"><span><b>Feuerwehr alarmieren</b><small>halten · beendet die Runde</small></span></button>
-        <button type="button" class="hs-knopf hs-eingriff" data-eingriff="umschichten"><span><b>Umschichten</b><small>halten · Greifer mischt den Stock</small></span></button>
-        <button type="button" class="hs-knopf hs-eingriff" data-eingriff="nachfuellen"><span><b>Nachfüllen</b><small>halten · zweite Lage einfüllen</small></span></button>
-        <button type="button" class="hs-knopf hs-eingriff" data-eingriff="auslagern"><span><b>Oberste Lage auslagern</b><small>halten · verfüttern</small></span></button>
-        <button type="button" class="hs-knopf hs-eingriff" data-eingriff="luefterHolen"><span><b>Stärkeren Lüfter holen</b><small>halten · Miete, kommt nach 24 h</small></span></button>
+        <button type="button" class="hs-knopf hs-alarm"><span><b>Feuerwehr alarmieren</b><small>beendet die Runde</small></span></button>
+        <button type="button" class="hs-knopf hs-eingriff" data-eingriff="umschichten"><span><b>Umschichten</b><small>Greifer mischt den Stock</small></span></button>
+        <button type="button" class="hs-knopf hs-eingriff" data-eingriff="nachfuellen"><span><b>Nachfüllen</b><small>zweite Lage einfüllen</small></span></button>
+        <button type="button" class="hs-knopf hs-eingriff" data-eingriff="auslagern"><span><b>Oberste Lage auslagern</b><small>verfüttern</small></span></button>
+        <button type="button" class="hs-knopf hs-eingriff" data-eingriff="luefterHolen"><span><b>Stärkeren Lüfter holen</b><small>Miete, kommt nach 24 h</small></span></button>
         <button type="button" class="hs-knopf hs-sicherung" hidden><span><b>Sicherung einschalten</b><small>Der Lüfter steht!</small></span></button>
       </div>
       <p class="hinweis hs-warte" role="status" hidden></p>

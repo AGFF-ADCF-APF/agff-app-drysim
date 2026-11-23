@@ -3,7 +3,6 @@
 // und den Entfeuchter. Die Entscheidungen werden als Protokoll gesichert und lassen sich exakt nachspielen.
 // Was eine Anlage hat und was der Bildschirm zeigt, steuert `optionen` (dach, entfeuchter, rechnen), z. B. je Niveau.
 import { Heustock, spieleBelueftungNach, OPTIONEN, ANLAGE, LUFT, BETRIEB, SCHALTER, ERNSTFALL, PROTOKOLL_VERSION, LUEFTER, SAEULEN, EINGRIFF, NACHRUESTEN, uAusTs } from './belueftung.js';
-import { halteKnopf } from './halten.js';
 import { spieleNach } from './model.js';
 import { stundenwetter } from './weather.js';
 import { wetterSymbol, stundenSymbol } from './icons.js';
@@ -239,7 +238,7 @@ export class HeustockSpiel {
   warneNachMessung(temp, t) {
     if (this.warnen === 'werte') return;
     const E = ERNSTFALL;
-    if (temp >= E.alarm) { this.melde(`${t}: Über ${E.alarm} °C! Sofort die Feuerwehr alarmieren (Knopf gedrückt halten). Den Stock nicht öffnen.`, true); Assistent.hinweis('hs.ernstfall'); }
+    if (temp >= E.alarm) { this.melde(`${t}: Über ${E.alarm} °C! Sofort die Feuerwehr alarmieren. Den Stock nicht öffnen.`, true); Assistent.hinweis('hs.ernstfall'); }
     else if (temp >= E.vorinfo) { this.melde(`${t}: Über ${E.vorinfo} °C! Feuerwehr vorinformieren, alle ${E.messenAlle} Stunden messen, den Stock nicht abtragen.`, true); Assistent.hinweis('hs.ernstfall'); }
     else if (temp >= E.achtung) { this.melde(`${t}: Über ${E.achtung} °C: Gefahr. Lüfter laufen lassen und öfter messen.`, true); Assistent.hinweis('hs.warm'); }
     else if (temp > 35) { this.melde(`${t}: Über 35 °C im Heu: Jetzt muss belüftet werden (LK Salzburg).`, true); Assistent.hinweis('hs.warm'); }
@@ -266,7 +265,7 @@ export class HeustockSpiel {
       if (zs.temp > 40 && alt.temp <= 40) einmal('warm40-' + Math.floor(seit / 12), `${t}: Über 40 °C im Heustock – so warm darf Heu nie werden. Lüfter auf Dauer stellen.`, true, 'hs.warm');
       if (zs.temp >= E.achtung && alt.temp < E.achtung) einmal('warm45', `${t}: Über ${E.achtung} °C: Gefahr! Lüfter laufen lassen und den Stock im Auge behalten.`, true, 'hs.warm');
       if (zs.temp >= E.vorinfo && alt.temp < E.vorinfo) einmal('warm60', `${t}: Über ${E.vorinfo} °C! Tippe auf «Feuerwehr vorinformieren». Den Stock nicht selbst abtragen.`, true, 'hs.ernstfall');
-      if (zs.temp >= E.alarm && alt.temp < E.alarm) einmal('warm70', `${t}: Über ${E.alarm} °C – der Stock kann sich entzünden! Jetzt «Feuerwehr alarmieren» gedrückt halten.`, true, 'hs.ernstfall');
+      if (zs.temp >= E.alarm && alt.temp < E.alarm) einmal('warm70', `${t}: Über ${E.alarm} °C – der Stock kann sich entzünden! Jetzt «Feuerwehr alarmieren» drücken.`, true, 'hs.ernstfall');
     } else if (this.warnen !== 'werte') {
       // Praxis: Wer nicht misst, merkt es erst an den Anzeichen (LK Salzburg: Schwitzwasser, süsslicher Geruch)
       const g = s.gemessen;
@@ -319,18 +318,10 @@ export class HeustockSpiel {
     r.querySelector('.hs-sonde').onclick = () => this.handle('sonde', { wert: 'alle' });
     r.querySelector('.hs-sonde-mitte').onclick = () => this.handle('sonde', { wert: 'mitte' });
     r.querySelector('.hs-sicherung').onclick = () => this.handle('sicherung');
-    // Eingriffe verändern den Stock unumkehrbar: gedrückt halten (neu gebaut, damit keine alten Hörer bleiben)
-    r.querySelectorAll('.hs-eingriff').forEach((altK) => {
-      const b = altK.cloneNode(true), art = b.dataset.eingriff;
-      b.classList.remove('haelt', 'wackelt');
-      altK.replaceWith(b);
-      halteKnopf(b, { name: b.querySelector('b').textContent, los: () => this.handle(art), melde: (text, wichtig) => this.melde(text, wichtig) });
-    });
+    // Eingriffe und Alarm: ein Klick genügt (onclick ersetzt den Hörer der vorigen Runde)
+    r.querySelectorAll('.hs-eingriff').forEach((b) => { b.onclick = () => this.handle(b.dataset.eingriff); });
     r.querySelector('.hs-vorinfo').onclick = () => this.handle('vorinfo');
-    // Alarm beendet die Runde: gedrückt halten. Der Knopf wird je Runde neu gebaut, damit keine alten Hörer bleiben.
-    const alt = r.querySelector('.hs-alarm'), alarm = alt.cloneNode(true);
-    alt.replaceWith(alarm);
-    halteKnopf(alarm, { name: 'Feuerwehr alarmieren', los: () => this.handle('alarm'), melde: (text, wichtig) => this.melde(text, wichtig) });
+    r.querySelector('.hs-alarm').onclick = () => this.handle('alarm');
     r.querySelectorAll('.tempo button[data-tempo]').forEach((b) => { b.onclick = () => this.setzeTempo(Number(b.dataset.tempo)); });
     r.querySelectorAll('.tempo button[data-schritt]').forEach((b) => { b.onclick = () => this.schritt(Number(b.dataset.schritt)); });
     this.setzeTempo(0);
@@ -355,7 +346,7 @@ export class HeustockSpiel {
       const art = b.dataset.eingriff;
       b.hidden = !this.eingriffe.includes(art) || (art === 'nachfuellen' && !this.stock.warte && this.stock.nachgefuelltBei == null && this.stock.einfuellen.lagen !== 2);
       b.disabled = !this.moeglich(art);
-      if (art === 'luefterHolen') b.querySelector('small').textContent = this.stock.luefter === 'stark' ? 'starker Lüfter läuft' : this.stock.bestelltBei != null ? `bestellt, läuft in ${this.stock.bestelltBei + NACHRUESTEN.warteStunden - this.stock.t} h` : `halten · Miete, kommt nach ${NACHRUESTEN.warteStunden} h`;
+      if (art === 'luefterHolen') b.querySelector('small').textContent = this.stock.luefter === 'stark' ? 'starker Lüfter läuft' : this.stock.bestelltBei != null ? `bestellt, läuft in ${this.stock.bestelltBei + NACHRUESTEN.warteStunden - this.stock.t} h` : `Miete, kommt nach ${NACHRUESTEN.warteStunden} h`;
     });
     r.querySelector('.hs-sicherung').hidden = !this.stock.sicherungAus;
     const wt = this.stock.warte, wEl = r.querySelector('.hs-warte');

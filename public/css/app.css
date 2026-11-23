@@ -353,12 +353,8 @@ abbr[title] { text-decoration: underline dotted; text-underline-offset: 3px; cur
 .offen { margin: 0; font-weight: 700; color: var(--rot); text-align: center; }
 .offen.fertig { color: var(--gruen-text); }
 
-/* Spielfeld: gedrückt halten, Warnsymbole, ruhiger Modus */
+/* Spielfeld: Warnsymbole, ruhiger Modus */
 .aktion { position: relative; overflow: hidden; touch-action: manipulation; -webkit-touch-callout: none; user-select: none; }
-.aktion::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: #fff; transform: scaleX(0); transform-origin: left; }
-.aktion.haelt::after { transform: scaleX(1); transition: transform .7s linear; }
-.aktion.wackelt { animation: wackeln .4s; }
-@keyframes wackeln { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
 .messer.warnung strong::after { content: " ⚠"; }
 .ruhig .tempo [data-tempo="1"], .ruhig .tempo [data-tempo="2"], .ruhig .tempo [data-tempo="3"] { display: none; }
 .zeitraffer .tempo [data-schritt] { display: none; }
@@ -427,7 +423,6 @@ dialog { max-height: calc(100vh - 32px); overflow: auto; }
 :root[data-outdoor="1"] .chip[aria-pressed="true"], :root[data-outdoor="1"] .wahlkarte[aria-pressed="true"] { outline: 4px solid #000; outline-offset: -2px; }
 :root[data-outdoor="1"] .faktor { border: 2px solid #000; border-top-width: 8px; }
 
-@media (prefers-reduced-motion: reduce) { .aktion.wackelt { animation: none; } .aktion.haelt::after { transition: none; } }
 a.logo { text-decoration: none; color: inherit; display: flex; gap: .6rem; align-items: center; min-height: 48px; }
 a.logo svg { width: 36px; height: 36px; background: #f3efe3; border-radius: 10px; padding: 3px; }
 a.logo b { display: block; font-size: 1.1rem; }
