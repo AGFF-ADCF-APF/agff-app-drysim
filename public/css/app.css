@@ -535,3 +535,60 @@ a.logo small { opacity: .85; font-size: .95rem; }
 .messung { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: var(--gelb-hell); }
 #detail .grafik { margin-top: 14px; }
 #bild-ablage svg { display: block; width: 100%; max-width: 240px; height: auto; margin: 0 auto; }
+
+/* ===== Niveaus (js/niveau.js): Einstieg, Praxis, Profi ===== */
+.niveau-wahl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: .6rem; }
+@media (max-width: 760px) { .niveau-wahl { grid-template-columns: minmax(0, 1fr); } }
+.niveau-knopf {
+  display: grid; gap: 2px; text-align: left; min-height: 48px; padding: 12px 14px; border-radius: 14px; cursor: pointer;
+  border: 2px solid var(--linie); border-left-width: 8px; background: var(--bg); color: var(--text);
+}
+.niveau-knopf.einstieg { border-left-color: var(--gruen); }
+.niveau-knopf.praxis { border-left-color: var(--blau); }
+.niveau-knopf.profi { border-left-color: var(--gelb-dunkel); }
+.niveau-knopf b { font-size: 1.15rem; }
+.niveau-knopf small { color: var(--leise); font-size: .95rem; }
+.niveau-knopf .niveau-fuer { color: var(--text); font-weight: 700; }
+.niveau-zeichen { letter-spacing: .15em; color: var(--leise); }
+.niveau-knopf[aria-pressed="true"] { border-color: var(--gruen); background: var(--gruen-hell); }
+.niveau-knopf[aria-pressed="true"] b::after { content: " ✓"; color: var(--gruen-text); }
+.niveau-knopf:focus-visible, .aktion:focus-visible { outline: 3px solid var(--blau); outline-offset: 2px; }
+:root[data-outdoor="1"] .niveau-knopf[aria-pressed="true"] { outline: 4px solid #000; outline-offset: -2px; }
+#niveau-auf span { letter-spacing: .1em; }
+.niveau-marke { font-weight: 700; color: var(--text); }
+dialog .niveau-wahl { grid-template-columns: minmax(0, 1fr); }
+
+/* Einsatz im Einstieg: Wiese und Maschinen hinter «Mehr einstellen» */
+#setupform.kurz:not(.mehr-offen) #s-wiese, #setupform.kurz:not(.mehr-offen) #s-maschinen,
+#setupform.kurz:not(.mehr-offen) [data-sprung="s-wiese"], #setupform.kurz:not(.mehr-offen) #schritt-maschinen { display: none; }
+.mehr-einstellen { background: var(--gruen-hell); }
+.mehr-einstellen p { margin: 0 0 .6rem; }
+
+/* Feld im Einstieg: Ampel, Worte statt Zahlen, Vorschlag des Traktors */
+.spielfeld.einfach .nur-zahlen, .einfach .nur-zahlen { display: none; }
+.einfach .messer.ts strong { font-size: 1.6rem; }
+.messer.ts[class*="ampel-"] strong::before { content: "● "; }
+.messer.ts.ampel-aus strong::before { color: var(--leise); }
+.messer.ts.ampel-gelb strong::before { color: var(--gelb); }
+.messer.ts.ampel-gruen strong::before { color: var(--gruen); }
+.messer.ts.ampel-rot strong::before { color: var(--rot); }
+.messer.ts.ampel-gelb { box-shadow: inset 0 0 0 3px var(--gelb), var(--schatten); }
+.messer.ts.ampel-rot { box-shadow: inset 0 0 0 3px var(--rot), var(--schatten); }
+.vorschlag { margin: 0; padding: 10px 14px; border-radius: 12px; background: var(--gruen-hell); border-left: 6px solid var(--gruen); font-size: 1.05rem; }
+.aktion.empfohlen { box-shadow: 0 0 0 4px var(--gruen), var(--schatten); }
+.aktion.empfohlen b::after { content: " ←"; color: var(--gruen-text); }
+@media (max-width: 760px) { .aktion.empfohlen b::after { content: ""; } .vorschlag { font-size: 1rem; } }
+
+/* Ergebnis im Profi-Niveau: Rechenwege, Kalibrierung, Export, Aufgaben */
+.profi-karte h3 { font-size: 1.05rem; margin: 1rem 0 .4rem; }
+.profi-karte h3:first-of-type { margin-top: 0; }
+.rechnung { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; display: block; overflow-x: auto; }
+.rechnung tbody { display: table; width: 100%; }
+.rechnung th, .rechnung td { text-align: left; vertical-align: top; padding: .4rem .5rem; border-bottom: 1px solid var(--linie); }
+.rechnung th { font-weight: 600; color: var(--leise); width: 34%; }
+.aufgaben li { margin-bottom: .6rem; line-height: 1.5; }
+.profi-karte .knopflink, .profi-karte .leise-knopf { min-height: 48px; }
+#detail-text .bild svg { width: 100%; max-width: 360px; height: auto; display: block; margin: .4rem auto; }
+.seite .auftrag { background: var(--karte); border-radius: 12px; padding: .8rem 1rem; margin: .8rem 0; box-shadow: var(--schatten); }
+.seite .auftrag h3 { margin-top: 0; }
+.seite .auftrag code { font-size: .9rem; overflow-wrap: anywhere; color: var(--leise); display: block; margin-top: .4rem; }

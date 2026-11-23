@@ -34,6 +34,7 @@ let aktKey = null, aktDyn = null; // zuletzt gemeldeter Schritt oder Ereignis
 let angezeigt = null;             // Schlüssel der gerade sichtbaren Blase
 let offen = false;                // grosse Blase offen
 let teaserTimer = null;
+let nurAufWunsch = false;         // Niveau Profi: keine Blasen von selbst, nur beim Antippen des Traktors
 const wartend = [];               // weitere Blasen, die noch warten (höchstens drei)
 
 /** Einträge können zur Laufzeit überschrieben werden (z. B. Lernziel eines Szenarios). */
@@ -156,7 +157,7 @@ export const Assistent = {
     aktKey = key; aktDyn = dyn ? { key, dyn } : null;
     if (offen) schliesse(false);
     verwerfeTeaser();
-    if (!Z.ruhe && !Z.gesehen.includes(key)) teaser(key, dyn);
+    if (!Z.ruhe && !nurAufWunsch && !Z.gesehen.includes(key)) teaser(key, dyn);
   },
 
   /** Ereignis (Regen, Zielbereich …) oder Rückmeldung zu einer Einstellung. Warnungen («immer») kommen bei jedem Mal. */
@@ -168,12 +169,16 @@ export const Assistent = {
     if (!neu) return;
     el.hidden = false; el.classList.toggle('schlaeft', Z.ruhe);
     aktKey = key; aktDyn = dyn ? { key, dyn } : null;
-    if (!Z.ruhe) teaser(key, dyn, true);
+    if (!Z.ruhe && !nurAufWunsch) teaser(key, dyn, true);
   },
 
   schliessen() { schliesse(false); },
   get ruhe() { return Z.ruhe; },
   set ruhe(v) { Z.ruhe = !!v; merken(); if (el) { el.classList.toggle('schlaeft', Z.ruhe); if (Z.ruhe) { schliesse(false); wartend.length = 0; } } },
   get stufe() { return Z.stufe; },
+  set stufe(v) { if (v === 'einfach' || v === 'fachlich') { Z.stufe = v; merken(); } },
+  /** Niveau Profi: Tipps nur, wenn man den Traktor antippt */
+  get nurAufWunsch() { return nurAufWunsch; },
+  set nurAufWunsch(v) { nurAufWunsch = !!v; if (nurAufWunsch) verwerfeTeaser(); },
   zuruecksetzen() { Z.gesehen = []; merken(); },
 };
