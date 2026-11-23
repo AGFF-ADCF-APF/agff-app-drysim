@@ -15,7 +15,7 @@ Für den Wettkampf bekommen alle dasselbe Wetter, entweder eine feste Wetterlage
 
 Statische Seite ohne Build-Schritt (ES-Module), ausgeliefert mit nginx hinter Traefik.
 
-Ablauf im Spiel: Start → Einsatz planen (Wetter, Wiese, Maschinen, Silo) → Spielfeld (die Uhr läuft, Tempo wählbar; Mähen, Zetten, Schwaden und Einfahren per Knopf; Pause bei Regen, Zielbereich, „zu trocken“) → Silo öffnen (Punkte, Sterne, Abzeichen, Erklär-Karten, Rückblick). Die Prognose-Wette nutzt dasselbe Spielfeld im Zeitraffer mit vorgegebenem Plan.
+Ablauf im Spiel: Start → Einsatz planen (Wetter, Wiese, Maschinen, Silo) → Spielfeld (die Uhr läuft, Tempo wählbar; Mähen, Zetten, Schwaden und Einfahren per Knopf; Pause bei Regen, Zielbereich, „zu trocken“) → bei Belüftungsheu «Am Heustock» → Silo öffnen (Punkte, Sterne, Abzeichen, Erklär-Karten, Rückblick). Die Prognose-Wette nutzt dasselbe Spielfeld im Zeitraffer mit vorgegebenem Plan.
 
 | Datei | Inhalt |
 |---|---|
@@ -31,6 +31,9 @@ Ablauf im Spiel: Start → Einsatz planen (Wetter, Wiese, Maschinen, Silo) → S
 | `tools/seiten.mjs` | Erzeugt `lernen.html`, `szenario/*.html`, `sitemap.xml` und `sw.js` aus den Spieldaten |
 | `public/manifest.webmanifest`, `img/` | Installierbare App, Symbole, Vorschaubild für Links |
 | `public/js/scenarios.js` | Wetterlagen, Grundplan, Prognose-Szenarien |
+| `public/js/belueftung.js` | Heubelüftung im Heustock, Stunde für Stunde (Luft wie drywatch, Sorption, Lüfter, Dach, Entfeuchter, Wärme, Schimmel, Strom) |
+| `public/js/heustock.js`, `css/heustock.css` | Spielphase «Am Heustock» nach dem Einführen von Belüftungsheu, Rechenaufgabe |
+| `public/js/belueftung-vergleich.js` | Belüftung unter festen Bedingungen nachrechnen (Tests, Lernseite) |
 | `test/run.mjs` | Modell-Durchlauf aller Szenarien auf der Konsole |
 
 ```
@@ -109,6 +112,24 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine node test/kalibrierung.mjs
 - **Szenario** «Tänikon 2001: echter Versuch»: Die Wette zeigt zusätzlich die gemessene TS.
 - Nicht übernommen: die Aussage, der Zucker nehme nach dem Schnitt durch Photosynthese zu (Beratung Kilcer/Puckhaber, ohne gesicherte Versuche). Die Lernseite erklärt das.
 
+### Heubelüftung (seit 22.11.2026, Branch feature/belueftung)
+
+- **Spielphase «Am Heustock»** (`heustock.js`): Nach dem Einführen von Belüftungsheu läuft die Uhr stündlich weiter (Tempo, Pause, ruhiger Modus mit +1 h/+6 h, Tasten A/D/I Lüfter, W Dach, E Entfeuchter, R Nachrechnen). Lüfter aus, Dauer oder Intervall mit Feuchtesteuerung; Warmluft vom Dach; Entfeuchter. Anzeigen: Zuluft und Abluft (°C, % rF), Wasserentzug g/m³ und L/h, Restwasser bis 87 % TS, TS (Mittel und feuchteste Schicht), Stocktemperatur, Strom. Ticker-Hinweise (feuchte Nachtluft, über 35/40 °C, Haupttrocknung fertig, 80 Stunden, Dach). «Steuerung übernimmt» spielt den Rest im Intervall im Zeitraffer. Ende, wenn lagerfähig oder nach zehn Tagen. Gesichert wird das Protokoll der Schaltungen (`drysim-runde` mit Feld `heustock`), Fortsetzen spielt Feld und Heustock exakt nach.
+- **Optionen für Niveaus**: `setup.belueftungOptionen = { dach, entfeuchter, rechnen }` (Standard: alles an, `OPTIONEN` in `belueftung.js`). Ausgeschaltetes wird im Modell nicht gerechnet und im Bildschirm ausgeblendet.
+- **Modell** (`belueftung.js`): Stock in vier Schichten, Luft von unten nach oben. Luftzustand wie drywatch (Magnus, x in g/kg, Dichte, Enthalpie), Wasserentzug = (x Abluft − x Zuluft) × Dichte. Jede Schicht bringt die Luft auf ihrer Enthalpie ein Stück zum Sorptionsgleichgewicht des Heus (Abkühlung beim Verdunsten); ist die Luft feuchter, nimmt das Heu Wasser auf. Lüfterstrom und Dachwärme wärmen die Zuluft, der Entfeuchter kondensiert Wasser (Kondensleistung nach Agroscope 2014, Abb. 18) und gibt seinen Strom als Wärme ab.
+- **Belegt** (Quellen in `versuche.js` und auf der Lernseite): Luftmenge 0,11 m³/s je m², Lüfter 0,11 kW je m², Dach 2× Stockfläche mit 275 W/m² (Agroscope 2014); Raumgewicht 78 kg TS/m³ (FAT 1982); Box 25 m² je ha Tagesschlagkraft, Entfeuchter 17 kW je 100 m², ersten 24 h durchlüften, über 35 °C belüften, Haupttrocknung innert 80 h (LK Salzburg); Intervall alle 4 h eine halbe Stunde bis Gutfeuchte rund 22 % (FAT 1982: 4–6 h, 20–30 min, bis 20–25 %); Entfeuchter unter 10 °C oder 40 % rF unwirksam (Agroscope 2014). Sorptionsgleichgewicht angepasst an die Kurven für 20 und 30 °C (LK Salzburg) und die Abluft-Tabellen (Agroscope 2014, Tab. 3; LK Salzburg), höchstens rund 2 Punkte TS daneben.
+- **Kalibrierung** (`KAL_B`): Annäherung je Schicht 0,225, mit der Gutfeuchte abnehmend (Exponent 0,5), Wiederbefeuchtung halb so schnell; angepasst an FAT 1982, Abb. 29 (Wasserentzug nach Luftfeuchte und TS, mittlere Abweichung 0,18 g/m³) und die Ausnutzung des Sättigungsdefizits von 50–65 % (LK Salzburg). Geprüft (nicht angepasst) an LK Salzburg S. 42: Kaltluft 0,23/0,27 kWh je kg Wasser (LK 0,24/0,28), Dach 0,15 (LK unter 0,2), Entfeuchter 0,49 mit Lüfter (LK 0,26–0,45). Tänikon 2001 (67,6 % TS) im Standardbetrieb: Haupttrocknung 72 h, 60 kWh/t.
+
+```
+docker run --rm --user 1000:1000 -v "$PWD":/app -w /app node:22-alpine node test/belueftung.mjs              # Vergleich mit den Richtwerten
+docker run --rm --user 1000:1000 -v "$PWD":/app -w /app node:22-alpine node test/belueftung-kalibrierung.mjs  # Parametersuche
+```
+
+- **Ergebnis**: `Feld.einfahren()` rechnet Belüftungsheu mit dem Standardbetrieb (Intervall, Dach; Wette und Zeitraffer) oder mit `plan.belueftung`; nach der Spielphase bewertet `Feld.bewerte(lauf)` neu. `lagereHeu` nutzt Haupttrocknung (Abzüge über 80 h), höchste Stocktemperatur, Schimmelindex, Restfeuchte am Ende, Atmungsverlust im Stock und Strom. Erklärkarte «Belüftung und Lager» mit Verlaufsgrafik, Kennzahl «Belüftung» und Abzeichen «Stromsparer» (höchstens 0,25 kWh je kg Wasser).
+- **Rechenaufgabe** «Nachrechnen»: Aus Zuluft und Abluft mit einer Sättigungstabelle g/m³, Wasserentzug und L/h berechnen (Toleranz 12 %), Auflösung mit Rechenweg, Vergleich mit der genaueren Rechnung des Spiels und h,x-Diagramm (`grafikHx`).
+- **Szenarien**: «Belüftung: Lüfter Tag und Nacht» (Dauerbetrieb ohne Dach) und «Belüftung: vor dem Gewitter» (Kaltbelüftung, 63 % TS).
+- **Wetter**: `belueftungsWetter` verlängert die vier Tage der Wetterlage reproduzierbar auf 14 Tage (Spielwetter aus dem Mittel der Wetterlage, keine Klimastatistik). Die ersten vier Tage bleiben unverändert, die Feldphase rechnet weiter mit dem Original.
+
 ## Offen / im Büro weiterentwickeln
 
 - [ ] Parameter mit Fachleuten kalibrieren: Trocknung mit Schweizer Messreihen (Gras statt Luzerne, Agroscope/AGFF) prüfen, Atmung, Bröckelverluste, Buttersäure-Ansatz; Werte des Aufbereiters mit Zinken und Bürste mit Versuchsdaten abgleichen
@@ -119,7 +140,11 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine node test/kalibrierung.mjs
 - [ ] Wetter: echte Vorhersage/Messdaten (MeteoSchweiz) als Szenario-Quelle
 - [ ] Grafik: Illustrationen (Feld, Maschinen) – derzeit nur SVG-Diagramm; KI-Bilder oder Grafiker
 - [x] Heu als zweites Modul (Belüftungsheu, Bodenheu, Heuballen; Nachtschwad; Lager und Heuqualität)
-- [ ] Heu-Parameter mit Fachleuten prüfen: Trocknungsschub ab 55 % TS, Bröckelverluste nach TS und Kleeanteil, Erwärmung und Lagerverluste, Punkteschema der Heuqualität (Sinnenprüfung). Belüftung mit drywatch verknüpfen (Energie, Warmbelüftung, Entfeuchter)
+- [ ] Heu-Parameter mit Fachleuten prüfen: Trocknungsschub ab 55 % TS, Bröckelverluste nach TS und Kleeanteil, Erwärmung und Lagerverluste, Punkteschema der Heuqualität (Sinnenprüfung)
+- [x] Heubelüftung als zweite Spielphase, Rechnung wie drywatch (Wasserentzug g/m³ und L/h, h,x-Diagramm)
+- [ ] Belüftung mit einer echten Messreihe prüfen: Die Unterlagen (FAT 1982, Agroscope 2014, LK Salzburg) enthalten keinen vollständigen Verlauf mit Stockfläche, Heumenge, Luftzustand, Dauer und Strom. Geprüft ist nur gegen Richtwerte und abgelesene Grafiken. Kandidaten: Messkurve Entfeuchtertrocknung LK Salzburg S. 40 (ohne Masse und Luftmenge), FAT-Berichte 406/407 (Baumgartner, Nydegger 1991), Nydegger & Wirleitner 2014; drywatch-Messdaten von Betrieben
+- [ ] Belüftung, Annahmen ohne Beleg: Erwärmung von ungelüftetem Heu (0,3 K/h bei 65 % TS und 20 °C, Q10 = 2 bis 40 °C, darüber abnehmend), Schimmelindex (Gleichgewichtsfeuchte über 75 % rF, 72 h bis «leicht»), Wärmekapazität, Abzüge in der Heuqualität, Parzelle 2 ha, vier Schichten, Lagerfähigkeit an der feuchtesten Schicht (85 % TS), Temperatur der Abb. 29 (20 °C angenommen), Zuordnung der TS-Klassen in Abb. 29 zu Vertreterwerten. Nicht gerechnet: Luftdruck im Stock und weniger Luft bei vollem Stock, Kollektor-Druckverlust, Umluftbetrieb des Entfeuchters, Nachfüllen weiterer Chargen
+- [ ] Wetter nach dem vierten Tag ist erfunden; besser echte Messreihen (MeteoSchweiz) für die Belüftungsphase
 
 
 ## Lizenz

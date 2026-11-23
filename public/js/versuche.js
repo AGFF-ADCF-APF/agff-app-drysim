@@ -43,3 +43,32 @@ export const LEISTUNG = [['ohne Aufbereiter', 61], ['mit Aufbereiter', 122]];
 // top agrar 12/2021: Spelle (Emsland), 9.5.2021, 28 °C, Ackergras, gemäht 11 Uhr mit 19,9 % TS, ein Versuchstag ohne Wiederholung.
 // Zeit bis rund 35 % TS: mit Aufbereiter etwa 5 h; ohne Aufbereiter, zweimal gewendet, knapp 35 % um 19 Uhr (8 h); ohne Wenden 27,2 % TS am Abend.
 export const TOPAGRAR_35 = [['mit Aufbereiter', 5], ['ohne Aufbereiter, 2× gewendet', 8]];
+
+// ---------- Heubelüftung: Richtwerte aus den Fachunterlagen (abgeschrieben bzw. aus Grafiken abgelesen)
+export const QUELLE_FAT1982 = { titel: 'Baumgartner, J. (1982): ABC der Heubelüftung. Blätter für Landtechnik 216, FAT Tänikon', url: '../drywatch/knowledge/files/Baumgartner_1982_ABC-der-Heubelueftung.pdf' };
+export const QUELLE_AGROSCOPE38 = { titel: 'Agroscope Transfer Nr. 38/2014: Richtlinien für Heubelüftungsanlagen', url: '../drywatch/knowledge/files/agroscope_transfer_38_2014_richtlinien_fuer_heubelueftungsanlagen.pdf' };
+export const QUELLE_LKS = { titel: 'Galler, Kittl, Wirleitner (LK Salzburg): Heutrocknung von A bis Z', url: '../drywatch/knowledge/files/Heutrocknung_von_A-Z_Kittl+Galler_2020.pdf' };
+
+// FAT 1982, Abb. 29: «Durchschnittlicher Wasserentzug in Abhängigkeit der relativen Luftfeuchtigkeit und verschiedener
+// Trocknungsgrade des Heus», g/m³ Luft, aus der Grafik abgelesen (±0,1–0,2 g/m³). Temperatur nicht angegeben (Spiel: 20 °C).
+// Die TS-Klassen sind im Spiel durch einen Vertreterwert ersetzt (unter 55 % → 52 %, über 75 % → 80 %).
+export const ABB29 = {
+  kurven: [
+    { name: 'unter 55 % TS', ts: 52, punkte: [[50, 3.1], [60, 2.3], [70, 1.6], [80, 1.0], [90, 0.5]] },
+    { name: '55–65 % TS', ts: 60, punkte: [[40, 3.0], [50, 2.3], [60, 1.7], [70, 1.2], [80, 0.75], [90, 0.35]] },
+    { name: '65–75 % TS', ts: 70, punkte: [[40, 2.3], [50, 1.6], [60, 1.1], [70, 0.7], [80, 0.35], [90, -0.05]] },
+    { name: 'über 75 % TS', ts: 80, punkte: [[40, 1.3], [50, 0.75], [60, 0.35], [70, 0.05], [80, -0.2], [90, -0.3]] },
+  ],
+};
+// LK Salzburg S. 42 (nach Wirleitner, aus Balken abgelesen): spezifischer Energiebedarf und Trocknungsleistung
+export const LKS_VERFAHREN = [
+  { name: 'Kaltluft 20 °C / 65 % rF', rh: 65, dach: false, kwhJeKg: 0.24, kgJeTh: 3.0 },
+  { name: 'Kaltluft 20 °C / 70 % rF', rh: 70, dach: false, kwhJeKg: 0.28, kgJeTh: 2.55 },
+  { name: 'mit Dachabsaugung', rh: 65, dach: true, kwhJeKg: 0.19, kgJeTh: 4.4 },
+];
+// LK Salzburg: Kaltbelüftung «bei üblichen Luftfeuchtewerten ungefähr 0,8 bis 1,1 g Wasser/m³ Luft» (S. 34),
+// Ausnutzung des adiabatischen Sättigungsdefizits 50–65 % (S. 34), Entfeuchter 0,26–0,45 kWh/kg Wasser (S. 43),
+// Dachabsaugung «deutlich unterhalb von 0,2 kWh/kg» (S. 43), Haupttrocknung innert 80 h (S. 30)
+export const LKS_RICHTWERTE = { kaltGm3: [0.8, 1.1], ausnutzung: [0.5, 0.65], entfKwhJeKg: [0.26, 0.45], dachKwhJeKg: 0.2, stunden: 80 };
+// Gleichgewicht Luftfeuchte → TS bei 20 °C (Abluft-Tabelle: Agroscope 2014, Tab. 3; LK Salzburg S. 45)
+export const ABLUFT_TS = [[90, 68], [80, 74], [70, 78], [60, 82.5], [50, 85]];

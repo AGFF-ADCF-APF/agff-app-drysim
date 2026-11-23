@@ -10,6 +10,7 @@ import { wetterSymbol, STERN } from './icons.js';
 import { BEGRIFFE, mitBegriffen } from './begriffe.js';
 import { Assistent } from './assistent.js';
 import { KARTEN_GRAFIK } from './grafik.js';
+import { HeustockSpiel, feldAusRunde } from './heustock.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const z = (x, d = 1) => x.toFixed(d).replace('.', ',');
@@ -25,6 +26,7 @@ const TITEL = {
   start: 'Heureka – Lernspiel Futterkonservierung',
   setup: 'Einsatz planen – Heureka',
   spiel: 'Auf dem Feld – Heureka',
+  heustock: 'Am Heustock – Heureka',
   ergebnis: 'Silo öffnen – Heureka',
   wetten: 'Prognose-Wette – Heureka',
 };
@@ -32,6 +34,7 @@ const PFAD = {
   start: [],
   setup: [['Start', 'start'], ['Einsatz planen']],
   spiel: [['Start', 'start'], ['Einsatz planen', 'setup'], ['Auf dem Feld']],
+  heustock: [['Start', 'start'], ['Einsatz planen', 'setup'], ['Am Heustock']],
   ergebnis: [['Start', 'start'], ['Einsatz planen', 'setup'], ['Silo öffnen']],
   wetten: [['Start', 'start'], ['Prognose-Wette']],
 };
@@ -63,7 +66,7 @@ document.addEventListener('click', (ev) => {
 addEventListener('popstate', (e) => {
   let id = e.state?.id ?? 'start';
   if (spiel?.plan && !spiel.gestoppt && !confirm('Wette abbrechen?')) { history.pushState({ id: 'spiel' }, '', '#spiel'); return; }
-  if ((id === 'spiel' || id === 'ergebnis') && !spiel) id = 'start';
+  if ((id === 'spiel' || id === 'heustock' || id === 'ergebnis') && !spiel) id = 'start';
   zeige(id, false);
 });
 
@@ -344,7 +347,18 @@ function starteSpiel({ einstellungen, sz, wetterRef = null, plan = null, tipp = 
   zeige('spiel');
   spiel = new Spiel($('#spiel'), {
     setup: einstellungen, wetterSzenario: sz, wetterRef, plan, resume,
-    onEnde: (res) => zeigeErgebnis(res, sz, tipp, einstellungen),
+    onEnde: (res, feld, feldLog) => (res.plan.siloart === 'belueftung' && !plan && feld
+      ? starteHeustock({ feld, einstellungen, sz, wetterRef, feldLog })
+      : zeigeErgebnis(res, sz, tipp, einstellungen)),
+  });
+}
+
+// ---------- Belüftungsheu: zweite Phase «Am Heustock» (js/heustock.js); die Wette rechnet den Standardbetrieb
+function starteHeustock({ feld, einstellungen, sz, wetterRef, feldLog, resume = null }) {
+  zeige('heustock');
+  spiel = new HeustockSpiel($('#heustock'), {
+    feld, setup: einstellungen, wetterSzenario: sz, wetterRef, feldLog, resume,
+    onEnde: (lauf) => zeigeErgebnis(feld.bewerte(lauf), sz, null, einstellungen),
   });
 }
 
@@ -367,13 +381,18 @@ function zeigeFortsetzen() {
   $('#fortsetzen').hidden = !g;
   if (!g) return;
   const sz = wetterVon(g.wetterRef?.id, g.wetterRef?.code);
-  $('#fortsetzen-text').textContent = `Tag ${Math.floor(g.t / 24) + 1}, ${String(g.t % 24).padStart(2, '0')}:00 · ${sz ? sz.name : 'Wetter unbekannt'}. Die Runde ist auf diesem Gerät gesichert.`;
+  $('#fortsetzen-text').textContent = `${g.heustock ? 'Am Heustock, ' : ''}Tag ${Math.floor(g.t / 24) + 1}, ${String(g.t % 24).padStart(2, '0')}:00 · ${sz ? sz.name : 'Wetter unbekannt'}. Die Runde ist auf diesem Gerät gesichert.`;
 }
 $('#fortsetzen-los').addEventListener('click', () => {
   const g = gespeicherteRunde();
   const sz = g && wetterVon(g.wetterRef?.id, g.wetterRef?.code);
   if (!sz) { vergissRunde(); zeigeFortsetzen(); return; }
   try {
+    if (g.heustock) {
+      letzterStart = { einstellungen: g.einstellungen, sz, wetterRef: g.wetterRef };
+      starteHeustock({ feld: feldAusRunde(g, sz), einstellungen: g.einstellungen, sz, wetterRef: g.wetterRef, feldLog: g.log, resume: g.heustock });
+      return;
+    }
     starteSpiel({ einstellungen: g.einstellungen, sz, wetterRef: g.wetterRef, resume: g });
   } catch {
     vergissRunde(); zeige('start'); // beschädigter Spielstand: sauber neu beginnen
@@ -400,7 +419,9 @@ function abzeichen(res) {
     const h = res.heu;
     if (h.abzug.farbe < 1 && e.regenFeld === 0) a.push(['Grünes Heu', 'Nicht verregnet, nicht ausgebleicht']);
     if (v.broeckel < (res.plan.bestand === 'klee' ? 5 : 3.5)) a.push(['Blattschoner', 'Wenig Bröckelverluste']);
-    if (res.plan.siloart === 'belueftung' && h.belueftTage <= 3 && res.ernte.ts >= 60) a.push(['Belüftungsprofi', 'Rechtzeitig und genug angewelkt eingeführt']);
+    if (res.plan.siloart === 'belueftung' && h.belueftTage <= 80 / 24 && res.ernte.ts >= 60) a.push(['Belüftungsprofi', 'Haupttrocknung innert 80 Stunden']);
+    const b = res.belueftung;
+    if (b?.lagerfaehig && b.wasser > 0 && b.kwh / b.wasser <= 0.25) a.push(['Stromsparer', 'Höchstens 0,25 kWh je kg Wasser']);
     if (h.temp >= 70) a.push(['Heustock heiss', 'Ab 70 °C: Feuerwehr alarmieren!', true]);
     else if (h.temp >= 60) a.push(['Heustock sehr warm', 'Feuerwehr vorinformieren, alle fünf Stunden messen', true]);
     else if (h.schimmel !== 'kein') a.push(['Muffig', 'Zu feucht eingelagert', true]);
@@ -429,7 +450,7 @@ function zeigeDetail(f) {
   $('#detail-text').innerHTML = `<p class="kurz">${mitBegriffen(kopf)}</p>`
     + (rest.length ? `<ul>${rest.map((s) => `<li>${mitBegriffen(s)}</li>`).join('')}</ul>` : '')
     + (f.tipp ? `<p class="tipp"><b>Tipp:</b> ${mitBegriffen(f.tipp)}</p>` : '')
-    + (KARTEN_GRAFIK[f.grafik]?.() ?? '');
+    + (KARTEN_GRAFIK[f.grafik]?.(f.grafikDaten) ?? '');
   dialog.showModal();
 }
 const STUFE_TEXT = { gut: 'Gut gemacht', mittel: 'Geht besser', schlecht: 'Problem' };
@@ -465,6 +486,7 @@ function zeigeErgebnis(res, sz, tipp, einstellungen) {
   $('#kennzahlen').innerHTML = (heu ? [
     ['TS beim Einlagern', `${z(e.ts)} %`], ['Rohasche', `${z(e.asche, 0)} g/kg TS`], ['Heustock bis', `${z(res.heu.temp, 0)} °C`],
     ['Heuqualität', `Note ${res.note} · ${NOTEN[res.note - 1]}`], ['Energie', `${z(res.nel, 2)} MJ NEL/kg TS`], ['Verlust Feld bis Trog', `${z(res.verlustTotal, 0)} %`],
+    ...(res.belueftung ? [['Belüftung', `${z(res.belueftung.stunden, 0)} h · ${z(res.belueftung.kwhJeT, 0)} kWh/t`]] : []),
   ] : [
     ['TS beim Einfahren', `${z(e.ts)} %`], ['Rohasche', `${z(e.asche, 0)} g/kg TS`], ['Zucker', `${z(e.zucker, 0)} g/kg TS`],
     ['Gärqualität', `Note ${res.note} · ${NOTEN[res.note - 1]}`], ['Energie', `${z(res.nel, 2)} MJ NEL/kg TS`], ['Verlust Feld bis Trog', `${z(res.verlustTotal, 0)} %`],
