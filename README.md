@@ -41,10 +41,11 @@ Ablauf im Spiel: Start → Einsatz planen (Wetter, Wiese, Maschinen, Silo) → S
 | `test/run.mjs` | Modell-Durchlauf aller Szenarien auf der Konsole |
 
 ```
-docker compose up -d --build                 # Home-Server: nur noch Weiterleitung (umzug/)
-tools/deploy-allinkl.sh --dev                 # all-inkl Testumgebung (aus dem letzten Commit)
-docker run --rm -v "$PWD":/app -w /app node:22-alpine node test/run.mjs
-test/konto/test.sh                            # Anmeldung (public/konto.php) im PHP-Container
+# Arbeitsordner: ~/git/agff-app-drysim (Regeln in CLAUDE.md)
+tools/seiten.sh                               # Seiten, Sitemap, Service Worker erzeugen; Mediathek aus futter nachziehen
+tools/test.sh                                 # alle Prüfungen (Modell, Spiel, Anmeldung konto.php)
+tools/deploy-allinkl.sh --dev                 # all-inkl Testumgebung (aus dem letzten Commit); live: --live (Eingabe «live»)
+# Home-Server /opt/stacks/agff-apps/agff-drysim: nur noch Weiterleitung (umzug/), docker compose up -d --build
 ```
 
 ## Bedienung, Zugänglichkeit und Suchmaschinen

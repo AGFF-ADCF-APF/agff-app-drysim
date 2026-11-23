@@ -18,10 +18,14 @@ import { TABELLE as NIVEAUS } from '../public/js/niveau.js';
 // Die anderen AGFF-Apps (Futterrechner, Heutrocknung) laufen weiter auf dem Home-Server; Heureka liegt auf app.graswachstum.ch
 const APPS = 'https://apps.graswachstum.ch';
 
-// Mediathek-Kopie aus futter nachziehen (nur wenn futter daneben liegt; sonst bleibt die committete Kopie)
+// Mediathek-Kopie aus futter nachziehen (nur wenn futter erreichbar ist; sonst bleibt die committete Kopie).
+// Gesucht in: MEDIATHEK_QUELLE, /futter/static/v2/ (Einbindung im Container, tools/seiten.sh), ../../futter/static/v2/ (daneben)
 {
-  const quelle = new URL('../../futter/static/v2/', import.meta.url), ziel = new URL('../public/mediathek/', import.meta.url);
-  if (fs.existsSync(new URL('mediathek.js', quelle))) {
+  const kandidaten = [process.env.MEDIATHEK_QUELLE, 'file:///futter/static/v2/', new URL('../../futter/static/v2/', import.meta.url).href]
+    .filter(Boolean).map((k) => new URL(k.endsWith('/') ? k : k + '/', 'file:///'));
+  const quelle = kandidaten.find((k) => fs.existsSync(new URL('mediathek.js', k)));
+  const ziel = new URL('../public/mediathek/', import.meta.url);
+  if (quelle) {
     fs.mkdirSync(ziel, { recursive: true });
     for (const n of ['mediathek.js', 'mediathek.css', 'mediathek.json']) {
       const neu = fs.readFileSync(new URL(n, quelle));
