@@ -234,4 +234,4 @@ Abweichung zum Konzept (Entscheid des Auftraggebers vom 23.11.2026): Der Entfeuc
 Code: © 2026 AGFF – Arbeitsgemeinschaft zur Förderung des Futterbaues, lizenziert unter der EUPL-1.2 (Datei `LICENSE`; amtliche
 Fassungen auch auf Deutsch, Französisch und Italienisch: https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12). Nicht unter
 die Lizenz fallen die Inhalte (Merkblätter, Zeichnungen, Fotos, Tabellen); die Rechte liegen bei der jeweiligen Quelle, meist bei der
-AGFF. Die Lizenz wird zentral gepflegt in `entwicklungsumgebung/lizenz`.
+AGFF. Die Lizenz wird zentral gepflegt in `heimserver-werkzeuge/lizenz`.
