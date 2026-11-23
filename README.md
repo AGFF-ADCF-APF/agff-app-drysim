@@ -185,6 +185,8 @@ Abweichung zum Konzept (Entscheid des Auftraggebers vom 23.11.2026): Der Entfeuc
 
 ## Offen / im Büro weiterentwickeln
 
+- [ ] Betriebe, Fläche und Arbeitszeit: Konzept in `docs/konzept-betriebe-flaeche-arbeit.md` (Stand 23.11.2026), offene Entscheide in Abschnitt 13
+
 - [ ] Parameter mit Fachleuten kalibrieren: Trocknung mit Schweizer Messreihen (Gras statt Luzerne, Agroscope/AGFF) prüfen, Atmung, Bröckelverluste, Buttersäure-Ansatz; Werte des Aufbereiters mit Zinken und Bürste mit Versuchsdaten abgleichen
 - [ ] DLG-Punktetabelle mit dem Originalschlüssel 2006 abgleichen (Essigsäure- und pH-Stufen sind vereinfacht); evtl. Schweizer Sinnenprüfung als zweite Sicht
 - [ ] Aufbereiter vs. Wachsschicht: Im Modell beschleunigt er die kutikuläre Phase (Stomata sind nach ca. 1 h ohnehin zu), dafür nimmt das Futter mehr Wasser auf und es wird mehr ausgewaschen. Konkrete Maschine (Werbeaussage „zerstört Wachsschicht“) mit Versuchsdaten prüfen
