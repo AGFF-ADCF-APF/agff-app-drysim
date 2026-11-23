@@ -362,6 +362,13 @@ export const T = {
     lernen: 'belueftung',
     immer: true,
   },
+  'hs.ernstfall': {
+    titel: 'Der Stock ist heiss',
+    einfach: 'Jetzt wird es gefährlich. Ab 60 Grad sagst du der Feuerwehr Bescheid und misst alle fünf Stunden. Ab 70 Grad rufst du sie sofort. Öffne einen heissen Heustock <b>nie</b> selbst: Mit frischer Luft fängt er Feuer.',
+    fachlich: '45–60 °C: Gefahr, Kontrollen verstärken. 60–70 °C: alle fünf Stunden messen, Stock keinesfalls selbst abtragen (Luftsauerstoff und Hitze führen zum Brand). Über 70 °C oder bei muldenartigem Einsinken: Feuerwehr alarmieren (LK Salzburg). Die Vorinformation ab 60 °C ist eine Praxisempfehlung. Anzeichen: Schwitzwasser, süsslicher Geruch, ab etwa 60 °C Röstgeruch (nach Philipsen 1965).',
+    lernen: 'erwaermung',
+    immer: true,
+  },
   'hs.haupt': {
     titel: 'Haupttrocknung geschafft',
     einfach: 'Auch oben im Stock hat das Heu jetzt 80 % TS. Jetzt wird nur noch nachbelüftet: ab und zu eine Stunde, bis die Abluft unter 50 % rF bleibt.',

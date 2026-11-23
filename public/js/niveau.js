@@ -17,7 +17,7 @@ export const TABELLE = {
     ergebnis: { karten: ['einstieg'], kurz: true, zahlen: false, rueckblick: false, rechenweg: false, export: false, aufgaben: false },
     assistent: { stufe: 'einfach', nurAufWunsch: false },
     // Bildschirm «Am Heustock»: ohne Entfeuchter und ohne Rechenaufgabe
-    belueftung: { steuerung: 'ein-aus', anzeige: 'ampel', aufgabe: null },
+    belueftung: { steuerung: 'ein-aus', anzeige: 'ampel', aufgabe: null, messen: 'auto', ernstfall: 'vorschlag' },
   },
   praxis: {
     name: 'Praxis', zeichen: '●●○', fuer: 'EFZ und Betriebsleiterschule',
@@ -26,7 +26,7 @@ export const TABELLE = {
     feld: { ampel: false, vorschlag: false, zahlen: true, profi: false },
     ergebnis: { karten: ['einstieg', 'praxis'], kurz: false, zahlen: true, rueckblick: true, rechenweg: false, export: false, aufgaben: false },
     assistent: { stufe: null, nurAufWunsch: false },
-    belueftung: { steuerung: 'praxis', anzeige: 'zahlen', aufgabe: 'wasserentzug' }, // Nachrechnen ist freiwillig (Knopf)
+    belueftung: { steuerung: 'praxis', anzeige: 'zahlen', aufgabe: 'wasserentzug', messen: 'hand', ernstfall: 'warnung' }, // Nachrechnen ist freiwillig (Knopf)
   },
   profi: {
     name: 'Profi', zeichen: '●●●', fuer: 'Höhere Fachschule und Hochschule',
@@ -35,7 +35,7 @@ export const TABELLE = {
     feld: { ampel: false, vorschlag: false, zahlen: true, profi: true },
     ergebnis: { karten: ['einstieg', 'praxis', 'profi'], kurz: false, zahlen: true, rueckblick: true, rechenweg: true, export: true, aufgaben: true },
     assistent: { stufe: 'fachlich', nurAufWunsch: true },                  // Traktor meldet sich nur auf Wunsch
-    belueftung: { steuerung: 'praxis', anzeige: 'zahlen', aufgabe: 'wasserentzug' },
+    belueftung: { steuerung: 'praxis', anzeige: 'zahlen', aufgabe: 'wasserentzug', messen: 'hand', ernstfall: 'werte' },
   },
 };
 export const NIVEAUS = Object.keys(TABELLE);

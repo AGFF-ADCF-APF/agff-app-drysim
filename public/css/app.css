@@ -592,3 +592,10 @@ dialog .niveau-wahl { grid-template-columns: minmax(0, 1fr); }
 .seite .auftrag { background: var(--karte); border-radius: 12px; padding: .8rem 1rem; margin: .8rem 0; box-shadow: var(--schatten); }
 .seite .auftrag h3 { margin-top: 0; }
 .seite .auftrag code { font-size: .9rem; overflow-wrap: anywhere; color: var(--leise); display: block; margin-top: .4rem; }
+
+/* Ernstfall am Heustock: Brand und Abbruch als eigener Schluss */
+#ergebnis.brand .ergebnis-kopf, #ergebnis.brand #urteil { color: var(--rot); }
+#ergebnis.brand #sterne, #ergebnis.abbruch #sterne { display: none; }
+#ergebnis.brand #ergebnis-titel::before { content: "🔥 "; }
+#ergebnis.abbruch #ergebnis-titel::before { content: "🚒 "; }
+.vermerk { color: var(--rot); }

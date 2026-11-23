@@ -396,7 +396,7 @@ function starteHeustock({ feld, einstellungen, sz, wetterRef, feldLog, resume = 
   zeige('heustock');
   spiel = new HeustockSpiel($('#heustock'), {
     // Was der Heustock je Niveau zeigt (Tabelle in niveau.js): Einstieg ohne Entfeuchter, Rechenaufgabe nur wo vorgesehen
-    feld, setup: { ...einstellungen, belueftungOptionen: { entfeuchter: zeigt('belueftung.steuerung') !== 'ein-aus', rechnen: !!zeigt('belueftung.aufgabe'), ampel: zeigt('belueftung.anzeige') === 'ampel' } },
+    feld, setup: { ...einstellungen, belueftungOptionen: { entfeuchter: zeigt('belueftung.steuerung') !== 'ein-aus', rechnen: !!zeigt('belueftung.aufgabe'), ampel: zeigt('belueftung.anzeige') === 'ampel', messen: zeigt('belueftung.messen'), ernstfall: zeigt('belueftung.ernstfall') } },
     wetterSzenario: sz, wetterRef, feldLog, resume,
     onEnde: (lauf) => zeigeErgebnis(feld.bewerte(lauf), sz, null, einstellungen),
   });
@@ -452,6 +452,9 @@ function sterne(res) {
 }
 function abzeichen(res) {
   const v = res.verlust, e = res.ernte, a = [];
+  if (res.ende === 'abbruch') a.push(['Rechtzeitig gehandelt', 'Feuerwehr alarmiert, bevor es brannte']);
+  if (res.ende === 'brand') a.push(['Brand', 'Heustock über 70 °C, nicht alarmiert oder geöffnet', true]);
+  if (res.belueftung?.vorinfoBei != null && res.belueftung.tempMax >= 60) a.push(['Feuerwehr vorinformiert', 'Ab 60 °C Bescheid gegeben']);
   if (e.asche <= 100) a.push(['Saubere Sache', 'Kaum Erde im Futter']);
   if (v.atmung < 1.5) a.push(['Zuckerbewahrer', 'Wenig veratmet']);
   if (res.plan.aufbereiter === 'ohne') a.push(['Insektenschoner', 'Ohne Aufbereiter gemäht']);
@@ -462,7 +465,8 @@ function abzeichen(res) {
     if (res.plan.siloart === 'belueftung' && h.belueftTage <= 80 / 24 && res.ernte.ts >= 60) a.push(['Belüftungsprofi', 'Haupttrocknung innert 80 Stunden']);
     const b = res.belueftung;
     if (b?.lagerfaehig && b.wasser > 0 && b.kwh / b.wasser <= 0.25) a.push(['Stromsparer', 'Höchstens 0,25 kWh je kg Wasser']);
-    if (h.temp >= 70) a.push(['Heustock heiss', 'Ab 70 °C: Feuerwehr alarmieren!', true]);
+    if (res.ende === 'brand' || res.ende === 'abbruch') { /* steht oben */ }
+    else if (h.temp >= 70) a.push(['Heustock heiss', 'Ab 70 °C: Feuerwehr alarmieren!', true]);
     else if (h.temp >= 60) a.push(['Heustock sehr warm', 'Feuerwehr vorinformieren, alle fünf Stunden messen', true]);
     else if (h.schimmel !== 'kein') a.push(['Muffig', 'Zu feucht eingelagert', true]);
   } else {
@@ -514,13 +518,18 @@ function zeigeErgebnis(res, sz, tipp, einstellungen) {
   $('#ergebnis .ueber').textContent = heu
     ? (res.plan.siloart === 'belueftung' ? 'Sechs Wochen später – die Belüftung ist längst aus, das Heu wird geprüft …' : 'Sechs Wochen später – das Heu wird geprüft …')
     : 'Sechs Wochen später – das Silo wird geöffnet …';
-  const n = sterne(res);
+  const n = sterne(res), brand = res.ende === 'brand', abbruch = res.ende === 'abbruch';
+  $('#ergebnis').classList.toggle('brand', brand); $('#ergebnis').classList.toggle('abbruch', abbruch);
+  if (brand) $('#ergebnis-titel').textContent = 'Der Heustock hat gebrannt';
+  if (abbruch) $('#ergebnis-titel').textContent = 'Abbruch: Feuerwehr alarmiert';
+  if (brand || abbruch) $('#ergebnis .ueber').textContent = brand ? 'Die Runde ist verloren.' : 'Das Heu ist verloren, das Gebäude steht.';
   $('#sterne').innerHTML = [0, 1, 2].map((i) => STERN(i < n)).join('');
   $('#sterne').setAttribute('aria-label', `${n} von 3 Sternen`);
   const urteile = heu
     ? [res.heu.temp >= 60 ? 'Der Heustock ist heiss geworden – Brandgefahr! Dieses Heu ist verdorben.' : 'Muffig und staubig – dieses Heu frisst keine Kuh gern.', 'Geht so – da liegt mehr drin.', 'Gutes Heu!', 'Duftendes, grünes Heu – die Kühe freuen sich!']
     : ['Das Silo stinkt nach Buttersäure – das will keine Kuh fressen.', 'Geht so – da liegt mehr drin.', 'Gute Silage!', 'Perfekte Silage – die Kühe freuen sich!'];
-  $('#urteil').textContent = urteile[n];
+  $('#urteil').textContent = brand ? 'Heu, Scheune und Maschinen sind verbrannt. Schau im Zeitstrahl und in den Karten nach, wo es noch zu retten gewesen wäre.'
+    : abbruch ? 'Rechtzeitig gehandelt: Die Feuerwehr hat den heissen Stock kontrolliert abgetragen. Niemand kam zu Schaden.' : urteile[n];
   // Punkte hochzählen
   const ziel = res.punkte, t0 = performance.now();
   const zaehle = (jetzt) => {
@@ -555,7 +564,7 @@ function zeigeErgebnis(res, sz, tipp, einstellungen) {
     $('.punkte', $('#ergebnis')).hidden = false;
     if (einstellungen.name) {
       const l = rangliste();
-      l.push({ name: einstellungen.name, punkte: res.punkte, wetter: sz.name, ts: e.ts, note: res.note, sterne: n, art: res.art, niveau: einstellungen.niveau ?? niveau() });
+      l.push({ ...(brand ? { vermerk: 'Brand' } : abbruch ? { vermerk: 'Abbruch' } : {}), name: einstellungen.name, punkte: res.punkte, wetter: sz.name, ts: e.ts, note: res.note, sterne: n, art: res.art, niveau: einstellungen.niveau ?? niveau() });
       speichereRangliste(l);
     }
   }
@@ -698,7 +707,7 @@ const speichereRangliste = (l) => schreib(localStorage, RL, l);
 function zeigeRangliste() {
   const l = rangliste().sort((a, b) => b.punkte - a.punkte).slice(0, 10);
   $('#rangliste').innerHTML = l.length
-    ? l.map((e) => `<li><span>${esc(e.name)}<small>${niveauGueltig(e.niveau) ? `<span class="niveau-marke ${e.niveau}">${niveauInfo(e.niveau).name}</span> · ` : ''}${e.art === 'heu' ? 'Heu' : 'Silage'} · ${esc(e.wetter)} · ${z(e.ts, 0)} % TS · Note ${e.note}</small></span><strong>${e.punkte}</strong></li>`).join('')
+    ? l.map((e) => `<li><span>${esc(e.name)}<small>${niveauGueltig(e.niveau) ? `<span class="niveau-marke ${e.niveau}">${niveauInfo(e.niveau).name}</span> · ` : ''}${e.vermerk ? `<b class="vermerk">${esc(e.vermerk)}</b> · ` : ''}${e.art === 'heu' ? 'Heu' : 'Silage'} · ${esc(e.wetter)} · ${z(e.ts, 0)} % TS · Note ${e.note}</small></span><strong>${e.punkte}</strong></li>`).join('')
     : '<li class="leer">Noch niemand. Gib beim Einsatz einen Namen ein, dann erscheinst du hier.</li>';
 }
 $('#rangliste-leeren').addEventListener('click', () => {

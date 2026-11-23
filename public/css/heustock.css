@@ -52,3 +52,21 @@
   .hs-steuer { padding: 10px; }
   .hs-schalter, .hs-knopf { flex: 1 1 140px; }
 }
+
+/* Kontrollieren und eingreifen: Heusonde, Feuerwehr. Unumkehrbares wird gedrückt gehalten (js/halten.js). */
+.hs-eingriffe { align-items: stretch; }
+.hs-knopf small { display: block; font-weight: 400; color: var(--leise); }
+.hs-sonde { border-color: var(--blau); }
+.hs-vorinfo[aria-pressed="true"] { border-color: var(--gruen); background: var(--gruen-hell); }
+.hs-alarm { border-color: var(--rot); background: var(--rot-hell); }
+.halten { position: relative; overflow: hidden; touch-action: manipulation; -webkit-touch-callout: none; user-select: none; }
+.halten::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: var(--rot); transform: scaleX(0); transform-origin: left; }
+.halten.haelt::after { transform: scaleX(1); transition: transform var(--halte-zeit, .7s) linear; }
+.halten.wackelt { animation: wackeln .4s; }
+@media (prefers-reduced-motion: reduce) { .halten.wackelt { animation: none; } .halten.haelt::after { transition: none; } }
+#heustock.ohne-sonde .hs-nur-sonde { display: none; }
+#heustock.automatik .hs-eingriffe { opacity: 1; pointer-events: auto; } /* Feuerwehr bleibt auch im Zeitraffer erreichbar */
+.hs-svg .hs-ungemessen { fill: var(--linie); }
+.hs-svg .hs-alt { opacity: .6; }
+.messer.ungemessen strong { color: var(--leise); }
+.messer.ungemessen .nadel { display: none; }

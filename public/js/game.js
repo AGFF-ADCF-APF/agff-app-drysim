@@ -1,6 +1,7 @@
 // Spielablauf: Die Uhr läuft, die Spieler lösen die Arbeitsgänge aus (oder im
 // Zeitraffer der vorgegebene Plan). Anzeigen, Ticker und Szene werden jede Stunde nachgeführt.
 // Der Stand wird als Protokoll der Arbeitsgänge gesichert und lässt sich exakt nachspielen.
+import { PROTOKOLL_VERSION } from './belueftung.js';
 import { Feld, SILOARTEN, AUFBEREITER, spieleNach, ablageVon } from './model.js';
 import { stundenwetter } from './weather.js';
 import { Szene } from './scene.js';
@@ -24,6 +25,8 @@ export function gespeicherteRunde() {
   try {
     const r = JSON.parse(localStorage.getItem(RUNDE));
     if (!r || r.v !== 1 || Date.now() - r.zeit > GUELTIG_MS || !Array.isArray(r.log) || !r.einstellungen) return null;
+    // Runde am Heustock aus einer älteren Version: Das Protokoll passt nicht mehr zum Modell, sauber verwerfen
+    if (r.heustock && (r.heustock.v !== PROTOKOLL_VERSION || !Array.isArray(r.heustock.log))) { localStorage.removeItem(RUNDE); return null; }
     return r;
   } catch { return null; }
 }

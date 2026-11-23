@@ -3,7 +3,7 @@
 // nach innerem Pflanzenwasser und Oberflächenwasser aus Tau und Regen).
 // Trocknungskonstante nach Rotz & Chen (1985); die übrigen Ansätze sind
 // vereinfachte Lehrmodelle (Quellen und offene Punkte: README.md).
-import { Heustock, spieleBelueftungNach, STANDARD, ANLAGE } from './belueftung.js';
+import { Heustock, spieleBelueftungNach, STANDARD, ANLAGE, ERNSTFALL } from './belueftung.js';
 import { belueftungsWetter } from './weather.js';
 
 export const BESTAENDE = {
@@ -272,7 +272,7 @@ export class Feld {
     const plan = { ...p, maehen: this.maehZeit, zetten: this.zetten, schwaden: this.schwadZeit, schwadZeiten: this.schwadZeiten, ernte: this.t };
     this.eingefahren = { ernte, plan };
     let lauf = null;
-    if (silo === SILOARTEN.belueftung) lauf = spieleBelueftungNach(this.heustockStart(), [], Infinity, { ...STANDARD, ...p.belueftung }).ergebnis();
+    if (silo === SILOARTEN.belueftung) lauf = spieleBelueftungNach(this.heustockStart(), p.belueftungLog ?? [], Infinity, { ...STANDARD, ...p.belueftung }).ergebnis();
     return this.bewerte(lauf);
   }
 
@@ -301,10 +301,13 @@ export class Feld {
     const tsTrog = dm * (1 - lagerverlust / 100);
     const nelHa = tsTrog * 10 * nel; // MJ NEL/ha
     // Wettkampfpunkte: Energie im Trog, abgewertet für Fehlgärung bzw. schlechtes Heu und TS ausserhalb des Zielbereichs
-    const punkte = Math.round(nelHa * GAERFAKTOR[q.note - 1] * zielFaktor(ernte.ts, silo.ziel) / 100);
+    // Ernstfall am Heustock: Brand = null Punkte; rechtzeitig alarmiert = fester kleiner Wert (das Heu ist verloren, der Hof steht)
+    const ende = lauf?.ende ?? null;
+    const punkte = ende === 'brand' ? 0 : ende === 'abbruch' ? ABBRUCH_PUNKTE
+      : Math.round(nelHa * GAERFAKTOR[q.note - 1] * zielFaktor(ernte.ts, silo.ziel) / 100);
 
     const res = {
-      plan, ernte, silage, heu: lager, belueftung: lauf, art: silo.art, note: q.note, lagerverlust, verlust: v, dm0, tsMahd: this.tsMahd, woMahd: this.woMahd,
+      plan, ernte, silage, heu: lager, belueftung: lauf, ende, art: silo.art, note: q.note, lagerverlust, verlust: v, dm0, tsMahd: this.tsMahd, woMahd: this.woMahd,
       bodenAsche: this.bodenAsche, ereignisse: this.ereignisse, verlauf: this.verlauf,
       nel, rp, tsTrog, nelHa, punkte, verlustTotal: 100 - 100 * tsTrog / dm0,
     };
@@ -393,6 +396,7 @@ export function siliere(e, b, silo, plan) {
 // Lehrmodell. Bewertung angelehnt an die Sinnenprüfung (Geruch, Farbe, Gefüge, Verunreinigung), Punkte vereinfacht.
 // Belüftungsheu: lauf = simulierter Verlauf im Heustock (belueftung.js): Dauer, höchste Stocktemperatur, Schimmel,
 // Strom. Was beim Spielende noch feucht ist, wird wie zu feucht eingelagertes Heu bewertet (Defizit zur Lagergrenze).
+export const ABBRUCH_PUNKTE = 10; // Spielwert (keine Fachgrösse): Feuerwehr rechtzeitig alarmiert
 export function lagereHeu(e, silo, v, lauf, leg) {
   const ts = e.ts;
   let defizit = Math.max(0, silo.grenze - ts);
@@ -404,7 +408,8 @@ export function lagereHeu(e, silo, v, lauf, leg) {
     defizit = lauf.lagerfaehig ? 0 : Math.max(0, ANLAGE.lagerTs - lauf.tsMinEnde);
     lang = Math.max(0, haupt - 80) / 24;
     schimmelIdx = lauf.schimmel;
-    temp = Math.max(22, lauf.tempMax, 22 + defizit * 4.8);
+    // Brand oder Abbruch: Es zählt die gemessene Spitze, nicht eine Hochrechnung für die Wochen danach
+    temp = lauf.ende === 'brand' || lauf.ende === 'abbruch' ? lauf.tempMax : Math.max(22, lauf.tempMax, 22 + defizit * 4.8);
   } else {
     temp = 22 + defizit * 4.8 + (silo === SILOARTEN.heuballen ? -3 * Math.min(1, defizit) : 0);
   }
@@ -413,7 +418,8 @@ export function lagereHeu(e, silo, v, lauf, leg) {
     grund: silo.lagerverlust,
     erwaermung: defizit * 0.8 + Math.max(0, temp - 45) * 0.25 + lang * 1.5 + Math.min(6, schimmelIdx * 2) + (lauf?.verlust ?? 0),
   };
-  const lagerverlust = sv.grund + sv.erwaermung;
+  const verloren = lauf?.ende === 'brand' || lauf?.ende === 'abbruch'; // Brand oder von der Feuerwehr abgetragen: kein Heu mehr
+  const lagerverlust = verloren ? 100 : sv.grund + sv.erwaermung;
   // Sinnenprüfung: Abzüge von 100 Punkten
   const abzug = {
     geruch: Math.min(60, defizit * 5 + Math.max(0, temp - 40) * 0.6 + lang * 6 + Math.max(0, schimmelIdx - 0.5) * 12),
@@ -422,8 +428,8 @@ export function lagereHeu(e, silo, v, lauf, leg) {
     gefuege: Math.min(25, Math.max(0, v.broeckel - 4) * (2.5 + 5 * leg)),
     verunreinigung: Math.min(30, Math.max(0, e.asche - 100) * 0.8),
   };
-  const punkte = Math.round(clamp(100 - Object.values(abzug).reduce((a, x) => a + x, 0), 0, 100));
-  const note = temp >= 70 ? 5 : punkte >= 90 ? 1 : punkte >= 72 ? 2 : punkte >= 52 ? 3 : punkte >= 30 ? 4 : 5; // Brandgefahr: verdorben
+  const punkte = verloren ? 0 : Math.round(clamp(100 - Object.values(abzug).reduce((a, x) => a + x, 0), 0, 100));
+  const note = verloren || temp >= 70 ? 5 : punkte >= 90 ? 1 : punkte >= 72 ? 2 : punkte >= 52 ? 3 : punkte >= 30 ? 4 : 5; // Brandgefahr: verdorben
   const schimmel = defizit > 6 || schimmelIdx >= 2 ? 'stark' : defizit > 2 || schimmelIdx >= 1 ? 'leicht' : 'kein';
   return { defizit, temp, belueftTage, lagerverlust, sv, abzug, punkte, note, schimmel, strom: lauf ? { kwh: lauf.kwh, kwhJeT: lauf.kwhJeT } : null };
 }
@@ -623,6 +629,8 @@ function erklaere(r, c) {
       : r.belueftung.wasser > 0 && r.belueftung.kwh / r.belueftung.wasser > 0.3 ? 'Spare Strom: Lass den Lüfter nicht durchlaufen, wenn die Luft feucht ist. Im Intervall lüftet die Steuerung nur, wenn es etwas bringt.'
         : 'Gut belüftet. Kontrolliere den Stock trotzdem noch einige Wochen mit der Heusonde.')
       : hq && hq.temp >= 45 ? 'Miss die Temperatur im Heustock mit der Heusonde nach Messkalender: ab 45 °C erhöhte Aufmerksamkeit, ab 60 °C die örtliche Feuerwehr vorinformieren und alle fünf Stunden messen, ab 70 °C sofort alarmieren.' : 'Kontrolliere frisches Heu in den ersten Wochen trotzdem regelmässig mit der Heusonde: zuerst täglich, später seltener, insgesamt zwölf Wochen lang.',
+    ernstfall: r.ende === 'brand' ? 'Miss feuchtes Heu jeden Tag mit der Heusonde. Ab 60 °C die Feuerwehr vorinformieren, ab 70 °C sofort alarmieren, und einen heissen Stock nie selbst öffnen.'
+      : 'Richtig gehandelt. Damit es gar nicht so weit kommt: trockener einführen, den Lüfter nicht abstellen, solange das Heu feucht ist, und täglich messen.',
     fk: s?.fk < 45 ? 'Welke stärker an und schone den Zucker mit einer kurzen Feldliegezeit.' : 'Gute Voraussetzung für eine saubere Gärung.',
     gaerung: s?.note > 2 ? 'Schau bei den roten Karten nach: Meistens liegt die Ursache bei Erde, zu nassem Futter oder zu wenig Zucker.' : 'Prima Gärung: Die Arbeitsschritte haben gepasst.',
     siloverlust: s?.siloverlust > 8 ? 'Achte auf gute Verdichtung und triff den TS-Zielbereich des Silos.' : 'Niedrige Verluste im Silo.',
@@ -632,7 +640,7 @@ function erklaere(r, c) {
 
   // Niveau: ab welchem Niveau die Karte erscheint (einstieg | praxis | profi, siehe niveau.js). Im Einstieg
   // stehen nur die vier wichtigsten Karten, je mit einem einfachen Satz (kurz) ohne Abkürzungen.
-  const ab = { ts: 'einstieg', asche: 'einstieg', wetter: 'einstieg', atmung: heu ? 'praxis' : 'einstieg', lager: 'einstieg' };
+  const ab = { ts: 'einstieg', asche: 'einstieg', wetter: 'einstieg', atmung: heu ? 'praxis' : 'einstieg', lager: 'einstieg', ernstfall: 'einstieg' };
   const belueft = p.siloart === 'belueftung', zuNass = e.ts < zmin, zuTrocken = e.ts > zmax, t = hq?.temp ?? 0;
   const kurz = {
     ts: heu
@@ -654,12 +662,14 @@ function erklaere(r, c) {
           : 'Kein Regen und keine Nacht im Tau: ideal für Silage.',
     atmung: v.atmung >= 2 ? `Das Futter lag ${e.stunden} Stunden auf dem Feld. Solange es liegt, verbraucht es Zucker. Mähe nach dem Tau, lege breit ab und fahre bald ein.`
       : 'Kurz auf dem Feld: Der Zucker blieb im Futter.',
+    ernstfall: r.ende === 'brand' ? 'Der Heustock wurde über 70 Grad heiss und hat gebrannt. Bei so heissem Heu sofort die Feuerwehr rufen und den Stock nie selbst öffnen.'
+      : 'Der Heustock wurde gefährlich heiss. Du hast rechtzeitig die Feuerwehr gerufen: Das Heu ist weg, aber Scheune und Tiere sind sicher.',
     lager: t >= 70 ? 'Der Heustock wurde gefährlich heiss: Brandgefahr! Sofort die Feuerwehr alarmieren und den Stock nicht selbst abtragen.'
       : t >= 60 ? 'Der Heustock wurde sehr heiss. Jetzt die örtliche Feuerwehr informieren und alle fünf Stunden messen.'
         : t >= 45 ? 'Der Heustock wurde warm. Jetzt öfter mit der Heusonde messen.'
           : 'Der Heustock blieb kühl. Miss trotzdem regelmässig mit der Heusonde.',
   };
-  const titelEinfach = { ts: heu ? 'Wie trocken eingelagert?' : 'Wie trocken eingefahren?', asche: 'Erde im Futter', wetter: 'Wetter', atmung: 'Zeit auf dem Feld', lager: 'Wärme im Heustock' };
+  const titelEinfach = { ts: heu ? 'Wie trocken eingelagert?' : 'Wie trocken eingefahren?', asche: 'Erde im Futter', wetter: 'Wetter', atmung: 'Zeit auf dem Feld', lager: 'Wärme im Heustock', ernstfall: r.ende === 'brand' ? 'Es hat gebrannt' : 'Feuerwehr gerufen' };
   for (const x of f) { x.ab = ab[x.id] ?? 'praxis'; if (kurz[x.id]) { x.kurz = kurz[x.id]; x.titelEinfach = titelEinfach[x.id]; } }
   return f;
 }
@@ -693,8 +703,9 @@ function heuKarten(f, r, c, z) {
       'Die Bewertung ist angelehnt an die Sinnenprüfung von Heu und für das Spiel vereinfacht.',
   });
   const lauf = r.belueftung;
+  if (lauf && (lauf.ende === 'brand' || lauf.ende === 'abbruch')) ernstfallKarte(f, lauf, z);
   f.push({
-    id: 'lager', titel: belueft ? 'Belüftung und Lager' : 'Lagerung und Erwärmung', wert: `${z(r.lagerverlust)} % TS, bis ${z(hq.temp, 0)} °C` + (lauf ? `, ${z(lauf.kwhJeT, 0)} kWh/t` : ''),
+    id: 'lager', titel: belueft ? 'Belüftung und Lager' : 'Lagerung und Erwärmung', wert: `${z(r.lagerverlust)} % Verlust, bis ${z(hq.temp, 0)} °C` + (lauf ? `, ${z(lauf.kwhJeT, 0)} kWh/t` : ''),
     stufe: stufe(hq.temp < 40 && hq.schimmel === 'kein' && (!lauf || lauf.lagerfaehig), hq.temp < 55),
     grafik: lauf ? 'belueftung' : undefined, grafikDaten: lauf ?? undefined,
     text: (lauf ? belueftungText(lauf, hq, z) : '') +
@@ -702,6 +713,29 @@ function heuKarten(f, r, c, z) {
       (hq.temp >= 70 ? 'Akute Brandgefahr! Ein feuchter Heustock kann sich selbst entzünden: sofort die Feuerwehr alarmieren und den Stock nicht selbst abtragen. ' : hq.temp >= 60 ? 'Ab 60 °C die örtliche Feuerwehr vorinformieren und um Rat fragen, bis 70 °C alle fünf Stunden messen und den Stock nicht abtragen: Luft und Hitze führen zum Brand. Ab 70 °C sofort alarmieren. ' : hq.temp >= 45 ? 'Ab 45 °C erhöhte Aufmerksamkeit: öfter mit der Heusonde messen. ' : 'Unbedenklich. ') +
       `Verluste im Lager: ${z(hq.sv.grund)} % normal${hq.sv.erwaermung > 0.05 ? `, ${z(hq.sv.erwaermung)} % durch Erwärmung und Schimmel` : ''}.` +
       (belueft ? ' Mit eigenen Messwerten rechnet die App «Heutrocknung» (drywatch).' : ''),
+  });
+}
+
+// Ernstfall: Brand oder Abbruch, mit der Kette der eigenen Handlungen (Messen, Vorinformieren, Alarm)
+function ernstfallKarte(f, l, z) {
+  const brand = l.ende === 'brand';
+  const uhrT = (t) => uhr(t);
+  const w70 = l.wendepunkte.find((x) => x.art === 'temp' && x.grenze === 70), w60 = l.wendepunkte.find((x) => x.art === 'temp' && x.grenze === 60);
+  const offen = l.handlungen.find((x) => x.art === 'brandluft');
+  const sonden = l.handlungen.filter((x) => x.art === 'sonde');
+  const gesehen = sonden.find((x) => x.temp >= 60);
+  f.push({
+    id: 'ernstfall', titel: brand ? 'Brand im Heustock' : 'Abbruch: Feuerwehr alarmiert', wert: `bis ${z(l.tempMax, 0)} °C`,
+    stufe: brand ? 'schlecht' : 'mittel',
+    text: (brand
+      ? (offen ? `Der Stock war ${z(offen.temp, 0)} °C heiss, als er geöffnet wurde: Luft kam an das heisse Heu, und es begann zu brennen. `
+        : `Der Stock blieb über ${ERNSTFALL.alarm} °C, ohne dass die Feuerwehr alarmiert wurde: Das Heu hat sich selbst entzündet. `)
+        + 'Heu, Scheune und oft auch der Stall sind verloren. '
+      : 'Du hast die Feuerwehr gerufen, bevor es brannte. Sie hat den Stock kontrolliert abgetragen: Das Heu ist verloren, das Gebäude steht. ')
+      + (w60 ? `Über 60 °C war der Stock ab ${uhrT(w60.t)}. ` : '') + (w70 ? `Über 70 °C ab ${uhrT(w70.t)}. ` : '')
+      + (sonden.length ? `Du hast ${sonden.length}-mal mit der Heusonde gemessen${gesehen ? `; ${uhrT(gesehen.t)} zeigte sie ${z(gesehen.temp, 0)} °C` : ', aber nie über 60 °C gesehen'}. ` : 'Du hast nie mit der Heusonde gemessen. ')
+      + (l.vorinfoBei != null ? `Die Feuerwehr war seit ${uhrT(l.vorinfoBei)} vorinformiert. ` : 'Die Feuerwehr war nicht vorinformiert. ')
+      + 'Regel (LK Salzburg): ab 45 °C öfter messen, von 60 bis 70 °C alle fünf Stunden messen und den Stock nicht abtragen, ab 70 °C oder bei einer Mulde sofort alarmieren.',
   });
 }
 

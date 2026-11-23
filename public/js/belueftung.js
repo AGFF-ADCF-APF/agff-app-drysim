@@ -90,11 +90,25 @@ export function entfeuchterKgJeKwh(t, rh) {
 // ungelüftet bei 65 % TS und 20 °C um rund 0,3 K je Stunde, bei Wärme schneller (Q10 = 2) bis 40 °C, darüber
 // langsamer: Die biologische Erwärmung reicht bis rund 75 °C (LK Salzburg). Wärmekapazität TS 1,5 kJ/(kg·K), Wasser 4,19.
 // Die Atmungswärme verbraucht TS (15,6 MJ je kg, Brennwert von Zucker).
-export const WAERME = { q0: 1.0, cTs: 1.5, kuehl: 0.01, brennwert: 15600 };
+// Ab 60 °C kommt die chemische Erwärmung dazu (Selbsterhitzung nach Philipsen 1965, in LK Salzburg S. 23: der chemische
+// Prozess setzt in der thermophilen Phase ein, die biologische Erwärmung endet bei rund 75 °C, darüber «pyrophore Phase»
+// bis zur Glut). Die Quelle zeigt nur Stufen, keine Zeiten: Stärke und Verdoppelung je 10 K (`chem`) sind Annahmen.
+// Unter 60 °C rechnet das Modell unverändert.
+export const WAERME = { q0: 1.0, cTs: 1.5, kuehl: 0.01, brennwert: 15600, chemAb: 60, chem: 0.5, tempMax: 100 };
 const tempFaktor = (t) => (t <= 40 ? 2 ** ((t - 20) / 10) : 4 * clamp(1 - (t - 40) / 40, 0.05, 1));
 // Schimmel (Annahme): wächst, solange die Gleichgewichtsfeuchte einer Schicht über 75 % rF liegt, schneller bei Wärme.
 // Index 1 ≈ «leicht muffig», 2 ≈ «schimmlig».
 export const SCHIMMEL = { ab: 75, spanne: 20, stunden: 72 };
+
+// Ernstfall. Schwellen nach LK Salzburg («Heutrocknung von A bis Z», Heustocküberwachung): 45–60 °C Gefahr, Kontrollen
+// verstärken; 60–70 °C alle fünf Stunden messen, Stock nicht abtragen; ab 70 °C Feuerwehr alarmieren. Die Vorinformation
+// der Feuerwehr ab 60 °C ist eine Praxisempfehlung (Lernseite). Annahmen des Spiels (keine Zeitangabe in den Quellen,
+// README «Offen»): Brand, wenn der Stock `brandStunden` Stunden über 70 °C bleibt, ohne dass alarmiert wird; sofort, wenn
+// ein Stock ab `luftAb` °C geöffnet wird (Umschichten, Abtragen: Luftsauerstoff und Hitze führen zum Brand, LK Salzburg).
+// Ein Alarm unter `vorinfo` °C gilt als Fehlalarm (die Runde läuft weiter).
+export const ERNSTFALL = { achtung: 45, vorinfo: 60, alarm: 70, luftAb: 60, brandStunden: 12, messenAlle: 5 };
+// Schwellen, deren erstes Überschreiten als Wendepunkt im Zeitstrahl des Ergebnisses steht
+const WENDE_TEMP = [35, 40, 45, 60, 70];
 
 export const BETRIEB = {
   aus: 'Lüfter aus', dauer: 'Dauerbetrieb', intervall: 'Intervall mit Feuchtesteuerung',
@@ -132,13 +146,41 @@ export class Heustock {
     this.kwh = 0; this.kwhLuefter = 0; this.kwhEntf = 0; this.wasser = 0; this.laufStunden = 0;
     this.tempMax = this.schichten[0].temp; this.verlauf = []; this.fertigBei = null; this.hauptBei = null; this.letzteLuft = null;
     this.seitLauf = 0; // Stunden seit dem letzten Lüften (Intervall)
+    // Bedienung: Handlungen (Messen, Feuerwehr …) und Wendepunkte für den Zeitstrahl, gemessene Sicht, Ernstfall
+    this.handlungen = []; this.wendepunkte = []; this.gemessen = null; this.messungen = 0;
+    this.endeArt = null; this.vorinfoBei = null; this.heissStunden = 0; this.fehlalarme = 0;
   }
 
   get n() { return this.schichten.length; }
   tsMittel() { const dm = this.schichten.reduce((s, x) => s + x.dm, 0), w = this.schichten.reduce((s, x) => s + x.dm * x.u, 0); return 100 * dm / (dm + w); }
   tsMin() { return Math.min(...this.schichten.map((x) => tsAusU(x.u))); }
   get lagerfaehig() { return this.tsMin() >= ANLAGE.lagerTs; }
-  get ende() { return this.lagerfaehig || this.t - this.t0 >= ANLAGE.maxStunden || this.t >= this.wetter.length; }
+  get ende() { return this.endeArt != null || this.lagerfaehig || this.t - this.t0 >= ANLAGE.maxStunden || this.t >= this.wetter.length; }
+  tempJetzt() { return Math.max(...this.schichten.map((x) => x.temp)); }
+
+  // Handlung aus dem Protokoll ausführen (alles ausser den Schaltern Lüfter, Dach, Entfeuchter).
+  // Gibt zurück, was dabei herauskam (für Ticker und Zeitstrahl); verändert den Stock deterministisch.
+  handle(x) {
+    if (this.ende) return null;
+    const temp = this.tempJetzt();
+    let h = null;
+    const messe = () => { this.gemessen = { t: this.t, stellen: [{ name: 'Mitte', schichten: this.schichten.map((s) => ({ ts: tsAusU(s.u), temp: s.temp })) }] }; };
+    if (x.art === 'sonde') {
+      // Heusonde: Temperatur und Feuchte je Schicht an der Messstelle; gilt als Stand von jetzt
+      messe();
+      this.messungen++;
+      h = { t: this.t, art: 'sonde', temp, tsMin: this.tsMin() };
+    } else if (x.art === 'vorinfo') {
+      if (this.vorinfoBei != null) return null;
+      this.vorinfoBei = this.t;
+      h = { t: this.t, art: 'vorinfo', temp };
+    } else if (x.art === 'alarm') {
+      if (temp >= ERNSTFALL.vorinfo) { this.endeArt = 'abbruch'; h = { t: this.t, art: 'alarm', temp }; }
+      else { this.fehlalarme++; messe(); h = { t: this.t, art: 'fehlalarm', temp }; } // die Feuerwehr misst nach
+    }
+    if (h) this.handlungen.push(h);
+    return h;
+  }
   // Wasser, das bis 87 % TS noch weg muss, in Litern für den ganzen Stock
   restWasser() {
     const uz = uAusTs(ANLAGE.zielTs);
@@ -197,8 +239,9 @@ export class Heustock {
       const c = s.dm * (WAERME.cTs + 4.19 * s.u); // kJ/K
       // Atmungswärme (Annahme), solange das Heu feucht ist
       const nass = clamp((s.u - uAusTs(85)) / (uAusTs(65) - uAusTs(85)), 0, 1.6);
-      const q = WAERME.q0 * tempFaktor(s.temp) * nass * s.dm; // kJ/h
-      s.temp = Math.min(85, s.temp + q / c);
+      let q = WAERME.q0 * tempFaktor(s.temp) * nass * s.dm; // kJ/h
+      if (s.temp >= WAERME.chemAb) q += WAERME.chem * 2 ** ((s.temp - WAERME.chemAb) / 10) * Math.min(1, nass) * s.dm;
+      s.temp = Math.min(s.temp >= WAERME.chemAb ? WAERME.tempMax : 85, s.temp + q / c);
       s.dm -= q / WAERME.brennwert;
       if (f > 0) {
         // Gespeicherte Wärme geht an die Luft über
@@ -227,15 +270,19 @@ export class Heustock {
     this.seitLauf = f > 0 ? 0 : this.seitLauf + 1;
     this.t++;
     const temp = Math.max(...this.schichten.map((s) => s.temp));
+    for (const g of WENDE_TEMP) if (temp > g && this.tempMax <= g) this.wendepunkte.push({ t: this.t, art: 'temp', grenze: g, temp });
     this.tempMax = Math.max(this.tempMax, temp);
+    // Ernstfall: bleibt der Stock über der Alarmschwelle, ohne dass alarmiert wird, brennt er (Annahme zur Dauer)
+    this.heissStunden = temp >= ERNSTFALL.alarm ? this.heissStunden + 1 : 0;
+    if (this.heissStunden >= ERNSTFALL.brandStunden || temp >= WAERME.tempMax) { this.endeArt = 'brand'; this.wendepunkte.push({ t: this.t, art: 'brand', temp }); }
     const p = {
       t: this.t, f, ts: this.tsMittel(), tsMin: this.tsMin(), temp,
       aussenT: w.temp, aussenRh: w.rh, zuT: z.t, zuRh: z.rh, abT: f > 0 ? tAb : null, abRh: f > 0 ? LUFT.rh(tAb, x, P) : null,
       gm3, lh, kwh: this.kwh, entfLh: z.entfKg > 0 ? z.entfKg * this.flaeche * f : 0, dachK: z.dach > 0 ? z.t1 - w.temp - a.luefterKw / z.mL / 1.006 : 0,
     };
     this.verlauf.push(p); this.letzteLuft = p;
-    if (this.lagerfaehig && this.fertigBei == null) this.fertigBei = this.t;
-    if (this.tsMin() >= ANLAGE.hauptTs && this.hauptBei == null) this.hauptBei = this.t;
+    if (this.lagerfaehig && this.fertigBei == null) { this.fertigBei = this.t; this.wendepunkte.push({ t: this.t, art: 'lagerfaehig' }); }
+    if (this.tsMin() >= ANLAGE.hauptTs && this.hauptBei == null) { this.hauptBei = this.t; this.wendepunkte.push({ t: this.t, art: 'haupt' }); }
     return p;
   }
 
@@ -244,6 +291,7 @@ export class Heustock {
       t: this.t, stunden: this.t - this.t0, ts: this.tsMittel(), tsMin: this.tsMin(), temp: Math.max(...this.schichten.map((s) => s.temp)),
       schimmel: Math.max(...this.schichten.map((s) => s.schimmel)), kwh: this.kwh, rest: this.restWasser(), luft: this.letzteLuft,
       schichten: this.schichten.map((s) => ({ ts: tsAusU(s.u), temp: s.temp })),
+      gemessen: this.gemessen, vorinfo: this.vorinfoBei != null, endeArt: this.endeArt,
     };
   }
 
@@ -257,17 +305,26 @@ export class Heustock {
       wasser: this.wasser, laufStunden: this.laufStunden, flaeche: this.flaeche, hoehe: this.hoehe,
       verlust: 100 * (1 - this.schichten.reduce((s, x) => s + x.dm, 0) / this.dm0),
       verlauf: this.verlauf.map(({ t, f, ts, tsMin, temp, gm3, lh }) => ({ t, f, ts, tsMin, temp, gm3, lh })),
-      t0: this.t0,
+      t0: this.t0, tEnde: this.t,
+      // Wie die Runde endete und was dazu führte (Zeitstrahl, Karten «Kontrolle» und «Eingriffe»)
+      ende: this.endeArt ?? (this.lagerfaehig ? 'lagerfaehig' : 'zeit'),
+      handlungen: this.handlungen.slice(), wendepunkte: this.wendepunkte.slice(), messungen: this.messungen,
+      vorinfoBei: this.vorinfoBei, fehlalarme: this.fehlalarme,
     };
   }
 }
 
-// Ganzer Belüftungslauf. log: Entscheidungen [{ t, art: 'luefter' | 'dach' | 'entfeuchter', wert }], gelten ab Stunde t
+// Ganzer Belüftungslauf. log: Schaltungen [{ t, art: 'luefter' | 'dach' | 'entfeuchter', wert }], gelten ab Stunde t,
+// und Handlungen [{ t, art: 'sonde' | 'vorinfo' | 'alarm' … }], ausgeführt zur Stunde t in der Reihenfolge des Protokolls.
+export const SCHALTER = ['luefter', 'dach', 'entfeuchter'];
+// Version des Protokolls am Heustock: gesicherte Runden einer anderen Version lassen sich nicht exakt nachspielen und werden verworfen
+export const PROTOKOLL_VERSION = 2;
 export function spieleBelueftungNach(start, log = [], tEnde = Infinity, betrieb = STANDARD) {
   const h = new Heustock(start);
   const e = { ...betrieb };
-  while (!h.ende && h.t < tEnde) {
-    for (const x of log) if (x.t === h.t) e[x.art] = x.wert;
+  for (;;) {
+    for (const x of log) if (x.t === h.t) { if (SCHALTER.includes(x.art)) e[x.art] = x.wert; else h.handle(x); }
+    if (h.ende || h.t >= tEnde) break;
     h.stunde(e);
   }
   return h;
