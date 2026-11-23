@@ -517,7 +517,7 @@ export class HeustockSpiel {
 // ---------- Bild des Heustocks (SVG, Farben über CSS-Variablen): drei Messstellen nebeneinander
 // sicht: { stellen: [{ t, schichten: [{ ts, temp }] } | null ×3], hoehen (m je Stelle), jetzt, laeuft, v, saeulen }
 function stockBild(sicht, p, e, w, opt, brennt = false) {
-  const B = 360, H = 230, x0 = 70, x1 = 290, yRost = 190, yOben = 46, bS = (x1 - x0) / 3;
+  const B = 360, H = 242, x0 = 70, x1 = 290, yRost = 190, yOben = 46, bS = (x1 - x0) / 3;
   const laeuft = p?.f > 0, nacht = w.rad <= 0, hMax = Math.max(...sicht.hoehen, 0.5);
   const teile = [];
   // Dach mit Sonne (Warmluft) und Gebäude
@@ -536,7 +536,8 @@ function stockBild(sicht, p, e, w, opt, brennt = false) {
       const text = opt.ampel ? `${s.ts >= ANLAGE.lagerTs ? 'trocken' : s.ts >= ANLAGE.lagerTs - 5 ? 'fast' : 'feucht'}${s.temp > 35 ? '!' : ''}` : `${z(s.ts)} % · ${z(s.temp)}°`;
       if (hS >= 14) teile.push(`<text x="${xa + bS / 2}" y="${y + hS / 2 + 5}" text-anchor="middle" class="hs-schicht klein${alt}">${text}</text>`);
     });
-    teile.push(`<text x="${xa + bS / 2}" y="${yRost + 34}" text-anchor="middle" class="hs-stelle">${SAEULEN[k]}${st && !opt.ampel ? ` · ${sicht.jetzt - st.t === 0 ? 'jetzt' : `vor ${sicht.jetzt - st.t} h`}` : ''}</text>`);
+    teile.push(`<text x="${xa + bS / 2}" y="${yRost + 32}" text-anchor="middle" class="hs-stelle">${SAEULEN[k]}</text>`);
+    if (st && !opt.ampel) teile.push(`<text x="${xa + bS / 2}" y="${yRost + 46}" text-anchor="middle" class="hs-stelle">${sicht.jetzt - st.t === 0 ? 'jetzt' : `vor ${sicht.jetzt - st.t} h`}</text>`);
   });
   if (brennt) teile.push(`<text x="${(x0 + x1) / 2}" y="${yOben - 14}" text-anchor="middle" class="hs-klein" fill="var(--rot)">Brand!</text>`);
   // Rost, Lüfter, Pfeile (dicker, wo mehr Luft durchgeht: Kamin)
