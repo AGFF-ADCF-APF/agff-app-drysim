@@ -1,0 +1,28 @@
+# Heureka auf all-inkl (live, öffentlich). Kopfzeilen wie früher in nginx.conf (Home-Server).
+# Auf dev ersetzt das Deploy-Skript diese Datei durch server/dev/.htaccess (Tor vor allem).
+Options -Indexes
+DirectoryIndex index.html
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "same-origin"
+  Header always set Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; frame-ancestors 'none'"
+  <FilesMatch "\.(html|js|css|xml|webmanifest|json)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  <FilesMatch "\.(png|svg)$">
+    Header set Cache-Control "public, max-age=86400"
+  </FilesMatch>
+</IfModule>
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+  AddType text/javascript .js .mjs
+  AddDefaultCharset utf-8
+</IfModule>
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /heureka/
+  # Anmeldung mit dem AGFF-Konto (nur für die Musterlösungen): diese Wege laufen durch konto.php
+  RewriteRule ^(anmelden/(start|zurueck|ich)|abmelden)$ konto.php [L]
+  # konto.php direkt aufrufen bringt nichts (404 aus konto.php selbst); versteckte Dateien sperren
+  RewriteRule (^|/)\. - [F]
+</IfModule>

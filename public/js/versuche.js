@@ -45,9 +45,9 @@ export const LEISTUNG = [['ohne Aufbereiter', 61], ['mit Aufbereiter', 122]];
 export const TOPAGRAR_35 = [['mit Aufbereiter', 5], ['ohne Aufbereiter, 2× gewendet', 8]];
 
 // ---------- Heubelüftung: Richtwerte aus den Fachunterlagen (abgeschrieben bzw. aus Grafiken abgelesen)
-export const QUELLE_FAT1982 = { titel: 'Baumgartner, J. (1982): ABC der Heubelüftung. Blätter für Landtechnik 216, FAT Tänikon', url: '../drywatch/knowledge/files/Baumgartner_1982_ABC-der-Heubelueftung.pdf' };
-export const QUELLE_AGROSCOPE38 = { titel: 'Agroscope Transfer Nr. 38/2014: Richtlinien für Heubelüftungsanlagen', url: '../drywatch/knowledge/files/agroscope_transfer_38_2014_richtlinien_fuer_heubelueftungsanlagen.pdf' };
-export const QUELLE_LKS = { titel: 'Galler, Kittl, Wirleitner (LK Salzburg): Heutrocknung von A bis Z', url: '../drywatch/knowledge/files/Heutrocknung_von_A-Z_Kittl+Galler_2020.pdf' };
+export const QUELLE_FAT1982 = { titel: 'Baumgartner, J. (1982): ABC der Heubelüftung. Blätter für Landtechnik 216, FAT Tänikon', url: 'https://apps.graswachstum.ch/drywatch/knowledge/files/Baumgartner_1982_ABC-der-Heubelueftung.pdf' };
+export const QUELLE_AGROSCOPE38 = { titel: 'Agroscope Transfer Nr. 38/2014: Richtlinien für Heubelüftungsanlagen', url: 'https://apps.graswachstum.ch/drywatch/knowledge/files/agroscope_transfer_38_2014_richtlinien_fuer_heubelueftungsanlagen.pdf' };
+export const QUELLE_LKS = { titel: 'Galler, Kittl, Wirleitner (LK Salzburg): Heutrocknung von A bis Z', url: 'https://apps.graswachstum.ch/drywatch/knowledge/files/Heutrocknung_von_A-Z_Kittl+Galler_2020.pdf' };
 
 // FAT 1982, Abb. 29: «Durchschnittlicher Wasserentzug in Abhängigkeit der relativen Luftfeuchtigkeit und verschiedener
 // Trocknungsgrade des Heus», g/m³ Luft, aus der Grafik abgelesen (±0,1–0,2 g/m³). Temperatur nicht angegeben (Spiel: 20 °C).

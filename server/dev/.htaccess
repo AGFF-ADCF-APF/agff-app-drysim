@@ -1,0 +1,29 @@
+# Nur Testumgebung (dev): JEDE Anfrage unter /heureka/ läuft durch konto.php (Tor, Anmeldung mit dem AGFF-Konto).
+# Das Deploy-Skript legt diese Datei statt public/.htaccess nach public/ (nur dev).
+Options -Indexes
+DirectoryIndex konto.php
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "same-origin"
+  Header always set Content-Security-Policy "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://i.ytimg.com; frame-ancestors 'none'"
+  <FilesMatch "\.(html|js|css|xml|webmanifest|json)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  <FilesMatch "\.(png|svg)$">
+    Header set Cache-Control "public, max-age=86400"
+  </FilesMatch>
+</IfModule>
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+  AddType text/javascript .js .mjs
+  AddDefaultCharset utf-8
+</IfModule>
+<IfModule mod_headers.c>
+  Header always set X-Robots-Tag "noindex, nofollow"
+</IfModule>
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /heureka/
+  RewriteRule ^konto\.php$ - [L]
+  RewriteRule ^ konto.php [L]
+</IfModule>

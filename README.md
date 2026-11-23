@@ -1,7 +1,7 @@
 # Heureka – Lernspiel Futterkonservierung (früher «Silage-Simulator», Pfad /drysim)
 
 Lernspiel zur Futterkonservierung für die höhere Berufsschule und die höhere Fachschule.
-Läuft unter <https://apps.graswachstum.ch/heureka/>. Spielbar sind Silage (Flachsilo, Rundballen) und Heu (Belüftungsheu, Bodenheu, Heuballen).
+Läuft seit 23.11.2026 unter <https://app.graswachstum.ch/heureka/> (all-inkl); apps.graswachstum.ch/heureka/ und /drysim/ leiten dorthin weiter. Testumgebung <https://dev-app.graswachstum.ch/heureka/>, siehe `docs/umzug-allinkl.md`. Spielbar sind Silage (Flachsilo, Rundballen) und Heu (Belüftungsheu, Bodenheu, Heuballen).
 
 ## Idee (Gespräch vom 12.10.2026)
 
@@ -41,8 +41,10 @@ Ablauf im Spiel: Start → Einsatz planen (Wetter, Wiese, Maschinen, Silo) → S
 | `test/run.mjs` | Modell-Durchlauf aller Szenarien auf der Konsole |
 
 ```
-docker compose up -d --build
+docker compose up -d --build                 # Home-Server: nur noch Weiterleitung (umzug/)
+tools/deploy-allinkl.sh --dev                 # all-inkl Testumgebung (aus dem letzten Commit)
 docker run --rm -v "$PWD":/app -w /app node:22-alpine node test/run.mjs
+test/konto/test.sh                            # Anmeldung (public/konto.php) im PHP-Container
 ```
 
 ## Bedienung, Zugänglichkeit und Suchmaschinen
@@ -192,7 +194,7 @@ Abweichung zum Konzept (Entscheid des Auftraggebers vom 23.11.2026): Der Entfeuc
 
 ### Musterlösungen für Superuser (seit 23.11.2026, Konzept Heubelüftung Abschnitt 11)
 
-- **Wer:** Wer in Futter v2 eine Admin-Sitzung hat (zentrale Anmeldung graswachstum.ch, Recht `admin` oder `apps_admin`). `superuser.js` fragt `GET /futter/v2/api/admin/ich` mit `credentials: 'same-origin'` ab (Zeitlimit 4 s). Ohne Sitzung, ohne Netz oder bei Fehler erscheint nichts. Auf `unterricht.html` steht ein unauffälliger Link «Anmelden» (`/futter/v2/anmelden`). In Futter v2 wurde nichts geändert.
+- **Wer:** Lehrpersonen mit AGFF-Konto und Recht `heureka.teacher` oder `heureka.admin` auf graswachstum.ch (seit dem Umzug; vorher Admin-Sitzung von Futter v2). Anmeldung über `public/konto.php` (SSO agff-familie, Ed25519, Wege `anmelden/start|zurueck|ich`, `abmelden`). `superuser.js` fragt `anmelden/ich` ab (Zeitlimit 4 s, nie zwischengespeichert). Ohne Sitzung, ohne Netz oder bei Fehler erscheint nichts. Auf `unterricht.html` steht ein unauffälliger Link «Mit AGFF-Konto anmelden».
 - **Was:** Am Ergebnis jeder Runde mit Belüftungsheu eine Karte «Musterlösungen»: günstigste gefundene Variante (tiefste laufende Kosten je t, Bedingung lagerfähig, kein Schimmel, kein Brand, Heuqualität mindestens Note 2: `GUENSTIG_BEDINGUNG`, Annahme) und beste gefundene Variante (höchste Punktzahl). Sind beide gleich, steht sie einmal da. Diagramm (TS vom Mähen bis zum Lagerende, eigene Runde und Varianten, Handlungen als Kreise, Regen als Band) und Tabelle (Punkte, Note, TS beim Einführen, Verlust, Kosten je t, Arbeitsstunden, Ende).
 - **Suche** (`muster/suche.js`, im Web Worker): Raster über Mähzeitpunkt (Tag 1–3, 9/10/11/13 Uhr), Aufbereiter, drei Zettmuster und Einführzeiten im Zielbereich (aus einem Probelauf), dann Verfeinerung (Anlage soweit das Niveau sie wählen lässt, Lüfter Intervall oder Dauer, Entfeuchter, Zeiten ±1–2 h, alle Aufbereiter, Stoppelhöhe 7/8 cm), bis nichts mehr besser wird. Fest: gleichmässig verteilt, Lüfter beim Einfüllen an, Heusonde täglich um 8 Uhr. Wiese, Wetter (mit Gewitter und Pannen) und Niveau wie in der Runde. Die Feldzeiten der eigenen Runde sind ein Startpunkt. Rund 100 bis 800 Varianten, unter 2 s. Ergebnis je Runde im Browser gespeichert (`drysim-muster:…`).
 - **Abspielen:** Das Protokoll läuft im normalen Spielbild im Zeitraffer durch (Feld, dann Heustock), mit Pause und Tempo; nichts wird gesichert, danach zurück zum Ergebnis.

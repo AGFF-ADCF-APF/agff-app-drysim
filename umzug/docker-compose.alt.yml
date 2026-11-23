@@ -1,0 +1,19 @@
+# Erst beim Live-Umzug aktivieren (docs/umzug-allinkl.md):
+#   docker compose -f docker-compose.yml -f docker-compose.override.yml -f umzug/docker-compose.alt.yml up -d --build
+# Der Container bleibt agff-drysim, liefert aber nur noch die Weiterleitung und den abmeldenden Service Worker aus.
+services:
+  drysim:
+    build:
+      context: .
+      dockerfile: umzug/Dockerfile.alt
+    labels:
+      # /drysim/sw.js nicht weiterleiten (ein umgeleitetes sw.js lässt den alten Service Worker stehen), sondern ausliefern
+      - "traefik.http.routers.drysim-sw.rule=Host(`apps.graswachstum.ch`) && Path(`/drysim/sw.js`)"
+      - "traefik.http.routers.drysim-sw.priority=1000"
+      - "traefik.http.routers.drysim-sw.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le-http}"
+      - "traefik.http.routers.drysim-sw.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.middlewares.drysim-strip.stripprefix.prefixes=/drysim"
+      - "traefik.http.routers.drysim-sw.middlewares=drysim-strip"
+      - "traefik.http.routers.drysim-sw.service=heureka"
+      # /drysim/… direkt auf die neue Adresse (statt über /heureka/, eine Umleitung weniger)
+      - "traefik.http.middlewares.drysim-zu-heureka.redirectregex.replacement=https://app.graswachstum.ch/heureka/$${2}"

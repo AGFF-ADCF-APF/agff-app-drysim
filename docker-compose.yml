@@ -1,6 +1,10 @@
 services:
   drysim:
-    build: .
+    # Seit dem Umzug nach https://app.graswachstum.ch/heureka/ (all-inkl, 23.11.2026, docs/umzug-allinkl.md) liefert dieser
+    # Container nur noch die Weiterleitung (301) und den abmeldenden Service Worker aus (umzug/). Zurück zur App: build: .
+    build:
+      context: .
+      dockerfile: umzug/Dockerfile.alt
     container_name: agff-drysim
     restart: unless-stopped
     networks:
@@ -19,12 +23,20 @@ services:
       - "traefik.http.routers.heureka.middlewares=heureka-slash,heureka-strip"
       - "traefik.http.routers.heureka.service=heureka"
       - "traefik.http.services.heureka.loadbalancer.server.port=80"
-      # Alte Adresse /drysim/… dauerhaft auf /heureka/… umleiten (Pfad und ?wetter=/?code= bleiben erhalten)
+      # /drysim/sw.js nicht weiterleiten (ein umgeleitetes sw.js lässt den alten Service Worker stehen), sondern ausliefern
+      - "traefik.http.routers.drysim-sw.rule=Host(`apps.graswachstum.ch`) && Path(`/drysim/sw.js`)"
+      - "traefik.http.routers.drysim-sw.priority=1000"
+      - "traefik.http.routers.drysim-sw.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le-http}"
+      - "traefik.http.routers.drysim-sw.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
+      - "traefik.http.middlewares.drysim-strip.stripprefix.prefixes=/drysim"
+      - "traefik.http.routers.drysim-sw.middlewares=drysim-strip"
+      - "traefik.http.routers.drysim-sw.service=heureka"
+      # Alte Adresse /drysim/… dauerhaft direkt auf die neue Adresse umleiten (Pfad und ?wetter=/?code= bleiben erhalten)
       - "traefik.http.routers.drysim-alt.rule=Host(`apps.graswachstum.ch`) && PathPrefix(`/drysim`)"
       - "traefik.http.routers.drysim-alt.tls.certresolver=${TRAEFIK_CERTRESOLVER:-le-http}"
       - "traefik.http.routers.drysim-alt.entrypoints=${TRAEFIK_ENTRYPOINT:-websecure}"
       - "traefik.http.middlewares.drysim-zu-heureka.redirectregex.regex=^(https?://[^/]+)/drysim/?(.*)$$"
-      - "traefik.http.middlewares.drysim-zu-heureka.redirectregex.replacement=$${1}/heureka/$${2}"
+      - "traefik.http.middlewares.drysim-zu-heureka.redirectregex.replacement=https://app.graswachstum.ch/heureka/$${2}"
       - "traefik.http.middlewares.drysim-zu-heureka.redirectregex.permanent=true"
       - "traefik.http.routers.drysim-alt.middlewares=drysim-zu-heureka"
       - "traefik.http.routers.drysim-alt.service=heureka"

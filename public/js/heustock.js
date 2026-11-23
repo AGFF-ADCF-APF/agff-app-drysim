@@ -516,7 +516,7 @@ export class HeustockSpiel {
       `<li>Der Lüfter fördert ${z1(m.V)} m³/s, also ${z(m.V * 3600)} m³ je Stunde: ${z1(d)} g/m³ × ${z(m.V * 3600)} m³/h = ${z(d * m.V * 3600)} g/h = <b>${z(lh)} L/h</b> (1 L Wasser = 1 kg).</li>` +
       `</ol><p>Das Spiel rechnet genauer mit Gramm Wasser je Kilogramm trockener Luft, weil sich die Luft im Heu abkühlt und ihr Volumen dabei kleiner wird: <b>${z(m.p.gm3, 2)} g/m³</b> und <b>${z(sp)} L/h</b>. Die Abweichung zu deiner Rechnung ist klein.</p>` +
       grafikHx({ aussen: m.aussen, zu: { t: m.zuT, rh: m.zuRh }, ab: { t: m.abT, rh: m.abRh } }) +
-      `<p class="hinweis">Gleiche Rechnung wie in der App <a href="../drywatch/" rel="noopener">Heutrocknung</a>: Dort gibst du die Messwerte deiner eigenen Anlage ein.</p>`;
+      `<p class="hinweis">Gleiche Rechnung wie in der App <a href="https://apps.graswachstum.ch/drywatch/" rel="noopener">Heutrocknung</a>: Dort gibst du die Messwerte deiner eigenen Anlage ein.</p>`;
   }
 }
 

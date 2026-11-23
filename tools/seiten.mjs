@@ -15,6 +15,22 @@ import { QUELLE_FAT, QUELLE_TOPAGRAR, QUELLE_KOELN, QUELLE_HUMBERT } from '../pu
 import { BEGRIFFE } from '../public/js/begriffe.js';
 import { TABELLE as NIVEAUS } from '../public/js/niveau.js';
 
+// Die anderen AGFF-Apps (Futterrechner, Heutrocknung) laufen weiter auf dem Home-Server; Heureka liegt auf app.graswachstum.ch
+const APPS = 'https://apps.graswachstum.ch';
+
+// Mediathek-Kopie aus futter nachziehen (nur wenn futter daneben liegt; sonst bleibt die committete Kopie)
+{
+  const quelle = new URL('../../futter/static/v2/', import.meta.url), ziel = new URL('../public/mediathek/', import.meta.url);
+  if (fs.existsSync(new URL('mediathek.js', quelle))) {
+    fs.mkdirSync(ziel, { recursive: true });
+    for (const n of ['mediathek.js', 'mediathek.css', 'mediathek.json']) {
+      const neu = fs.readFileSync(new URL(n, quelle));
+      const alt = fs.existsSync(new URL(n, ziel)) ? fs.readFileSync(new URL(n, ziel)) : null;
+      if (!alt || !alt.equals(neu)) { fs.writeFileSync(new URL(n, ziel), neu); console.log('Mediathek aktualisiert:', n); }
+    }
+  }
+}
+
 const BASIS = 'https://apps.graswachstum.ch/heureka/';
 const HEUTE = new Date().toISOString().slice(0, 10);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -67,8 +83,8 @@ ${inhalt}
       <a href="${hoch}lernen.html">Begriffe und Hintergründe</a>
       <a href="${hoch}szenario/bilderbuch.html">Szenarien</a>
       <a href="${hoch}unterricht.html">Für Lehrpersonen</a>
-      <a href="${hoch}../futter/v2/">Futterrechner</a>
-      <a href="${hoch}../drywatch/">Heutrocknung</a>
+      <a href="${APPS}/futter/v2/">Futterrechner</a>
+      <a href="${APPS}/drywatch/">Heutrocknung</a>
       <a href="https://www.agff.ch" rel="noopener">AGFF</a>
     </nav>
   </footer>
@@ -80,7 +96,7 @@ ${inhalt}
 
 // ---------- Lernseite
 // Quellen: zuerst Fachunterlagen aus Österreich, der Schweiz und Deutschland (liegen in der App Heutrocknung), dann Versuche aus den USA.
-const DRY = '../drywatch/knowledge/files/';
+const DRY = `${APPS}/drywatch/knowledge/files/`;
 const QUELLEN_DACH = [
   ['Galler, Kittl, Wirleitner (Landwirtschaftskammer Salzburg): Heutrocknung von A bis Z. Praxisratgeber (Österreich)', `${DRY}Heutrocknung_von_A-Z_Kittl+Galler_2020.pdf`],
   ['Agroscope Transfer Nr. 38/2014: Richtlinien für Heubelüftungsanlagen (Autoren aus Schweiz, Österreich und Deutschland)', `${DRY}agroscope_transfer_38_2014_richtlinien_fuer_heubelueftungsanlagen.pdf`],
@@ -157,7 +173,7 @@ function belueftungsAbschnitt() {
       <li>${bsp.V} m³/s sind ${z(bsp.V * 3600, 0)} m³ je Stunde: ${z(d)} × ${z(bsp.V * 3600, 0)} = ${z(d * bsp.V * 3600, 0)} g, also rund <strong>${z(d * bsp.V * 3.6, 0)} Liter Wasser je Stunde</strong>.</li>
     </ol>
 ${grafikHx({ zu: bsp.zu, ab: bsp.ab })}
-    <p>Im Spiel gibt es dazu die Aufgabe «Nachrechnen» mit den Messwerten der laufenden Stunde. Die App <a href="../drywatch/">Heutrocknung (drywatch)</a> rechnet dasselbe mit den Messwerten deiner eigenen Anlage, genauer mit Gramm Wasser je Kilogramm trockener Luft, und zeigt das h,x-Diagramm.</p>
+    <p>Im Spiel gibt es dazu die Aufgabe «Nachrechnen» mit den Messwerten der laufenden Stunde. Die App <a href="${APPS}/drywatch/">Heutrocknung (drywatch)</a> rechnet dasselbe mit den Messwerten deiner eigenen Anlage, genauer mit Gramm Wasser je Kilogramm trockener Luft, und zeigt das h,x-Diagramm.</p>
     <h3>Strom und Verfahren</h3>
     <p>Kaltbelüftung braucht um 0,25 kWh je kg Wasser, mit Dachabsaugung deutlich unter 0,2, mit Entfeuchter 0,26 bis 0,45, mit ständiger Warmluft vom Ofen 1 bis 1,4 kWh (LK Salzburg). Wie feucht das Futter beim Einführen höchstens sein darf, hängt vom Verfahren ab (Tabelle oben unter «Heu»). 10 % mehr Feuchte verdoppeln die Wassermenge, die der Lüfter wegtragen muss (Agroscope 2014).</p>
     <div class="tabelle"><table class="zahlen">
@@ -232,10 +248,11 @@ const lernen = seite({
   beschreibung: 'Wie gute Silage und gutes Heu entstehen: Anwelken, Breitablage, Aufbereiter, Zetten, Heu ab 87 bis 88 % TS, Heubelüftung mit Wasserentzug und Strom, Heustock-Kontrolle. Nach Unterlagen aus Österreich, der Schweiz und Deutschland.',
   krumen: [['Start', './'], ['Lernen']],
   h1: 'Futterkonservierung verstehen',
-  // Gemeinsame AGFF-Mediathek: Liste und Skript liegen in futter (gleicher Host), siehe futter/static/v2/mediathek.js
+  // Gemeinsame AGFF-Mediathek: gepflegt in futter (static/v2/mediathek.*), hier eine Kopie (public/mediathek/), weil Heureka
+  // auf einer anderen Domain läuft als futter (CSP ohne fremde Skripte). Die Kopie zieht dieses Skript nach, wenn futter daneben liegt.
   kopf: `
-  <link rel="stylesheet" href="../futter/v2/assets/mediathek.css">
-  <script src="../futter/v2/assets/mediathek.js" defer></script>`,
+  <link rel="stylesheet" href="mediathek/mediathek.css">
+  <script src="mediathek/mediathek.js" defer></script>`,
   inhalt: `
     <p>Silage entsteht, wenn Milchsäurebakterien im luftdichten Silo den Zucker des Futters zu Milchsäure vergären. Der pH-Wert sinkt, und das Futter wird haltbar. Ob das gelingt, entscheidet sich zu einem grossen Teil schon auf dem Feld. Diese Seite erklärt, was im <a href="./">Lernspiel Heureka</a> passiert und warum.</p>
     <div class="infobox"><p><strong>Woher die Zahlen kommen:</strong> Begriffe und Richtwerte stützen sich in erster Linie auf Fachunterlagen aus Österreich, der Schweiz und Deutschland: den Praxisratgeber «Heutrocknung von A bis Z» (<strong>LK Salzburg</strong>), die «Richtlinien für Heubelüftungsanlagen» (<strong>Agroscope 2014</strong>) und das «ABC der Heubelüftung» (<strong>FAT 1982</strong>). Versuche aus den USA ergänzen sie. Das Spiel selbst rechnet mit einem vereinfachten Lehrmodell: Es zeigt Zusammenhänge und Grössenordnungen, ist aber keine Prognose für einen Betrieb.</p></div>
@@ -364,7 +381,7 @@ ${grafikZucker()}
     <ul>
       <li><strong>Bodenheu:</strong> trocknet ganz auf dem Feld. Es darf höchstens 20 bis 25 % Wasser enthalten, wenn es auf den Heustock kommt; dort erwärmt es sich dann normalerweise bis 40 bis 45 °C. Im Spiel gilt es ab ${SILOARTEN.bodenheu.ziel[0]} % TS als einlagerbar.</li>
       <li><strong>Heuballen:</strong> Vorsicht bei stark verdichteten Pressballen mit mehr als 20 % Restfeuchte: Sie geben Wärme schlecht ab und schimmeln. Im Spiel gilt ebenfalls ab ${SILOARTEN.heuballen.ziel[0]} % TS als einlagerbar.</li>
-      <li><strong>Belüftungsheu:</strong> wird schon feuchter eingeführt, im Spiel ab etwa ${SILOARTEN.belueftung.ziel[0]} % TS. Ein Gebläse trocknet es im Heustock mit Aussenluft fertig. Das verringert Bröckel- und Atmungsverluste und das Wetterrisiko (Agroscope 2014). Wie lange das dauert, hängt von der Luft ab: Bei 20 °C und höchstens 50 % Luftfeuchte lässt sich Heu auf rund 87 % TM trocknen, bei 80 % Luftfeuchte nur bis etwa 76 % TM (LK Salzburg). Die App <a href="../drywatch/">Heutrocknung</a> rechnet das genauer.</li>
+      <li><strong>Belüftungsheu:</strong> wird schon feuchter eingeführt, im Spiel ab etwa ${SILOARTEN.belueftung.ziel[0]} % TS. Ein Gebläse trocknet es im Heustock mit Aussenluft fertig. Das verringert Bröckel- und Atmungsverluste und das Wetterrisiko (Agroscope 2014). Wie lange das dauert, hängt von der Luft ab: Bei 20 °C und höchstens 50 % Luftfeuchte lässt sich Heu auf rund 87 % TM trocknen, bei 80 % Luftfeuchte nur bis etwa 76 % TM (LK Salzburg). Die App <a href="${APPS}/drywatch/">Heutrocknung</a> rechnet das genauer.</li>
     </ul>
     <p id="einfuhrfeuchte">Wie feucht das Futter beim Einfahren höchstens sein darf, hängt vom Trocknungsverfahren ab (nach Wirleitner, in LK Salzburg):</p>
     <div class="tabelle"><table class="zahlen">
@@ -577,7 +594,7 @@ ${liste.map((a) => `    <div class="auftrag">
       <li><strong>Nachbesprechen:</strong> Die Erklärkarten im Ergebnis zeigen, was gut war und was besser geht. Im Profi-Niveau stehen zusätzlich die Rechenwege, ein Datenexport (CSV) und Aufgaben zum Begründen.</li>
     </ul>
     <p>Hintergründe zu allen Themen: <a href="lernen.html">Begriffe und Hintergründe</a>. Szenarien zum Vorbereiten: <a href="szenario/bilderbuch.html">Szenarioseiten</a>.</p>
-    <p class="hinweis">Lehrpersonen mit Zugang zur Administration von Futter v2 sehen im Ergebnis von Runden mit Belüftungsheu zusätzlich Musterlösungen (günstigste und beste gefundene Variante, zum Abspielen am Beamer). <a href="/futter/v2/anmelden">Anmelden</a></p>
+    <p class="hinweis">Lehrpersonen mit AGFF-Konto (Recht «Heureka: Lehrperson» auf graswachstum.ch) sehen im Ergebnis von Runden mit Belüftungsheu zusätzlich Musterlösungen (günstigste und beste gefundene Variante, zum Abspielen am Beamer). <a href="anmelden/start?ziel=%2Fheureka%2Funterricht.html">Mit AGFF-Konto anmelden</a></p>
 `,
 });
 fs.writeFileSync(new URL('../public/unterricht.html', import.meta.url), unterricht);
@@ -598,7 +615,7 @@ const dateien = [];
   for (const e of fs.readdirSync(ordner, { withFileTypes: true })) {
     // js/muster/ (Musterlösungen für Superuser) wird nur nach bestätigter Sitzung geladen und nie zwischengespeichert
     if (e.isDirectory()) { if (`${praefix}${e.name}/` !== 'js/muster/') sammle(new URL(`${e.name}/`, ordner), `${praefix}${e.name}/`); }
-    else if (e.name !== 'sw.js') dateien.push(`${praefix}${e.name}`);
+    else if (e.name !== 'sw.js' && !e.name.startsWith('.') && !e.name.endsWith('.php')) dateien.push(`${praefix}${e.name}`);
   }
 })(wurzel, '');
 dateien.sort();
@@ -620,9 +637,9 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const r = e.request, url = new URL(r.url);
   if (r.method !== 'GET' || url.origin !== location.origin) return;
-  // Nur die eigenen Dateien; nicht die Sitzungsabfrage von Futter v2 und nicht das Suchmodul für Superuser
+  // Nur die eigenen Dateien; nicht die Anmeldung (anmelden/, abmelden) und nicht das Suchmodul für Lehrpersonen
   const basis = new URL('./', self.registration.scope).pathname;
-  if (!url.pathname.startsWith(basis) || url.pathname.startsWith(basis + 'js/muster/')) return;
+  if (!url.pathname.startsWith(basis) || url.pathname.startsWith(basis + 'js/muster/') || url.pathname.startsWith(basis + 'anmelden/') || url.pathname === basis + 'abmelden') return;
   const schluessel = r.mode === 'navigate' ? new Request(url.origin + url.pathname) : r; // ?code=… und ?szenario=… teilen sich eine Seite
   e.respondWith(caches.open(CACHE).then(async (c) => {
     const treffer = await c.match(schluessel);

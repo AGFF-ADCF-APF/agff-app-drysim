@@ -1,7 +1,8 @@
-// Superuser: wer in Futter v2 eine Admin-Sitzung hat (zentrale Anmeldung graswachstum.ch, Recht «admin» oder
-// «apps_admin»). Abfrage auf derselben Domain; ohne Sitzung, ohne Netz oder bei Fehler: false, ohne Hinweis.
+// Lehrperson: wer mit dem AGFF-Konto angemeldet ist und auf graswachstum.ch das Recht heureka.teacher oder heureka.admin hat
+// (Anmeldung über konto.php, Wege /heureka/anmelden/…). Ohne Sitzung, ohne Netz oder bei Fehler: false, ohne Hinweis.
 // Schutz ehrlich benannt (Konzept 11): Das verhindert nur, dass Lernende die Musterlösung angeboten bekommen.
-export const ICH_URL = '/futter/v2/api/admin/ich';
+export const ICH_URL = new URL('../anmelden/ich', import.meta.url).href;
+export const ANMELDEN_URL = new URL('../anmelden/start', import.meta.url).href;
 let anfrage = null;
 export function istSuperuser() {
   if (anfrage) return anfrage;
@@ -12,7 +13,7 @@ export function istSuperuser() {
       const r = await fetch(ICH_URL, { credentials: 'same-origin', cache: 'no-store', signal: abbruch.signal, headers: { Accept: 'application/json' } });
       if (!r.ok) return false;
       const j = await r.json();
-      return j?.angemeldet === true;
+      return j?.angemeldet === true && j?.lehrperson === true;
     } catch { return false; } finally { clearTimeout(uhr); }
   })();
   return anfrage;
