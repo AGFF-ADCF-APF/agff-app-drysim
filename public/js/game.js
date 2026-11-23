@@ -32,7 +32,8 @@ export function gespeicherteRunde() {
 export function vergissRunde() { try { localStorage.removeItem(RUNDE); } catch { /* egal */ } }
 
 export class Spiel {
-  constructor(root, { setup, wetterSzenario, wetterRef = null, plan = null, resume = null, onEnde }) {
+  // abspielen: Musterlösung im Zeitraffer, mit Pause und Tempo (Superuser)
+  constructor(root, { setup, wetterSzenario, wetterRef = null, plan = null, resume = null, abspielen = false, onEnde }) {
     this.root = root; this.setup = setup; this.sz = wetterSzenario; this.wetterRef = wetterRef; this.plan = plan; this.onEnde = onEnde;
     this.wetter = stundenwetter(wetterSzenario);
     this.log = resume ? resume.log.slice() : [];
@@ -49,6 +50,8 @@ export class Spiel {
     this.vorher = this.feld.zustand();
 
     root.classList.toggle('zeitraffer', !!plan);
+    root.classList.toggle('abspielen', !!abspielen);
+    $('.zeitraffer-label', root).textContent = abspielen ? 'Musterlösung' : 'Zeitraffer';
     root.classList.toggle('ruhig', this.ruhig);
     $('.ticker', root).replaceChildren();
     // Beschriftung der Messer: Fachsprache (Praxis, Profi) oder einfache Worte (Einstieg), siehe beschrifte()

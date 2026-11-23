@@ -26,7 +26,8 @@ export function feldAusRunde(g, sz) {
 
 export class HeustockSpiel {
   // feld: eingefahrenes Feld (model.js), feldLog: Arbeitsgänge der Feldphase (für die Sicherung)
-  constructor(root, { feld, setup, wetterSzenario, wetterRef = null, feldLog = [], resume = null, onEnde }) {
+  // abspielen: { betrieb, log } spielt eine Musterlösung im Zeitraffer ab (Superuser); nichts wird gesichert
+  constructor(root, { feld, setup, wetterSzenario, wetterRef = null, feldLog = [], resume = null, abspielen = null, onEnde }) {
     this.root = root; this.feld = feld; this.setup = setup; this.sz = wetterSzenario; this.wetterRef = wetterRef;
     this.feldLog = feldLog; this.onEnde = onEnde; this.plan = null;
     // Was die Anlage hat (im Einsatz gewählt) und was der Bildschirm je Niveau zeigt
@@ -36,7 +37,9 @@ export class HeustockSpiel {
     if (anlage.entfeuchter === false) this.optionen.entfeuchter = false;
     this.eingriffe = this.optionen.eingriffe ?? [];
     this.start = feld.heustockStart(this.optionen);
-    this.e = { luefter: 'intervall', dach: !!this.optionen.dach, entfeuchter: false };
+    this.e = { luefter: 'intervall', dach: !!this.optionen.dach, entfeuchter: false, ...(abspielen?.betrieb ?? {}) };
+    this.abspielen = abspielen; root.classList.toggle('abspielen', !!abspielen);
+    $('.zeitraffer-label', root).textContent = abspielen ? 'Musterlösung' : 'Automatik';
     this.log = resume ? resume.log.slice() : [];
     this.stock = resume ? spieleBelueftungNach(this.start, this.log, resume.t, this.e) : new Heustock(this.start);
     for (const x of this.log) if (x.t <= this.stock.t && SCHALTER.includes(x.art)) this.e[x.art] = x.wert; // aktueller Schaltzustand
@@ -78,8 +81,11 @@ export class HeustockSpiel {
     Assistent.kontext('heustock');
     this.zeichne();
     this.speichere();
+    if (abspielen) { this.melde('Musterlösung: Die Belüftung läuft im Zeitraffer ab. Pause und Tempo oben.', true); this.setzeTempo(3); }
     this.lauf();
   }
+
+  get ohneHalt() { return !!(this.auto || this.abspielen); }
 
   // ---------- Schnittstelle wie Spiel (app.js: Bildschirmwechsel, Dialoge)
   stop() {
@@ -88,7 +94,7 @@ export class HeustockSpiel {
     document.removeEventListener('keydown', this.beiTaste);
   }
   speichere() {
-    if (this.gestoppt || this.fertig) return;
+    if (this.gestoppt || this.fertig || this.abspielen) return;
     try {
       localStorage.setItem(RUNDE, JSON.stringify({
         v: 1, zeit: Date.now(), einstellungen: this.setup, wetterRef: this.wetterRef, log: this.feldLog,
@@ -143,6 +149,9 @@ export class HeustockSpiel {
     for (let i = 0; i < n && !this.fertig; i++) this.stundeWeiter();
   }
   stundeWeiter() {
+    if (this.stock.ende) return this.beende();
+    // Abspielen: Schaltungen und Handlungen der Musterlösung zu ihrer Stunde
+    if (this.abspielen) for (const x of this.abspielen.log) if (x.t === this.stock.t) { if (SCHALTER.includes(x.art)) this.schalte(x.art, x.wert); else { const { t, art, ...rest } = x; this.handle(art, rest); } }
     if (this.stock.ende) return this.beende();
     this.stock.stunde(this.e);
     this.zeichne();
@@ -242,7 +251,7 @@ export class HeustockSpiel {
     else if (temp >= E.vorinfo) { this.melde(`${t}: Über ${E.vorinfo} °C! Feuerwehr vorinformieren, alle ${E.messenAlle} Stunden messen, den Stock nicht abtragen.`, true); Assistent.hinweis('hs.ernstfall'); }
     else if (temp >= E.achtung) { this.melde(`${t}: Über ${E.achtung} °C: Gefahr. Lüfter laufen lassen und öfter messen.`, true); Assistent.hinweis('hs.warm'); }
     else if (temp > 35) { this.melde(`${t}: Über 35 °C im Heu: Jetzt muss belüftet werden (LK Salzburg).`, true); Assistent.hinweis('hs.warm'); }
-    if (temp >= 35 && !this.auto) this.setzeTempo(0);
+    if (temp >= 35 && !this.ohneHalt) this.setzeTempo(0);
   }
 
   // ---------- Hinweise im Ticker
@@ -252,8 +261,8 @@ export class HeustockSpiel {
     const einmal = (k, text, anhalten = false, tipp = null) => {
       if (this.gemeldet.has(k)) return;
       this.gemeldet.add(k); this.melde(text, anhalten);
-      if (anhalten && !this.auto) this.setzeTempo(0);
-      if (tipp && !this.auto) Assistent.hinweis(tipp);
+      if (anhalten && !this.ohneHalt) this.setzeTempo(0);
+      if (tipp && !this.ohneHalt) Assistent.hinweis(tipp);
     };
     const nacht = `${w.tag}-${w.h < 12 ? 'm' : 'a'}`;
     if (p?.f > 0 && p.gm3 < -0.05) einmal('feucht' + nacht, this.ampel ? `${t}: Die Luft ist zu feucht: Der Lüfter macht das Heu wieder feuchter. Intervall oder aus?` : `${t}: Die Luft ist zu feucht (${z(p.aussenRh)} % rF): Der Lüfter befeuchtet das Heu wieder. Intervall oder aus?`, this.e.luefter === 'dauer', 'hs.feucht');
@@ -269,7 +278,7 @@ export class HeustockSpiel {
     } else if (this.warnen !== 'werte') {
       // Praxis: Wer nicht misst, merkt es erst an den Anzeichen (LK Salzburg: Schwitzwasser, süsslicher Geruch)
       const g = s.gemessen;
-      if (w.h === 8 && seit >= 12 && (g.t == null || s.t - g.t >= 24)) einmal('messen' + w.tag, `${t}: Heute noch nicht gemessen. In den ersten Tagen wird der Stock täglich mit der Heusonde kontrolliert (LK Salzburg).`);
+      if (!this.abspielen && w.h === 8 && seit >= 12 && (g.t == null || s.t - g.t >= 24)) einmal('messen' + w.tag, `${t}: Heute noch nicht gemessen. In den ersten Tagen wird der Stock täglich mit der Heusonde kontrolliert (LK Salzburg).`);
       if (zs.temp >= 50 && alt.temp < 50) einmal('geruch', `${t}: Im Heustall riecht es seltsam süsslich, auf dem Heu liegt Schwitzwasser. Höchste Zeit für die Heusonde!`, true, 'hs.ernstfall');
     }
     if (p && p.f === 0 && zs.ts < ANLAGE.hauptTs && s.seitLauf === 6) einmal('still' + s.t, `${t}: Seit 6 Stunden kein Luftzug: Das feuchte Heu atmet und erwärmt sich${this.sondeAuto ? ` (jetzt ${z(zs.temp)} °C)` : ''}.`);

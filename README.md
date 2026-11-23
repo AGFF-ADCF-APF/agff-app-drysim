@@ -35,6 +35,8 @@ Ablauf im Spiel: Start → Einsatz planen (Wetter, Wiese, Maschinen, Silo) → S
 | `public/js/belueftung.js` | Heubelüftung im Heustock, Stunde für Stunde (Luft wie drywatch, Sorption, Lüfter, Dach, Entfeuchter, Wärme, Schimmel, Strom) |
 | `public/js/heustock.js`, `css/heustock.css` | Spielphase «Am Heustock» nach dem Einführen von Belüftungsheu, Rechenaufgabe |
 | `public/js/belueftung-vergleich.js` | Belüftung unter festen Bedingungen nachrechnen (Tests, Lernseite) |
+| `public/js/superuser.js`, `public/js/muster/` | Musterlösungen für angemeldete Superuser: Sitzungsabfrage, Suche (`suche.js`), Web Worker, Anzeige; nur nach bestätigter Sitzung geladen, nicht im Service-Worker-Cache |
+| `test/muster.mjs` | Prüfungen der Musterlösungen: deterministisch, nie schlechter als die Vorgabe-Runde, nachspielbar, nicht im Cache |
 | `test/bedienung.mjs` | Prüfungen zur Bedienung am Heustock: Ernstfall, Kennlinie, Säulen, Eingriffe, Pannen, Nachspielen |
 | `test/run.mjs` | Modell-Durchlauf aller Szenarien auf der Konsole |
 
@@ -188,7 +190,18 @@ Abweichung zum Konzept (Entscheid des Auftraggebers vom 23.11.2026): Der Entfeuc
   - Radialventilator 4 / 7,5 / 11 / 30 kW: 707 / 836 / 1 110 / 1 497 Fr./Jahr (Pos. 24001, 24002, 24004, 24005); Heugebläse 10–15 kW 1 249 Fr./Jahr (Pos. 24010; alle S. 56, Hoftechnik ohne Strom). Gewählt wird der kleinste Ventilator mit der nötigen Motorleistung.
   - Nicht im Kostenkatalog: Dachabsaugung und Entfeuchter. Zuschlag aus «Gesamtkosten Trocknungssysteme» (LK Salzburg S. 43, abgelesen, Festkosten): Dach +1,5, Entfeuchter +9,3, beides +10,8 je t Heu. Wert des Heus 25,40 je dt TM (LK Salzburg S. 6).
 
+### Musterlösungen für Superuser (seit 23.11.2026, Konzept Heubelüftung Abschnitt 11)
+
+- **Wer:** Wer in Futter v2 eine Admin-Sitzung hat (zentrale Anmeldung graswachstum.ch, Recht `admin` oder `apps_admin`). `superuser.js` fragt `GET /futter/v2/api/admin/ich` mit `credentials: 'same-origin'` ab (Zeitlimit 4 s). Ohne Sitzung, ohne Netz oder bei Fehler erscheint nichts. Auf `unterricht.html` steht ein unauffälliger Link «Anmelden» (`/futter/v2/anmelden`). In Futter v2 wurde nichts geändert.
+- **Was:** Am Ergebnis jeder Runde mit Belüftungsheu eine Karte «Musterlösungen»: günstigste gefundene Variante (tiefste laufende Kosten je t, Bedingung lagerfähig, kein Schimmel, kein Brand, Heuqualität mindestens Note 2: `GUENSTIG_BEDINGUNG`, Annahme) und beste gefundene Variante (höchste Punktzahl). Sind beide gleich, steht sie einmal da. Diagramm (TS vom Mähen bis zum Lagerende, eigene Runde und Varianten, Handlungen als Kreise, Regen als Band) und Tabelle (Punkte, Note, TS beim Einführen, Verlust, Kosten je t, Arbeitsstunden, Ende).
+- **Suche** (`muster/suche.js`, im Web Worker): Raster über Mähzeitpunkt (Tag 1–3, 9/10/11/13 Uhr), Aufbereiter, drei Zettmuster und Einführzeiten im Zielbereich (aus einem Probelauf), dann Verfeinerung (Anlage soweit das Niveau sie wählen lässt, Lüfter Intervall oder Dauer, Entfeuchter, Zeiten ±1–2 h, alle Aufbereiter, Stoppelhöhe 7/8 cm), bis nichts mehr besser wird. Fest: gleichmässig verteilt, Lüfter beim Einfüllen an, Heusonde täglich um 8 Uhr. Wiese, Wetter (mit Gewitter und Pannen) und Niveau wie in der Runde. Die Feldzeiten der eigenen Runde sind ein Startpunkt. Rund 100 bis 800 Varianten, unter 2 s. Ergebnis je Runde im Browser gespeichert (`drysim-muster:…`).
+- **Abspielen:** Das Protokoll läuft im normalen Spielbild im Zeitraffer durch (Feld, dann Heustock), mit Pause und Tempo; nichts wird gesichert, danach zurück zum Ergebnis.
+- **Schutz, ehrlich benannt:** Der Code ist öffentlich und rechnet im Browser. Die Anmeldung verhindert nur, dass Lernende die Musterlösung angeboten bekommen. `js/muster/` wird erst nach bestätigter Sitzung nachgeladen, steht nicht im Service-Worker-Cache, und der Service Worker lässt die Sitzungsabfrage und `js/muster/` durch. Musterlösungen kommen nie in die Rangliste.
+- **Geprüft:** `test/muster.mjs` (alle Szenarien mit Belüftungsheu). Im Browser nur mit einer Attrappe der Sitzungsabfrage (Playwright, Service Worker dafür gesperrt): angemeldet, nicht angemeldet, Netzfehler, und ohne Attrappe gegen den lokalen nginx (404). Die echte Abfrage gegen Futter v2 auf apps.graswachstum.ch ist nicht geprüft.
+
 ## Offen / im Büro weiterentwickeln
+
+- [ ] Musterlösungen: Kursleitende ohne Admin-Sitzung sehen sie nicht (braucht ein eigenes Recht in der zentralen Anmeldung, Konzept 11). Die Suche ist kein Beweis des Optimums; Eingriffe (Umschichten, Nachfüllen) und zwei Lagen werden nicht gesucht. Lokal hinter dem Proxy meldet der Browser einen 404 auf die Sitzungsabfrage in der Konsole, auf apps.graswachstum.ch nicht.
 
 - [ ] Betriebe, Fläche und Arbeitszeit: Konzept in `docs/konzept-betriebe-flaeche-arbeit.md` (Stand 23.11.2026), offene Entscheide in Abschnitt 13
 

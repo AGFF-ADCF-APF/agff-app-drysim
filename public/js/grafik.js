@@ -31,7 +31,7 @@ export function balken({ titel, zeilen, max, einheit = '', teile = null, quelle 
 }
 
 // Verlauf als SVG: reihen [{ name, punkte: [[x, y]], farbe, art: 'linie' | 'punkte' }]
-export function verlauf({ titel, reihen, x, y, quelle = '', legendeEintraege = null }) {
+export function verlauf({ titel, reihen, x, y, quelle = '', legendeEintraege = null, baender = [] }) {
   const B = 470, H = 270, L = 46, R = 10, O = 24, U = 236; // schmal, damit die Schrift auf dem Handy lesbar bleibt
   const px = (v) => L + (v - x.min) / (x.max - x.min) * (B - L - R);
   const py = (v) => U - (v - y.min) / (y.max - y.min) * (U - O);
@@ -41,6 +41,8 @@ export function verlauf({ titel, reihen, x, y, quelle = '', legendeEintraege = n
   // Tage: Trennlinie und Datum oben
   for (const [a, b, t] of x.bereiche ?? []) s.push(`<line x1="${px(a)}" x2="${px(a)}" y1="${O - 18}" y2="${U}" stroke="var(--leise)"/><text x="${(px(a) + px(b)) / 2}" y="${O - 8}" text-anchor="middle" class="leise">${esc(t)}</text>`);
   if (y.titel) s.push(`<text x="4" y="${O - 8}" class="leise">${esc(y.titel)}</text>`);
+  // Bänder hinter den Linien, z. B. Regenstunden: [von, bis, Farbe, Titel]
+  for (const [a, b, farbe, t] of baender) s.push(`<rect x="${px(a).toFixed(1)}" y="${O}" width="${Math.max(1.5, px(b) - px(a)).toFixed(1)}" height="${U - O}" fill="${farbe}" fill-opacity="0.22">${t ? `<title>${esc(t)}</title>` : ''}</rect>`);
   for (const r of reihen) {
     if (r.art === 'punkte') for (const [a, b] of r.punkte) s.push(`<circle cx="${px(a)}" cy="${py(b)}" r="5.5" fill="var(--karte)" stroke="${r.farbe}" stroke-width="3"><title>${esc(r.name)}: ${zahl(b, 1)}</title></circle>`);
     else s.push(`<polyline points="${r.punkte.map(([a, b]) => `${px(a).toFixed(1)},${py(b).toFixed(1)}`).join(' ')}" fill="none" stroke="${r.farbe}" stroke-width="2.5"${r.strich ? ' stroke-dasharray="6 4"' : ''}/>`);

@@ -577,6 +577,7 @@ ${liste.map((a) => `    <div class="auftrag">
       <li><strong>Nachbesprechen:</strong> Die Erklärkarten im Ergebnis zeigen, was gut war und was besser geht. Im Profi-Niveau stehen zusätzlich die Rechenwege, ein Datenexport (CSV) und Aufgaben zum Begründen.</li>
     </ul>
     <p>Hintergründe zu allen Themen: <a href="lernen.html">Begriffe und Hintergründe</a>. Szenarien zum Vorbereiten: <a href="szenario/bilderbuch.html">Szenarioseiten</a>.</p>
+    <p class="hinweis">Lehrpersonen mit Zugang zur Administration von Futter v2 sehen im Ergebnis von Runden mit Belüftungsheu zusätzlich Musterlösungen (günstigste und beste gefundene Variante, zum Abspielen am Beamer). <a href="/futter/v2/anmelden">Anmelden</a></p>
 `,
 });
 fs.writeFileSync(new URL('../public/unterricht.html', import.meta.url), unterricht);
@@ -595,7 +596,8 @@ const wurzel = new URL('../public/', import.meta.url);
 const dateien = [];
 (function sammle(ordner, praefix) {
   for (const e of fs.readdirSync(ordner, { withFileTypes: true })) {
-    if (e.isDirectory()) sammle(new URL(`${e.name}/`, ordner), `${praefix}${e.name}/`);
+    // js/muster/ (Musterlösungen für Superuser) wird nur nach bestätigter Sitzung geladen und nie zwischengespeichert
+    if (e.isDirectory()) { if (`${praefix}${e.name}/` !== 'js/muster/') sammle(new URL(`${e.name}/`, ordner), `${praefix}${e.name}/`); }
     else if (e.name !== 'sw.js') dateien.push(`${praefix}${e.name}`);
   }
 })(wurzel, '');
@@ -618,6 +620,9 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const r = e.request, url = new URL(r.url);
   if (r.method !== 'GET' || url.origin !== location.origin) return;
+  // Nur die eigenen Dateien; nicht die Sitzungsabfrage von Futter v2 und nicht das Suchmodul für Superuser
+  const basis = new URL('./', self.registration.scope).pathname;
+  if (!url.pathname.startsWith(basis) || url.pathname.startsWith(basis + 'js/muster/')) return;
   const schluessel = r.mode === 'navigate' ? new Request(url.origin + url.pathname) : r; // ?code=… und ?szenario=… teilen sich eine Seite
   e.respondWith(caches.open(CACHE).then(async (c) => {
     const treffer = await c.match(schluessel);

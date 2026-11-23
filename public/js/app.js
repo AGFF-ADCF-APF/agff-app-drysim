@@ -12,6 +12,7 @@ import { Assistent } from './assistent.js';
 import { KARTEN_GRAFIK } from './grafik.js';
 import { HeustockSpiel, feldAusRunde } from './heustock.js';
 import { Heustock, BOX, LUEFTER, ANLAGE, ANSAETZE, KOSTEN_QUELLE, luefterAnsatz, kosten, fuellhoehe, schuetthoeheUrteil, druckSchaetzung, pannenAus } from './belueftung.js';
+import { istSuperuser } from './superuser.js';
 import { niveau, info as niveauInfo, gueltig as niveauGueltig, zeigt, karteSichtbar, beiWechsel, baueNiveauWahl, setzeNiveau } from './niveau.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -437,12 +438,14 @@ function wetterVon(id, code) {
 }
 
 let letzterStart = null;
-function starteSpiel({ einstellungen, sz, wetterRef = null, plan = null, tipp = null, resume = null }) {
-  letzterStart = { einstellungen, sz, wetterRef, plan, tipp };
+function starteSpiel({ einstellungen, sz, wetterRef = null, plan = null, tipp = null, resume = null, abspielen = null }) {
+  if (!abspielen) letzterStart = { einstellungen, sz, wetterRef, plan, tipp };
   zeige('spiel');
   spiel = new Spiel($('#spiel'), {
-    setup: einstellungen, wetterSzenario: sz, wetterRef, plan, resume,
-    onEnde: (res, feld, feldLog) => (res.plan.siloart === 'belueftung' && !plan && feld
+    setup: einstellungen, wetterSzenario: sz, wetterRef, plan, resume, abspielen: !!abspielen,
+    onEnde: (res, feld, feldLog) => (abspielen && feld
+      ? starteHeustock({ feld, einstellungen, sz, wetterRef, feldLog, abspielen })
+      : res.plan.siloart === 'belueftung' && !plan && feld
       ? fuelleEin(feld, einstellungen).then(() => starteHeustock({ feld, einstellungen, sz, wetterRef, feldLog }))
       : zeigeErgebnis(res, sz, tipp, einstellungen)),
   });
@@ -485,13 +488,13 @@ function fuelleEin(feld, einstellungen) {
 }
 
 // ---------- Belüftungsheu: zweite Phase «Am Heustock» (js/heustock.js); die Wette rechnet den Standardbetrieb
-function starteHeustock({ feld, einstellungen, sz, wetterRef, feldLog, resume = null }) {
+function starteHeustock({ feld, einstellungen, sz, wetterRef, feldLog, resume = null, abspielen = null }) {
   zeige('heustock');
   spiel = new HeustockSpiel($('#heustock'), {
     // Was der Heustock je Niveau zeigt (Tabelle in niveau.js): Einstieg ohne Entfeuchter, Rechenaufgabe nur wo vorgesehen
     feld, setup: { ...einstellungen, belueftungOptionen: { entfeuchter: zeigt('belueftung.steuerung') !== 'ein-aus', rechnen: !!zeigt('belueftung.aufgabe'), ampel: zeigt('belueftung.anzeige') === 'ampel', messen: zeigt('belueftung.messen'), ernstfall: zeigt('belueftung.ernstfall'), eingriffe: zeigt('belueftung.eingriffe') } },
-    wetterSzenario: sz, wetterRef, feldLog, resume,
-    onEnde: (lauf) => zeigeErgebnis(feld.bewerte(lauf), sz, null, einstellungen),
+    wetterSzenario: sz, wetterRef, feldLog, resume, abspielen,
+    onEnde: (lauf) => (abspielen ? abspielen.zurueck() : zeigeErgebnis(feld.bewerte(lauf), sz, null, einstellungen)),
   });
 }
 
@@ -642,7 +645,7 @@ function zeigeErgebnis(res, sz, tipp, einstellungen) {
   requestAnimationFrame(zaehle);
   setTimeout(() => { $('#punkte').textContent = ziel; }, 1300); // auch wenn der Tab im Hintergrund drosselt
 
-  letztesErgebnis = { res, sz, tipp };
+  letztesErgebnis = { res, sz, tipp, einstellungen };
   const e = res.ernte;
   ergebnisNiveau();
   $('#abzeichen').innerHTML = abzeichen(res).map(([t, d, minus]) => `<span class="${minus ? 'minus' : ''}" title="${esc(d)}">${minus ? '✗' : '★'} ${esc(t)}</span>`).join('');
@@ -713,10 +716,39 @@ function ergebnisNiveau() {
     const zs = zeitstrahl(lauf, z0).filter((x) => zahlen || x.stufe !== 'neutral' || (x.art === 'handlung' && !x.text.startsWith('Lüfter:')));
     $('#zeitstrahl').innerHTML = zs.map((x) => `<li class="${x.art === 'wende' ? 'wende' : 'handlung'} ${x.stufe}"><time>${esc(x.zeit)}</time><span class="sr-only">${x.art === 'wende' ? 'Im Stock: ' : 'Du: '}</span>${esc(x.text)}</li>`).join('');
   }
+  musterAnbieten();
   $('#rueckblick-karte').hidden = !zeigt('ergebnis.rueckblick');
   if (zeigt('ergebnis.rueckblick')) zeichne($('#rueckblick'), stundenwetter(sz), { aktionen: res.ereignisse, verlauf: res.verlauf, ziel: SILOARTEN[res.plan.siloart].ziel });
   $('#profi').hidden = !zeigt('ergebnis.rechenweg');
   if (zeigt('ergebnis.rechenweg')) $('#rechenweg').innerHTML = rechenweg(res, sz, tipp);
+}
+
+// ---------- Musterlösungen (Superuser, Konzept Heubelüftung 11): erst nach bestätigter Sitzung nachladen, nie für Lernende
+let musterFuer = null;
+function musterAnbieten() {
+  const box = $('#muster-karte'), ctx0 = letztesErgebnis;
+  box.hidden = true;
+  if (!ctx0?.res.belueftung || ctx0.res.plan.siloart !== 'belueftung') return;
+  musterFuer = ctx0;
+  istSuperuser().then((ja) => {
+    if (!ja || musterFuer !== ctx0 || aktuell !== 'ergebnis') return;
+    return import('./muster/muster-ui.js').then((m) => {
+      if (musterFuer !== ctx0) return;
+      const { res, sz, einstellungen } = ctx0;
+      m.zeige(box, {
+        res, sz, einstellungen, wetter: stundenwetter(sz), wetterRef: einstellungen.wetterRef ?? null,
+        erlaubt: { anlage: zeigt('belueftung.anlage', einstellungen.niveau ?? niveau()) ?? [], aufbereiter: true },
+        abspielen: (plan) => spieleMuster(ctx0, plan),
+      });
+    });
+  }).catch(() => { box.hidden = true; });
+}
+// Musterlösung im normalen Spielbild abspielen (Feld, dann Heustock im Zeitraffer), danach zurück zum Ergebnis
+function spieleMuster(ctx0, plan) {
+  const { res, sz, tipp, einstellungen } = ctx0;
+  const einst = { ...einstellungen, ...plan.einstellungen, belueftung: plan.betrieb, belueftungLog: plan.heustockLog, name: '', modus: 'live' };
+  starteSpiel({ einstellungen: einst, sz, plan: { maehen: plan.maehen, zetten: plan.zetten, schwaden: plan.schwaden, ernte: plan.ernte }, tipp: null,
+    abspielen: { betrieb: plan.betrieb, log: plan.heustockLog, zurueck: () => zeigeErgebnis(res, sz, tipp, { ...einstellungen, name: '' }) } });
 }
 
 // Preise für die Kosten der Belüftung: Annahmen, im Niveau Profi änderbar (gelten für die Anzeige, nicht für die Punkte)
