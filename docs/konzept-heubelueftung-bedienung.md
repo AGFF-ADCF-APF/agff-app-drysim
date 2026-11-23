@@ -167,3 +167,25 @@ Randbedingungen: Tests in `test/run.mjs` und `test/belueftung.mjs` bleiben grün
    - Die Kosten stehen als Franken je Tonne Heu (bzw. je dt TS) im Ergebnis, neben den Punkten.
 2. **Brand in der Rangliste:** wird mit null Punkten und Vermerk eingetragen.
 3. **Pannen:** nur Niveau Profi, per Link abschaltbar. Zusätzlich die Panne **«Wetterrisiko – Gewitter»**: ein im Wetterbericht nur als Risiko angekündigtes Gewitter, das je Szenario bzw. Wettercode fest eintritt oder ausbleibt (kein echter Zufall, alle in der Klasse erleben dasselbe). Folgen auf dem Feld (Regen auf Heu kurz vor dem Einführen, Zwang zum feuchteren Einführen) und am Stock (schwüle Zuluft, allenfalls kurzer Stromausfall). Im Wetterbericht als Gewitterrisiko sichtbar, damit der Entscheid «früher und feuchter einführen oder warten» eine echte Abwägung ist.
+
+## 11. Musterlösungen für angemeldete Superuser (Auftrag vom 23.11.2026)
+
+**Wer:** Als Superuser gilt, wer in Futter v2 über die zentrale Anmeldung von graswachstum.ch eine Admin-Sitzung hat (Recht `admin` oder `apps_admin`). Heureka fragt dazu auf derselben Domain `GET /futter/v2/api/admin/ich` ab (Antwort `{ angemeldet: true|false, … }`, Cookie gilt für `/`). In Futter v2 ist dafür keine Änderung nötig. Ohne Sitzung, ohne Netz oder bei Fehler: nichts anzeigen, kein Hinweis für Lernende. Für Angemeldete ein unauffälliger Link «Anmelden» auf der Seite für Lehrpersonen (`/futter/v2/anmelden`).
+
+Offen: Freigeschaltete Kursleitende haben in Futter v2 heute keine Sitzung (nur E-Mail-Code je Aktion). Sollen auch sie Musterlösungen sehen, braucht es ein eigenes Recht in der zentralen Anmeldung; das wird auf graswachstum.ch vergeben, nicht hier.
+
+**Was:** Am Ergebnis einer Runde (gleiches Wetter, gleiche Wiese, gleiches Niveau) zwei Musterlösungen neben dem eigenen Verlauf:
+
+- **Günstigste Variante:** tiefste laufende Kosten in Franken je Tonne Heu (Abschnitt 10.1), unter der Bedingung, dass das Heu lagerfähig und ohne Schimmel und Brand ist. Ohne diese Bedingung wäre «nichts tun» die günstigste Lösung. Die genaue Schwelle (Vorschlag: Qualität mindestens «gut») ist eine Annahme und im Code benannt.
+- **Qualitativ beste Variante:** höchste Punktzahl (Energie im Trog und Qualität), Kosten daneben ausgewiesen.
+
+**Wie gefunden:** Deterministische Suche über die Entscheide des Spiels (Mähzeitpunkt, Aufbereiter, Ablage, Zetten, Schwaden, Einführen; Anlage, Einfüllen, Lüfterschaltung nach Regeln, Eingriffe) mit `Feld`, `Heustock` und den Nachspiel-Funktionen, in einem Web Worker, Ergebnis je Wettercode zwischengespeichert. Die Suche ist ein Raster mit Verfeinerung, kein Beweis des Optimums; beschriftet wird deshalb «beste gefundene Variante». Das Ergebnis ist ein normales Protokoll und lässt sich wie jede Runde nachspielen.
+
+**Anzeige:**
+
+- **Diagramm:** TS-Verlauf vom Mähen bis zum Lagerende (Feld und Stock auf einer Zeitachse) für eigene Runde, günstigste und beste Variante, mit den Handlungen als Marken und dem Wetter als Band; darunter Tabelle Punkte, Verluste, Kosten je Tonne, Arbeitsstunden. Stil wie `grafik.js` (SVG, Farben über CSS-Variablen).
+- **Durchanimieren:** Knopf «Abspielen» je Variante; das Protokoll läuft im normalen Spielbild im Zeitraffer durch (Feld, dann Heustock), mit Pause und Tempo. Geeignet für den Beamer.
+
+**Schutz, ehrlich benannt:** Der Code ist öffentlich und das Spiel rechnet deterministisch im Browser. Die Anmeldung verhindert, dass Lernende die Musterlösung angeboten bekommen; sie macht sie nicht geheim. Das Suchmodul wird erst nach bestätigter Sitzung nachgeladen und steht nicht im Service-Worker-Cache. Die Rangliste nimmt Musterlösungen nicht auf.
+
+**Etappe 6** (nach den Etappen 1–5 und den Kosten aus 10.1): Sitzungsabfrage, Suche im Worker, Diagramm, Abspielen, Tests (Suche deterministisch; Musterlösung nie schlechter als die Vorgabe-Runde der Szenarien; ohne Sitzung kein Nachladen).
