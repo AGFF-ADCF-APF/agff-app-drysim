@@ -35,6 +35,8 @@ Ablauf im Spiel: Start → Einsatz planen (Wetter, Wiese, Maschinen, Silo) → S
 | `public/js/belueftung.js` | Heubelüftung im Heustock, Stunde für Stunde (Luft wie drywatch, Sorption, Lüfter, Dach, Entfeuchter, Wärme, Schimmel, Strom) |
 | `public/js/heustock.js`, `css/heustock.css` | Spielphase «Am Heustock» nach dem Einführen von Belüftungsheu, Rechenaufgabe |
 | `public/js/belueftung-vergleich.js` | Belüftung unter festen Bedingungen nachrechnen (Tests, Lernseite) |
+| `public/js/halten.js` | Knopf «gedrückt halten» für unumkehrbare Handlungen am Heustock |
+| `test/bedienung.mjs` | Prüfungen zur Bedienung am Heustock: Ernstfall, Kennlinie, Säulen, Eingriffe, Pannen, Nachspielen |
 | `test/run.mjs` | Modell-Durchlauf aller Szenarien auf der Konsole |
 
 ```
@@ -72,7 +74,7 @@ Drei Niveaus von EBA bis Hochschule. **Das Rechenmodell ist für alle gleich**, 
 
 Bedienung: Wahl auf dem Startbildschirm und jederzeit über den Knopf «Niveau» im Kopf; gemerkt unter `drysim-niveau`. Per Adresse: `?niveau=einstieg|praxis|profi`, kombinierbar mit `?wetter=`, `?code=` und `?szenario=`. Die Rangliste speichert das Niveau mit.
 
-Aufbau: `public/js/niveau.js` enthält **eine Tabelle**, was jedes Niveau zeigt (`einsatz`, `feld`, `ergebnis`, `assistent`, `belueftung`); die übrigen Module fragen mit `zeigt('feld.ampel')` usw. nach. Erklärkarten tragen in `model.js` die Kennzeichnung `ab` (ab welchem Niveau sie erscheinen), die Einstiegskarten zusätzlich `kurz` und `titelEinfach`. Für die Heubelüftung ist der Eintrag `belueftung` vorbereitet (Einstieg: Lüfter ein/aus mit Ampel; Profi: Rechenaufgabe Wasserentzug).
+Aufbau: `public/js/niveau.js` enthält **eine Tabelle**, was jedes Niveau zeigt (`einsatz`, `feld`, `ergebnis`, `assistent`, `belueftung`); die übrigen Module fragen mit `zeigt('feld.ampel')` usw. nach. Erklärkarten tragen in `model.js` die Kennzeichnung `ab` (ab welchem Niveau sie erscheinen), die Einstiegskarten zusätzlich `kurz` und `titelEinfach`. Der Eintrag `belueftung` legt fest, was am Heustock je Niveau gewählt, gemessen und getan werden kann (Tabelle im Abschnitt «Heubelüftung bedienen»).
 
 Für Lehrpersonen erzeugt `tools/seiten.mjs` die Seite `unterricht.html`: je Niveau drei Aufträge mit Lernziel, Zeitbedarf und fertigem Link, dazu Hinweise zum Klassenwettkampf.
 
@@ -138,12 +140,49 @@ docker run --rm -v "$PWD":/app -w /app node:22-alpine node test/kalibrierung.mjs
 ```
 docker run --rm --user 1000:1000 -v "$PWD":/app -w /app node:22-alpine node test/belueftung.mjs              # Vergleich mit den Richtwerten
 docker run --rm --user 1000:1000 -v "$PWD":/app -w /app node:22-alpine node test/belueftung-kalibrierung.mjs  # Parametersuche
+docker run --rm --user 1000:1000 -v "$PWD":/app -w /app node:22-alpine node test/bedienung.mjs               # Bedienung: Ernstfall, Kennlinie, Säulen, Eingriffe
 ```
 
 - **Ergebnis**: `Feld.einfahren()` rechnet Belüftungsheu mit dem Standardbetrieb (Intervall, Dach; Wette und Zeitraffer) oder mit `plan.belueftung`; nach der Spielphase bewertet `Feld.bewerte(lauf)` neu. `lagereHeu` nutzt Haupttrocknung (Abzüge über 80 h), höchste Stocktemperatur, Schimmelindex, Restfeuchte am Ende, Atmungsverlust im Stock und Strom. Erklärkarte «Belüftung und Lager» mit Verlaufsgrafik, Kennzahl «Belüftung» und Abzeichen «Stromsparer» (höchstens 0,25 kWh je kg Wasser).
 - **Rechenaufgabe** «Nachrechnen»: Aus Zuluft und Abluft mit einer Sättigungstabelle g/m³, Wasserentzug und L/h berechnen (Toleranz 12 %), Auflösung mit Rechenweg, Vergleich mit der genaueren Rechnung des Spiels und h,x-Diagramm (`grafikHx`).
 - **Szenarien**: «Belüftung: Lüfter Tag und Nacht» (Dauerbetrieb ohne Dach) und «Belüftung: vor dem Gewitter» (Kaltbelüftung, 63 % TS).
 - **Wetter**: `belueftungsWetter` verlängert die vier Tage der Wetterlage reproduzierbar auf 14 Tage (Spielwetter aus dem Mittel der Wetterlage, keine Klimastatistik). Die ersten vier Tage bleiben unverändert, die Feldphase rechnet weiter mit dem Original.
+
+### Heubelüftung bedienen (seit 23.11.2026, Branch feature/belueftung-bedienung)
+
+Umsetzung des Konzepts `docs/konzept-heubelueftung-bedienung.md`: Die Lernenden wählen die Anlage, füllen ein, lüften, messen und greifen ein; dabei kann vieles schiefgehen.
+
+- **Anlage** (Einsatz planen, Abschnitt 5, sobald Belüftungsheu gewählt ist): Lüfter Standard oder stark, Warmdach ja/nein, Entfeuchter ja/nein, Boxfläche klein/passend/gross. Die Anlage gilt für die ganze Runde (`einstellungen.anlage`, in der Wette `plan.anlage`); ohne Warmdach gibt es keinen Schalter dafür. Die **Füllhöhe** in Metern (Ertrag × 2 ha ÷ Boxfläche ÷ Raumgewicht) wird im Einsatz angezeigt und beim Einfüllen mit der tatsächlichen Menge nachgeführt, je mit dem Urteil nach den Richtwerten zur Schütthöhe.
+- **Luftmenge**: Betriebspunkt aus Lüfterkennlinie und Stockwiderstand statt fester 0,11 m³/s je m². Der Lüfter ist auf den Sollwert gedrosselt; reicht sein Druck nicht, sinkt die Luftmenge (Anzeige «Luftmenge: … % vom Soll», Druck in Pa). Stärkeren Lüfter während der Belüftung holen: läuft nach 24 Stunden, kostet Miete.
+- **Einfüllen** (Dialog zwischen Einfahren und Belüften, `einstellungen.einfuellen`): alles auf einmal oder in zwei Lagen, gleichmässig verteilen oder abladen, wie es kommt, Lüfter sofort oder erst nach dem Einfüllen. Ungleich abgeladen ergibt drei **Säulen** (vorne locker und niedrig = Kamin, hinten hoch und dicht = Nest) mit eigener Luftmenge; gleichmässig gefüllt ist es eine Säule, und das Modell rechnet genau wie vor dem Ausbau.
+- **Messen**: Stocktemperatur und Schichtfeuchte sind nur nach dem Stecken der Heusonde sichtbar (drei Stellen; Profi auch «nur Mitte»), mit dem Alter der Messung. Dauernd sichtbar sind Zuluft, Abluft, Wasserentzug, Luftmenge und Strom. Einstieg: automatisch mit Ampel.
+- **Eingriffe** (gedrückt halten, Tastatur zweimal innert 2 s): Umschichten (mischt alles, löst Kamine und Nester auf, lockert auf 65 kg TS/m³), Nachfüllen der zweiten Lage, oberste Lage auslagern, stärkeren Lüfter holen, Sicherung einschalten.
+- **Ernstfall**: Feuerwehr vorinformieren (Taste F), alarmieren (halten). Alarm ab 60 °C beendet die Runde mit «Abbruch» (10 Punkte, Abzeichen «Rechtzeitig gehandelt»), darunter ist es ein Fehlalarm. Bleibt der Stock 12 Stunden über 70 °C, oder wird er ab 60 °C umgeschichtet oder abgetragen, endet die Runde mit «Brand» (null Punkte, eigener Schluss). Die Rangliste trägt beide Enden mit Vermerk ein.
+- **Pannen** (nur Profi, abschaltbar mit `?pannen=aus`): Stromausfall in der zweiten Nacht oder gefallene Sicherung, aus Wetterlage und Code abgeleitet, für alle in der Klasse gleich.
+- **Ergebnis**: Zeitstrahl mit den eigenen Handlungen und den Wendepunkten («Feuchtes Nest hinten … nicht gemessen»), Karten Anlage, Einfüllen, Lüften, Kontrolle, Eingriffe, Lager (Wert als «% Verlust») und Kosten. Kosten in Franken je Tonne Heu stehen neben den Punkten und zählen nicht für sie; im Profi mit Rechenweg und änderbaren Preisen, CSV mit Handlungen und stündlichem Verlauf am Heustock.
+- **Wetten**: «Standardlüfter bei 55 % TS», «zu hoch gefüllt», «Nest übersehen» (`plan.anlage`, `plan.einfuellen`, `plan.belueftungLog`).
+- **Protokoll**: Alle Schaltungen und Handlungen (`sonde`, `vorinfo`, `alarm`, `umschichten`, `nachfuellen`, `auslagern`, `luefterHolen`, `sicherung`) stehen mit ihrer Stunde im Protokoll; Fortsetzen und Wette spielen exakt nach (`spieleBelueftungNach`). Gesicherte Runden am Heustock tragen `heustock.v` (`PROTOKOLL_VERSION`, jetzt 3); ältere werden verworfen. Runden der Feldphase bleiben gültig.
+
+| | Einstieg | Praxis | Profi |
+|---|---|---|---|
+| Anlage | vorgegeben (Standardlüfter, Warmdach, passende Box) | Lüfter und Warmluft wählen | alles wählen, Kennlinie und Kosten sichtbar |
+| Einfüllen | automatisch richtig | Höhe sehen, Verteilen, Lüfterstart | dazu zwei Lagen und Nachfüllen |
+| Messen | automatisch, Ampel | Heusonde (drei Stellen) | dazu «nur Mitte»; Messkalender in der Karte «Kontrolle» |
+| Eingriffe | Lüfter, Feuerwehr | dazu Umschichten, Lüfter holen | dazu Auslagern, Pannen |
+| Ernstfall | Warnung mit Handlungsvorschlag | Warnung beim Messen, Anzeichen (Geruch) | nur die Messwerte |
+| Ergebnis | Karten Lüften, Wärme, Ernstfall in einfachen Sätzen | alle Karten, Kosten | dazu Rechenweg der Kosten, Preise änderbar |
+
+Abweichung zum bisherigen Stand: Im Niveau Praxis gibt es keinen Entfeuchter mehr (laut Konzept wählt Praxis nur Lüfter und Warmluft); er ist Teil der Anlagewahl im Profi. Szenarien ohne `plan.anlage` rechnen mit der bisherigen Standardanlage und liefern dieselben Zahlen wie vor dem Ausbau (`test/run.mjs`, `test/belueftung.mjs` unverändert).
+
+**Belegt** (Quelle bei den Konstanten in `belueftung.js`):
+
+- Druckbedarf je Meter Stockhöhe 160 Pa (Dauerwiese), 120 Pa (gräser-/kräuterreich), 240 Pa (kleereich), Dachabsaugung und Entfeuchter je 120 Pa (LK Salzburg S. 38; Agroscope 2014 S. 3: 100–240 Pa je Meter bei 0,11 m³/s·m²). Anstieg mit der Luftmenge aus «Statischer Druck bei Wiesenheu in Boxen» (Agroscope 2014, Abb. 6, abgelesen).
+- Kennlinie des Standardlüfters: Beispiel aus Agroscope 2014, Abb. 7 (abgelesen, auf 150 m² Box bezogen; 0,11 kW je m²). Starker Lüfter: Proportionalitätsgesetze (Agroscope 2014 S. 3), Höchstdruck im Bereich 1300–1900 Pa (LK Salzburg S. 38).
+- Schütthöhe einer Charge 1–2 m (Agroscope 2014 S. 7), höchstens 3 m, Klee und sehr junges Futter 2 m, erste Schicht mindestens 1 m (LK Salzburg S. 39, 44). Box 25 m² je ha (LK Salzburg), 14 m² als untere Grenze (Agroscope 2014).
+- Raumgewicht 78 kg TS/m³ (Gebläse, Verteiler; zwei Drittel der Betriebe 65–91), Greifer 65 (FAT 1982 S. 4); Zunahme mit der Stockhöhe rund 4 % je Meter (LK Salzburg S. 21: 80 kg/m³ bei 3 m, 90 bei 6 m).
+- Nachfüllen nach zwei bis drei schönen Belüftungstagen (FAT 1982 S. 19). Umschichten in der Haupttrocknung, Nester mit dem Greifer beseitigen (LK Salzburg S. 40; FAT 1982 S. 18). Lüfter läuft beim Beschicken (Agroscope 2014 S. 7).
+- Temperaturstufen 45/60/70 °C, alle fünf Stunden messen, heissen Stock nie selbst abtragen, Anzeichen Schwitzwasser und süsslicher Geruch, Messkalender (LK Salzburg S. 24–25); chemische Erwärmung in der thermophilen Phase, biologisches Ende bei rund 75 °C (Philipsen 1965, in LK Salzburg S. 23).
+- Festkosten der Anlage aus «Gesamtkosten Trocknungssysteme» (LK Salzburg S. 43, abgelesen: Gesamtkosten minus variable Kosten), Wert des Heus 25,40 € je dt TM (LK Salzburg S. 6).
 
 ## Offen / im Büro weiterentwickeln
 
@@ -158,7 +197,16 @@ docker run --rm --user 1000:1000 -v "$PWD":/app -w /app node:22-alpine node test
 - [ ] Heu-Parameter mit Fachleuten prüfen: Trocknungsschub ab 55 % TS, Bröckelverluste nach TS und Kleeanteil, Erwärmung und Lagerverluste, Punkteschema der Heuqualität (Sinnenprüfung)
 - [x] Heubelüftung als zweite Spielphase, Rechnung wie drywatch (Wasserentzug g/m³ und L/h, h,x-Diagramm)
 - [ ] Belüftung mit einer echten Messreihe prüfen: Die Unterlagen (FAT 1982, Agroscope 2014, LK Salzburg) enthalten keinen vollständigen Verlauf mit Stockfläche, Heumenge, Luftzustand, Dauer und Strom. Geprüft ist nur gegen Richtwerte und abgelesene Grafiken. Kandidaten: Messkurve Entfeuchtertrocknung LK Salzburg S. 40 (ohne Masse und Luftmenge), FAT-Berichte 406/407 (Baumgartner, Nydegger 1991), Nydegger & Wirleitner 2014; drywatch-Messdaten von Betrieben
-- [ ] Belüftung, Annahmen ohne Beleg: Erwärmung von ungelüftetem Heu (0,3 K/h bei 65 % TS und 20 °C, Q10 = 2 bis 40 °C, darüber abnehmend), Schimmelindex (Gleichgewichtsfeuchte über 75 % rF, 72 h bis «leicht»), Wärmekapazität, Abzüge in der Heuqualität, Parzelle 2 ha, vier Schichten, Lagerfähigkeit an der feuchtesten Schicht (85 % TS), Temperatur der Abb. 29 (20 °C angenommen), Zuordnung der TS-Klassen in Abb. 29 zu Vertreterwerten. Nicht gerechnet: Luftdruck im Stock und weniger Luft bei vollem Stock, Kollektor-Druckverlust, Umluftbetrieb des Entfeuchters, Nachfüllen weiterer Chargen
+- [ ] Belüftung, Annahmen ohne Beleg: Erwärmung von ungelüftetem Heu (0,3 K/h bei 65 % TS und 20 °C, Q10 = 2 bis 40 °C, darüber abnehmend), Schimmelindex (Gleichgewichtsfeuchte über 75 % rF, 72 h bis «leicht»), Wärmekapazität, Abzüge in der Heuqualität, Parzelle 2 ha, vier Schichten, Lagerfähigkeit an der feuchtesten Schicht (85 % TS), Temperatur der Abb. 29 (20 °C angenommen), Zuordnung der TS-Klassen in Abb. 29 zu Vertreterwerten. Nicht gerechnet: Umluftbetrieb des Entfeuchters, Luftverlust bei sehr niedrigem Stock, Setzen des Stocks
+- [ ] Heubelüftung bedienen, Annahmen ohne Beleg (Fachleuten vorlegen; für Ernstfall und Messreihen GVB und Betreiber von drywatch):
+  - Ernstfall: Brand nach 12 Stunden über 70 °C ohne Alarm; chemische Erwärmung ab 60 °C (Stärke, Verdoppelung je 10 K, Obergrenze 100 °C); Fehlalarm unter 60 °C; Anzeichen «süsslicher Geruch» ab 50 °C im Spiel. Die Quellen nennen Stufen, keine Zeiten.
+  - Luft: Einfluss von Feuchte (linear mit der Gutfeuchte, Faktor 0,5 bis 2) und Dichte (Exponent 1,5) auf den Druck; Drosselung des Lüfters auf den Sollwert; starker Lüfter = 20 % höhere Drehzahl; Leistungsaufnahme unabhängig vom Betriebspunkt; Widerstand von Rost und Kanälen nicht gerechnet.
+  - Einfüllen: ungleich abgeladen = drei Säulen mit Raumgewicht 65/78/91 kg TS/m³ und Höhen 0,8/1/1,2 des Mittels; drei Stunden ohne Luft bei spätem Lüfterstart; zweite Lage wartet locker ausgebreitet und kühlt rasch aus (15 % der Übertemperatur je Stunde); Box «gross» 36 m² je ha.
+  - Eingriffe: Umschichten mischt den ganzen Stock (Quelle: obersten Meter), 1 % Bröckelverlust, die Hälfte der Übertemperatur entweicht; Wartezeit Lüfter 24 h; Arbeitszeiten (Sonde 0,25 h, Verteilen 1 h, Umschichten 1,5 h, Nachfüllen 1 h, Auslagern 1 h).
+  - Kosten: Strom 0,25 Fr./kWh, Arbeit 30 Fr./h, Zuschlag starker Lüfter 1 Fr./t, Miete 300 Fr., Euro 1:1 als Franken, Festkosten proportional zur Boxfläche; Stufen der Karte «Kosten» (bis 35 / bis 70 Fr./t) und 10 Punkte beim Abbruch sind Spielwerte.
+  - Pannen: Zeitpunkt und Dauer (Stromausfall 8 h nach 30 h, Sicherung nach 40 h). Die «Regenwoche» aus dem Konzept ist nicht umgesetzt.
+- [ ] Heubelüftung bedienen, bekannte Grenzen: In zwei Lagen einzufüllen lohnt sich im Modell kaum (die zweite Lage muss warten, weil die Parzelle schon gemäht ist; in der Praxis mäht man an zwei Tagen). Die Luftmenge bricht erst bei hohen, kleereichen oder nassen Stöcken ein (z. B. 3,9 m Kleeheu: rund 80 % vom Soll); ein normaler Stock von 1,5 m liegt weit unter dem Druck des Standardlüfters. Die Tabelle «Anzahl Ladewagen je 100 m²» (FAT 1982, Tab. 12) ist im Scan nicht sicher lesbar und nicht verwendet.
+- [ ] Entscheide des Auftraggebers (umgesetzt nach den Vorschlägen des Konzepts): Anlage kostet nur im Ergebnis (kein Budget); Brand wird mit null Punkten und Vermerk in die Rangliste eingetragen; Pannen nur im Profi, abschaltbar per Link.
 - [ ] Wetter nach dem vierten Tag ist erfunden; besser echte Messreihen (MeteoSchweiz) für die Belüftungsphase
 
 

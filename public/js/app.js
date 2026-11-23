@@ -726,7 +726,7 @@ function kostenRechenweg(lauf) {
     + zeile('Anlage (Festkosten)', `${z(k.preise[fixKey])} Fr./t × Boxfläche ${BOX[lauf.anlage.box].m2JeHa}/${BOX.passend.m2JeHa}${lauf.anlage.luefter === 'stark' ? ` + ${z(k.preise.stark)} Fr. starker Lüfter` : ''} = ${z(k.anlage)} Fr.`)
     + (k.miete > 0 ? zeile('Lüfter nachgerüstet', `${z(k.preise.miete, 0)} Fr. / ${z(k.tonnen)} t = ${z(k.miete)} Fr.`) : '')
     + zeile('Arbeit', `${z(lauf.arbeit)} h × ${z(k.preise.arbeit, 0)} Fr. / ${z(k.tonnen)} t = ${z(k.arbeit)} Fr.`)
-    + zeile('Verlorenes Heu', `${z(lauf.ende === 'brand' || lauf.ende === 'abbruch' ? 100 : lauf.verlust)} % der TS × 8,7 dt TS je t × ${z(k.preise.heu)} Fr. = ${z(k.verlust)} Fr.`)
+    + zeile('Verlorenes Heu', `${z(lauf.ende === 'brand' || lauf.ende === 'abbruch' ? 100 : lauf.lagerverlust ?? lauf.verlust)} % der TS (Lagerverlust) × 8,7 dt TS je t × ${z(k.preise.heu)} Fr. = ${z(k.verlust)} Fr.`)
     + zeile('Total', `<b>${z(k.total)} Fr. je t Heu</b>`)
     + zeile('Luftmenge', `mindestens ${z(lauf.luftMin * 100, 0)} %, im Mittel ${z(lauf.luftMittel * 100, 0)} % der Soll-Luftmenge von ${z(ANLAGE.luft, 2)} m³/s je m²; Stock bis ${z(lauf.hoeheMax)} m`)
     + '</tbody></table><div class="preise">' + felder.map((f) => `<label>${esc(PREISE[f].name)} (${esc(PREISE[f].einheit)})<input name="preis-${f}" inputmode="decimal" value="${String(k.preise[f]).replace('.', ',')}"><small>${PREISE[f].annahme ? 'Annahme' : 'aus LK Salzburg, 1 € = 1 Fr.'}</small></label>`).join('')

@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import { WETTER, PROGNOSEN } from '../public/js/scenarios.js';
 import { BESTAENDE, SILOARTEN, STADIEN, AUFBEREITER, ablageVon, KAL } from '../public/js/model.js';
 import { grafikTrocknung, grafikFeldverluste, grafikAblage, grafikInsekten, grafikZucker, grafikHx, grafikAbb29 } from '../public/js/grafik.js';
-import { ANLAGE, LUFT } from '../public/js/belueftung.js';
+import { ANLAGE, LUFT, LUEFTER, BOX, DRUCK_JE_M, DRUCK_BESTAND, DRUCK_ZUSCHLAG, ERNSTFALL, EINGRIFF, NACHRUESTEN, PREISE, SCHUETTHOEHE, luefterDruck, fuellhoehe, druckSchaetzung } from '../public/js/belueftung.js';
 import { konstant } from '../public/js/belueftung-vergleich.js';
 import { LKS_VERFAHREN, LKS_RICHTWERTE, ABLUFT_TS } from '../public/js/versuche.js';
 import { tsAusU, uGleich } from '../public/js/belueftung.js';
@@ -167,11 +167,66 @@ ${verf.map((v) => `        <tr><td>${esc(v.name)}</td><td>${z(v.kwhJeKg, 2)}</td
         <tr><td>Entfeuchter (20 °C / 80 % rF)</td><td>${z(LKS_RICHTWERTE.entfKwhJeKg[0], 2)}–${z(LKS_RICHTWERTE.entfKwhJeKg[1], 2)}</td><td>${z(entf.kwhJeKg, 2)} (mit Lüfter)</td><td>–</td><td>${z(entf.kgJeTh)}</td></tr>
       </tbody>
     </table></div>
+    <h3 id="anlage">Anlage, Füllhöhe und Luftmenge</h3>
+    <p>Ein Lüfter bringt nicht einfach immer gleich viel Luft. Je höher, dichter und nasser der Heustock, desto mehr Druck braucht es, um die Luft hindurchzudrücken, und desto weniger Luft kommt an. Der Richtwert ist ${z(ANLAGE.luft, 2)} m³ Luft je Sekunde und m² Stockfläche (Spielraum 0,07 bis 0,14); er soll mindestens bei halber Stockhöhe erreicht werden, bei voller Höhe nimmt man 0,07 in Kauf (Agroscope 2014).</p>
+    <div class="tabelle"><table class="zahlen">
+      <thead><tr><th>Druckbedarf bei Soll-Luftmenge</th><th>Pascal</th></tr></thead>
+      <tbody>
+        <tr><td>je Meter Stockhöhe, Dauerwiese (ausgewogen)</td><td>${DRUCK_JE_M}</td></tr>
+        <tr><td>je Meter, gräser- oder kräuterreich</td><td>${z(DRUCK_JE_M * DRUCK_BESTAND.graeser, 0)}</td></tr>
+        <tr><td>je Meter, kleereich</td><td>${z(DRUCK_JE_M * DRUCK_BESTAND.klee, 0)}</td></tr>
+        <tr><td>Dachabsaugung</td><td>${DRUCK_ZUSCHLAG.dach}</td></tr>
+        <tr><td>Luftentfeuchter</td><td>${DRUCK_ZUSCHLAG.entfeuchter}</td></tr>
+      </tbody>
+    </table></div>
+    <p>Quelle der Tabelle: LK Salzburg; Agroscope 2014 nennt 100 bis 240 Pa je Meter. 100 Pa entsprechen 1 cm Wassersäule am U-Rohr-Manometer. Tiefer TS-Gehalt und dichtes Einfüllen erhöhen den Druck zusätzlich (FAT 1982), kurz geschnittenes Kleeheu vom ersten Schnitt am stärksten (Agroscope 2014). Steigt der Druck gegen das Doppelte des Normalwerts, ist zu viel oder zu nasses Heu in der Box (LK Salzburg).</p>
+    <p><strong>Füllhöhe:</strong> Sie ergibt sich aus Ertrag, Fläche, Boxgrösse und Raumgewicht (im Mittel ${ANLAGE.dichte} kg TS je m³ bei Gebläse oder Verteiler, 65 mit dem Greifer; FAT 1982). Eine Charge soll 1 bis 2 m nicht überschreiten (Agroscope 2014), keinesfalls 3 m, bei Klee und sehr jungem Futter 2 m; die erste Schicht mindestens 1 m (LK Salzburg). Als Boxfläche gelten ${ANLAGE.flaecheJeHa} m² je Hektare Tagesschlagkraft (LK Salzburg).</p>
+    <div class="tabelle"><table class="zahlen">
+      <thead><tr><th>30 dt TS/ha von ${ANLAGE.feldHa} ha, 65 % TS</th><th>Füllhöhe</th><th>Druckbedarf mit Warmdach</th><th>Standardlüfter (bis ${z(luefterDruck('standard', ANLAGE.luft), 0)} Pa)</th></tr></thead>
+      <tbody>
+${Object.entries(BOX).map(([k, b]) => { const h = fuellhoehe(0.3 * 0.94, k), d = druckSchaetzung({ hoehe: h, ts: 65, dach: true }); return `        <tr><td>Box ${b.name}, ${b.m2JeHa * ANLAGE.feldHa} m²</td><td>${z(h)} m</td><td>${z(d.bedarf, 0)} Pa</td><td>${d.reicht ? 'reicht' : 'reicht nicht'}</td></tr>`; }).join('\n')}
+${(() => { const h = fuellhoehe(0.45 * 0.94, 'klein'), d = druckSchaetzung({ hoehe: h, ts: 55, bestand: 'klee', dach: true }); return `        <tr><td>Box klein, 45 dt TS/ha Kleeheu mit 55 % TS</td><td>${z(h)} m</td><td>${z(d.bedarf, 0)} Pa</td><td>${d.reicht ? 'reicht' : 'reicht nicht'}; starker Lüfter (bis ${z(luefterDruck('stark', ANLAGE.luft), 0)} Pa) reicht${luefterDruck('stark', ANLAGE.luft) >= d.bedarf ? '' : ' auch nicht'}</td></tr>`; })()}
+      </tbody>
+    </table></div>
+    <p>Im Spiel wählst du die Anlage im Einsatz: Standardlüfter (${z(LUEFTER.standard.kw, 2)} kW je m², Kennlinie nach einem Beispiel aus Agroscope 2014) oder starken Lüfter (gleicher Lüfter mit 20 % höherer Drehzahl: mehr Druck, aber ${z(LUEFTER.stark.kw, 2)} kW je m²), mit oder ohne Warmdach, mit oder ohne Entfeuchter, und die Boxfläche. Was der Betrieb nicht hat, lässt sich während der Belüftung nicht zuschalten. Einen stärkeren Lüfter kann man im Notfall holen: Er läuft erst nach ${NACHRUESTEN.warteStunden} Stunden und kostet Miete. Die Anzeige «Luftmenge» zeigt, wie viel Prozent der Soll-Luftmenge der Lüfter gegen den Stock tatsächlich bringt.</p>
+
+    <h3 id="einfuellen">Einfüllen: locker, gleichmässig, Lüfter an</h3>
+    <ul>
+      <li><strong>Gleichmässig verteilen:</strong> Eine lockere und gleichmässige Beschickung ist entscheidend. Verdichtete Stellen werden umströmt und verderben leicht; durch lockere Stellen entweicht die Luft wie durch einen Kamin (Agroscope 2014). Das Futter nie an einer Stelle fallen lassen (LK Salzburg).</li>
+      <li><strong>Lüfter läuft beim Beschicken:</strong> Das schränkt das Absetzen ein (Agroscope 2014); spätestens nach einem halben Meter Heu einschalten (LK Salzburg).</li>
+      <li><strong>In Lagen:</strong> Mehrere kleinere Chargen verbessern die Trocknungsleistung (Agroscope 2014). Nach zwei bis drei schönen Belüftungstagen füllt man einen Viertel bis knapp die Hälfte der ersten Menge nach (FAT 1982).</li>
+      <li><strong>Umschichten:</strong> Feuchte Nester und verdichtete Stellen mit Gabel oder Greifer beseitigen (FAT 1982). In der Haupttrocknung hilft es, den obersten Meter einmal täglich umzuschichten (LK Salzburg). Nie bei einem heissen Stock.</li>
+    </ul>
+    <div class="infobox"><p><strong>Im Spiel:</strong> Wer das Heu ablädt, wie es kommt, hat drei ungleiche Säulen: vorne locker und niedrig (Kamin), hinten hoch und dicht (Nest). Das Nest bleibt feucht und schimmelt. Die Heusonde findet es nur, wenn an allen drei Stellen gemessen wird. Umschichten löst es auf. Wer in zwei Lagen einfüllt, muss die zweite Lage rechtzeitig nachfüllen; sie wartet so lange unbelüftet. In der Praxis mäht man dafür an zwei Tagen, im Spiel ist die ganze Parzelle schon gemäht.</p></div>
+
+    <h3 id="bedienen">Messen, eingreifen und der Ernstfall im Spiel</h3>
+    <p>Am Heustock siehst du dauernd nur Zuluft, Abluft, Luftmenge und Strom. Wie warm und wie feucht es im Stock ist, zeigt erst die Heusonde. Der Heumesskalender verlangt in den ersten Tagen eine Messung täglich, mit Messstellen höchstens 1,5 m auseinander (LK Salzburg). Das Ergebnis zeigt im Zeitstrahl, wann ein Problem da war und ob es gemessen wurde.</p>
+    <ul>
+      <li><strong>Über 35 °C:</strong> belüften. <strong>Ab ${ERNSTFALL.achtung} °C:</strong> Gefahr, öfter messen.</li>
+      <li><strong>Ab ${ERNSTFALL.vorinfo} °C:</strong> Feuerwehr vorinformieren, alle ${ERNSTFALL.messenAlle} Stunden messen, den Stock nicht mehr öffnen. Wer im Spiel jetzt noch umschichtet oder abträgt, löst den Brand aus.</li>
+      <li><strong>Ab ${ERNSTFALL.alarm} °C:</strong> sofort alarmieren (Knopf gedrückt halten). Die Runde endet mit «Abbruch»: Das Heu ist verloren, das Gebäude steht, es gibt wenige Punkte und das Abzeichen «Rechtzeitig gehandelt».</li>
+      <li><strong>Nicht alarmiert:</strong> Bleibt der Stock ${ERNSTFALL.brandStunden} Stunden über ${ERNSTFALL.alarm} °C, endet die Runde mit «Brand» und null Punkten.</li>
+    </ul>
+    <p><strong>Annahmen des Spiels:</strong> Die Unterlagen nennen Temperaturstufen, aber keine Zeiten. Wie schnell ein Stock über 60 °C weiter heiss wird (chemische Erwärmung nach Philipsen 1965) und nach wie vielen Stunden über 70 °C er brennt, ist für das Spiel angenommen. Auch wie stark nasses und dichtes Heu den Druck erhöht, wie ungleich ein schlecht verteilter Stock ist, die Arbeitszeiten und der Bröckelverlust beim Umschichten sind Annahmen.</p>
+
+    <h3 id="kosten-belueftung">Was kostet die Belüftung?</h3>
+    <p>Das Spiel zeigt neben den Punkten die Kosten in Franken je Tonne Heu: Strom, Festkosten der Anlage, Arbeit und verlorenes Heu. Sie zählen nicht für die Punkte. Die Festkosten stammen aus dem Vergleich «Gesamtkosten Trocknungssysteme» der LK Salzburg (aus der Grafik abgelesen, in Euro je Tonne Heu, im Spiel 1:1 als Franken gerechnet):</p>
+    <div class="tabelle"><table class="zahlen">
+      <thead><tr><th>System</th><th>Gesamtkosten, € je t Heu</th><th>davon variabel</th><th>Festkosten im Spiel, Fr. je t</th></tr></thead>
+      <tbody>
+        <tr><td>Kaltbelüftung</td><td>23,5</td><td>13,5</td><td>${z(PREISE.fixKalt.wert)}</td></tr>
+        <tr><td>Dachabsaugung</td><td>22</td><td>10,5</td><td>${z(PREISE.fixDach.wert)}</td></tr>
+        <tr><td>Luftentfeuchter</td><td>39</td><td>19,7</td><td>${z(PREISE.fixEntf.wert)}</td></tr>
+        <tr><td>Dachabsaugung und Entfeuchter</td><td>36</td><td>15,2</td><td>${z(PREISE.fixDachEntf.wert)}</td></tr>
+      </tbody>
+    </table></div>
+    <p>Annahmen (im Niveau Profi änderbar): Strom ${z(PREISE.strom.wert, 2)} Fr. je kWh, Arbeit ${z(PREISE.arbeit.wert, 0)} Fr. je Stunde, Zuschlag für den starken Lüfter ${z(PREISE.stark.wert, 0)} Fr. je Tonne, Miete beim Nachrüsten ${z(PREISE.miete.wert, 0)} Fr. Verlorenes Heu wird mit ${z(PREISE.heu.wert)} Fr. je dt TS bewertet (Vollkosten von Heu nach LK Salzburg).</p>
+
     <h3>Spiel gegen Quelle</h3>
     <p>Das Belüftungsmodell ist an zwei Angaben eingestellt: an der Grafik «Durchschnittlicher Wasserentzug» im «ABC der Heubelüftung» (FAT 1982, Abb. 29) und an der Ausnutzung des Sättigungsdefizits von 50 bis 65 % (LK Salzburg). Die Werte der LK Salzburg zu Strom und Trocknungsleistung in der Tabelle oben dienen als Prüfung.</p>
 ${grafikAbb29()}
-    <p><strong>Was Annahme bleibt:</strong> Eine Messreihe mit Stockfläche, Heumenge, Luftzustand, Dauer und Strom enthalten die Unterlagen nicht. Wie schnell sich ungelüftetes, feuchtes Heu erwärmt und wann es schimmelt, rechnet das Spiel mit eigenen Annahmen (Erwärmung bei 65 % TS und 20 °C rund 0,3 K je Stunde; Schimmel, solange das Heu über 75 % rF im Gleichgewicht ist). Das Wetter nach dem vierten Spieltag ist erfunden, aus der Wetterlage abgeleitet. Der Luftdruck im Stock und weniger Luft bei hohem Stock sind nicht gerechnet.</p>
-    <div class="infobox"><p><strong>Im Spiel:</strong> Die Wette und der Zeitraffer rechnen mit dem Standardbetrieb: Intervall mit Feuchtesteuerung und Warmluft vom Dach. Zwei Szenarien zeigen andere Einstellungen: <a href="szenario/heudauer.html">Lüfter Tag und Nacht</a> und <a href="szenario/heugewitter.html">vor dem Gewitter</a>.</p></div>`;
+    <p><strong>Was Annahme bleibt:</strong> Eine Messreihe mit Stockfläche, Heumenge, Luftzustand, Dauer und Strom enthalten die Unterlagen nicht. Wie schnell sich ungelüftetes, feuchtes Heu erwärmt und wann es schimmelt, rechnet das Spiel mit eigenen Annahmen (Erwärmung bei 65 % TS und 20 °C rund 0,3 K je Stunde; Schimmel, solange das Heu über 75 % rF im Gleichgewicht ist). Das Wetter nach dem vierten Spieltag ist erfunden, aus der Wetterlage abgeleitet. Weitere Annahmen stehen oben bei «Messen, eingreifen und der Ernstfall».</p>
+    <div class="infobox"><p><strong>Im Spiel:</strong> Die Wette und der Zeitraffer rechnen mit dem Standardbetrieb: Intervall mit Feuchtesteuerung und Warmluft vom Dach. Fünf Szenarien zeigen andere Einstellungen: <a href="szenario/heudauer.html">Lüfter Tag und Nacht</a>, <a href="szenario/heugewitter.html">vor dem Gewitter</a>, <a href="szenario/lueftermagnicht.html">Standardlüfter bei 55 % TS</a>, <a href="szenario/zuhoch.html">zu hoch gefüllt</a> und <a href="szenario/nest.html">Nest übersehen</a>.</p></div>`;
 }
 
 const lernen = seite({
@@ -198,6 +253,9 @@ const lernen = seite({
       <li><a href="#gaerung">Gärqualität bewerten: Labor oder Prozess?</a></li>
       <li><a href="#heu">Heu: Bodenheu, Heuballen oder Belüftung</a></li>
       <li><a href="#belueftung">Heubelüftung: Luft, Wasser und Strom</a></li>
+      <li><a href="#anlage">Heubelüftung: Anlage, Füllhöhe und Luftmenge</a></li>
+      <li><a href="#einfuellen">Heubelüftung: Einfüllen</a></li>
+      <li><a href="#bedienen">Heubelüftung: Messen, eingreifen, Ernstfall</a></li>
       <li><a href="#versuch">Spiel gegen Messung: der Versuch in Tänikon</a></li>
       <li><a href="#videos">Videos</a></li>
       <li><a href="#begriffe">Begriffe kurz erklärt</a></li>
@@ -388,9 +446,13 @@ ${PROGNOSEN.map((p) => `      <li><a href="szenario/${p.id}.html">${esc(p.name)}
 fs.writeFileSync(new URL('../public/lernen.html', import.meta.url), lernen);
 
 // ---------- Szenarioseiten
-function belueftungInWorten(b = {}) {
+function belueftungInWorten(b = {}, plan = {}) {
   const e = { luefter: 'intervall', dach: true, entfeuchter: false, ...b };
-  return `Lüfter ${{ aus: 'aus', dauer: 'im Dauerbetrieb', intervall: 'im Intervall mit Feuchtesteuerung' }[e.luefter]}, ${e.dach ? 'mit' : 'ohne'} Warmluft vom Dach, ${e.entfeuchter ? 'mit' : 'ohne'} Entfeuchter`;
+  const a = plan.anlage, ef = plan.einfuellen, log = plan.belueftungLog ?? [];
+  return `Lüfter ${{ aus: 'aus', dauer: 'im Dauerbetrieb', intervall: 'im Intervall mit Feuchtesteuerung' }[e.luefter]}, ${e.dach && a?.dach !== false ? 'mit' : 'ohne'} Warmluft vom Dach, ${e.entfeuchter ? 'mit' : 'ohne'} Entfeuchter`
+    + (a ? `; ${LUEFTER[a.luefter].name}, Box ${BOX[a.box].m2JeHa * ANLAGE.feldHa} m²` : '')
+    + (ef ? `; ${ef.verteilen ? 'gleichmässig verteilt' : 'abgeladen, wie es kommt'}` : '')
+    + (log.some((x) => x.art === 'sonde') ? `; Heusonde ${log.every((x) => x.art !== 'sonde' || x.wert === 'mitte') ? 'nur in der Mitte' : 'an drei Stellen'}, ${log.filter((x) => x.art === 'sonde').length}-mal` : '');
 }
 fs.mkdirSync(new URL('../public/szenario/', import.meta.url), { recursive: true });
 const sonne = (s) => (s >= 0.8 ? 'sonnig' : s >= 0.45 ? 'wechselnd bewölkt' : 'bewölkt');
@@ -410,7 +472,7 @@ for (const p of PROGNOSEN) {
     <h2>Ausgangslage</h2>
     <ul>
       <li><strong>Wiese:</strong> ${esc(BESTAENDE[p.plan.bestand].name)}, Stadium ${esc(STADIEN[p.plan.stadium].name)}, ${p.plan.ertrag} dt TS/ha</li>
-      <li><strong>Maschinen:</strong> ${esc(AUFBEREITER[p.plan.aufbereiter].name)}, Schnitthöhe ${zahl(p.plan.schnitthoehe)} cm, Ablage auf ${ablageVon(p.plan)} % der Mähbreite</li>${p.plan.siloart === 'belueftung' ? `\n      <li><strong>Belüftung:</strong> ${belueftungInWorten(p.plan.belueftung)}</li>` : ''}
+      <li><strong>Maschinen:</strong> ${esc(AUFBEREITER[p.plan.aufbereiter].name)}, Schnitthöhe ${zahl(p.plan.schnitthoehe)} cm, Ablage auf ${ablageVon(p.plan)} % der Mähbreite</li>${p.plan.siloart === 'belueftung' ? `\n      <li><strong>Belüftung:</strong> ${belueftungInWorten(p.plan.belueftung, p.plan)}</li>` : ''}
       <li><strong>Ziel:</strong> ${esc(SILOARTEN[p.plan.siloart].name)}, ${heu && SILOARTEN[p.plan.siloart].ziel[1] >= 95 ? `ab ${SILOARTEN[p.plan.siloart].ziel[0]}` : `${SILOARTEN[p.plan.siloart].ziel[0]} bis ${SILOARTEN[p.plan.siloart].ziel[1]}`} % TS</li>
     </ul>
     <h2>Wetter: ${esc(w.name)}</h2>
@@ -445,6 +507,9 @@ const AUFTRAEGE = {
     { titel: 'Heu braucht schöne Tage', zeit: '25 Minuten', link: '?niveau=einstieg&wetter=sommer',
       ziel: 'Bodenheu braucht mehrere schöne Tage und darf erst ganz trocken auf den Stock. Feuchtes Heu wird warm.',
       auftrag: `Wetter «${wetterName('sommer')}», unter «Silage oder Heu?» Bodenheu wählen. Folgt den Vorschlägen des Traktors und schaut am Schluss die Karte zum Heustock an.` },
+    { titel: 'Am Heustock: Lüfter und Feuerwehr', zeit: '25 Minuten', link: '?niveau=einstieg&wetter=foehn',
+      ziel: 'Die Belüftung trocknet das Heu im Stock fertig. Die Ampeln zeigen, ob die Luft Wasser mitnimmt und ob der Stock warm wird. Ab 60 Grad die Feuerwehr vorinformieren, ab 70 Grad alarmieren.',
+      auftrag: `Wetter «${wetterName('foehn')}», Belüftungsheu wählen. Am Heustock den Lüfter einmal eine ganze Nacht ausschalten und beobachten, was die Ampel «Wärme im Heustock» macht. Wann schlägt der Traktor vor, die Feuerwehr zu rufen?` },
   ],
   praxis: [
     { titel: 'Klassenwettkampf: Gewitter am Tag 2', zeit: '30 Minuten', link: '?niveau=praxis&wetter=gewitter',
@@ -456,6 +521,12 @@ const AUFTRAEGE = {
     { titel: 'Zufallswetter mit Klassencode', zeit: '30 Minuten', link: '?niveau=praxis&code=KLASSE1',
       ziel: 'Ein unbekanntes Wetter beurteilen und entscheiden: Silage oder Heu, und wann mähen? Mit dem Code bekommen alle dasselbe Wetter.',
       auftrag: 'Den Code im Link nach Belieben ändern (z. B. KLASSE2). Jede Gruppe begründet ihre Wahl von Lagerart und Mähzeitpunkt in zwei Sätzen.' },
+    { titel: `Wette «${szenario('nest').name}»`, zeit: '25 Minuten', link: '?niveau=praxis&szenario=nest',
+      ziel: szenario('nest').lernziel,
+      auftrag: 'Tippen, Zeitraffer anschauen, dann den Zeitstrahl und die Karten «Einfüllen» und «Kontrolle» lesen. Wann war das Nest da, und warum hat es die Heusonde nicht gezeigt? Was hätte geholfen?' },
+    { titel: 'Heubelüftung bedienen: Anlage, Einfüllen, Messen', zeit: '45 Minuten', link: '?niveau=praxis&wetter=gewitter',
+      ziel: 'Eine Belüftungsanlage wählen, das Heu richtig einfüllen, täglich mit der Heusonde messen und wenn nötig umschichten. Vor dem Gewitter feucht einführen und trotzdem lagerfähiges Heu erreichen.',
+      auftrag: 'Belüftungsheu wählen und im Abschnitt «Anlage» Lüfter und Warmluft festlegen. Zwei Runden spielen: einmal gleichmässig verteilt, einmal «abladen, wie es kommt». Vergleicht Zeitstrahl, Schimmel und Kosten je Tonne.' },
   ],
   profi: [
     { titel: 'Modell gegen Messung: Tänikon 2001', zeit: '45 Minuten', link: '?niveau=profi&szenario=taenikon',
@@ -467,6 +538,12 @@ const AUFTRAEGE = {
     { titel: `Wette «${szenario('kleeheu').name}»`, zeit: '30 Minuten', link: '?niveau=profi&szenario=kleeheu',
       ziel: szenario('kleeheu').lernziel,
       auftrag: 'Im Ergebnis die Verlustbilanz und die Sinnenprüfung nachrechnen. Welcher Verlustposten ist der grösste, und welcher Arbeitsgang hätte ihn verringert?' },
+    { titel: `Wette «${szenario('lueftermagnicht').name}»`, zeit: '30 Minuten', link: '?niveau=profi&szenario=lueftermagnicht',
+      ziel: szenario('lueftermagnicht').lernziel,
+      auftrag: 'Vor dem Zeitraffer den Druckbedarf von Hand schätzen (Stockhöhe × 240 Pa für Kleeheu + 120 Pa Dachabsaugung) und mit der Kennlinie des Standardlüfters vergleichen. Danach im Ergebnis Luftmenge, Zeitstrahl und Kosten ansehen: Was hätten ein starker Lüfter, eine grössere Box oder trockeneres Futter gebracht?' },
+    { titel: 'Anlage auslegen und Kosten vergleichen', zeit: '60 Minuten', link: '?niveau=profi&wetter=gewitter&pannen=aus',
+      ziel: 'Lüfter, Warmdach, Entfeuchter und Boxfläche auf Ertrag und Feuchte abstimmen, in Lagen einfüllen, nach Messkalender messen und die Kosten je Tonne Heu begründen.',
+      auftrag: 'Drei Runden mit demselben Wetter und verschiedenen Anlagen spielen (zum Beispiel kleine Box mit starkem Lüfter gegen passende Box mit Warmdach). Im Ergebnis die Preise anpassen und die Kosten je Tonne vergleichen. Ohne «pannen=aus» im Link kommt eine Panne dazu (Stromausfall oder Sicherung), für alle in der Klasse dieselbe.' },
   ],
 };
 const unterricht = seite({

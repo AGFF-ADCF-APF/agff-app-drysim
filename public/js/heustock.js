@@ -206,6 +206,7 @@ export class HeustockSpiel {
     } else if (h.art === 'brandluft') {
       /* die Meldung kommt beim Ende */
     } else if (h.art === 'umschichten') {
+      Assistent.hinweis('hs.umschichten');
       this.melde(`${t}: Mit dem Greifer umgeschichtet: Kamine und Nester sind aufgelöst, das Heu liegt locker. Wärmste Stelle vorher ${z(h.tempVor)} °C, jetzt ${z(h.tempNach)} °C. Die Messwerte gelten nicht mehr: neu messen.`);
     } else if (h.art === 'nachfuellen') {
       this.melde(`${t}: Zweite Lage eingefüllt: Der Stock ist jetzt ${z(h.hoeheNach, 1)} m hoch.${h.zuFrueh ? ` Das war früh: Nachgefüllt wird nach zwei bis drei schönen Belüftungstagen (FAT 1982), die untere Lage hatte erst ${z(h.tsUnten)} % TS.` : ''}${h.luftNach < 0.95 ? ` Der Lüfter schafft jetzt noch ${z(h.luftNach * 100)} % der Soll-Luftmenge.` : ''}`, h.zuFrueh);

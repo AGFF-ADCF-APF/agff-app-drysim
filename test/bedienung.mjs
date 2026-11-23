@@ -1,7 +1,7 @@
 // Bedienung am Heustock: Heusonde, Feuerwehr, Brand und Abbruch; später Kennlinie, Säulen, Eingriffe.
 //   docker run --rm --user 1000:1000 -v "$PWD":/app -w /app node:22-alpine node test/bedienung.mjs
 import { Heustock, spieleBelueftungNach, STANDARD, ERNSTFALL, ANLAGE, EINGRIFF, NACHRUESTEN, luefterDruck, druckSchaetzung, kosten, pannenAus } from '../public/js/belueftung.js';
-import { spieleNach } from '../public/js/model.js';
+import { spieleNach, simuliere, zeitstrahl } from '../public/js/model.js';
 import { stundenwetter } from '../public/js/weather.js';
 import { WETTER, PROGNOSEN } from '../public/js/scenarios.js';
 
@@ -155,7 +155,20 @@ export function feldVon(id, plan = {}) {
   pruefe('Eingriffe nachspielen identisch', gleich(direkt, nach) && gleich(nach, nochmal) && nach.handlungen.filter((x) => x.art !== 'schalter').length === 7 && nach.luefter === 'stark' && JSON.stringify(nach.ergebnis()) === JSON.stringify(direkt.ergebnis()), `t ${nach.t}, ${nach.handlungen.map((x) => x.art).join(', ')}`);
   // Wette: plan.belueftungLog und plan.anlage ergeben denselben Verlauf wie das Nachspielen
   const fw = feldVon('taenikon', { anlage: alles.anlage, einfuellen: alles.einfuellen, pannen: alles.pannen, belueftungLog: log });
-  pruefe('Wette mit Protokoll identisch', JSON.stringify(fw.res.belueftung) === JSON.stringify(spieleBelueftungNach(fw.heustockStart(), log).ergebnis()) && fw.res.faktoren.every((x) => x.tipp && !/undefined|NaN/.test(x.text + x.wert)), `Ende ${fw.res.belueftung.ende}, ${fw.res.punkte} Punkte`);
+  pruefe('Wette mit Protokoll identisch', JSON.stringify({ ...fw.res.belueftung, lagerverlust: undefined }) === JSON.stringify(spieleBelueftungNach(fw.heustockStart(), log).ergebnis()) && fw.res.faktoren.every((x) => x.tipp && !/undefined|NaN/.test(x.text + x.wert)), `Ende ${fw.res.belueftung.ende}, ${fw.res.punkte} Punkte`);
+}
+
+// ---------- 6. Neue Wetten und Zeitstrahl
+{
+  const wette = (id) => { const p = PROGNOSEN.find((x) => x.id === id); return simuliere(p.plan, stundenwetter(WETTER.find((w) => w.id === p.wetter))); };
+  const a = wette('lueftermagnicht'), b = wette('zuhoch'), c = wette('nest');
+  pruefe('Wette Standardlüfter bei 55 % TS', a.ernte.ts > 52 && a.ernte.ts < 58 && a.belueftung.luftMin < 0.9 && a.faktoren.find((x) => x.id === 'anlage').stufe !== 'gut', `${a.ernte.ts.toFixed(1)} % TS, ${(a.belueftung.luftMin * 100).toFixed(0)} % Luft, ${a.belueftung.hoehe.toFixed(1)} m`);
+  pruefe('Wette zu hoch gefüllt', b.belueftung.hoehe > 2 && !b.belueftung.lagerfaehig, `${b.belueftung.hoehe.toFixed(1)} m, Ende ${b.belueftung.ende}`);
+  const zs = zeitstrahl(c.belueftung), nest = zs.find((x) => x.text.includes('Nest'));
+  pruefe('Wette Nest übersehen', !!nest && nest.text.includes('nicht gemessen') && c.faktoren.find((x) => x.id === 'kontrolle').stufe === 'schlecht' && zs.every((x, i) => i === 0 || x.t >= zs[i - 1].t), nest?.text);
+  pruefe('Karten der Belüftung vorhanden', [a, b, c].every((r) => ['anlage', 'einfuellen', 'lueften', 'lager', 'kosten'].every((id) => r.faktoren.some((x) => x.id === id)) && r.faktoren.every((x) => x.tipp && x.ab && !/undefined|NaN/.test(x.text + x.wert + x.tipp)) && r.kosten.total > 0), `${a.kosten.total.toFixed(0)} / ${b.kosten.total.toFixed(0)} / ${c.kosten.total.toFixed(0)} Fr. je t`);
+  const std = wette('heugewitter');
+  pruefe('Standardwette ohne Kontrollkarte', !std.faktoren.some((x) => x.id === 'kontrolle' || x.id === 'eingriffe') && std.faktoren.find((x) => x.id === 'lager').wert.includes('% Verlust'), std.faktoren.find((x) => x.id === 'lager').wert);
 }
 
 if (typeof process !== 'undefined' && process.argv[1]?.endsWith('bedienung.mjs')) { console.log(fehler ? `${fehler} FEHLER` : 'Alle Prüfungen bestanden'); process.exitCode = fehler ? 1 : 0; }

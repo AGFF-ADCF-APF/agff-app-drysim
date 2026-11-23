@@ -253,7 +253,8 @@ export function kosten(l, preise = {}) {
   const P0 = Object.fromEntries(Object.entries(PREISE).map(([k, v]) => [k, Number.isFinite(preise[k]) ? preise[k] : v.wert]));
   const t = l.tonnenEin, a = l.anlage;
   const fix = (a.dach && a.entfeuchter ? P0.fixDachEntf : a.entfeuchter ? P0.fixEntf : a.dach ? P0.fixDach : P0.fixKalt) * (BOX[a.box] ?? BOX.passend).m2JeHa / BOX.passend.m2JeHa;
-  const verloren = l.ende === 'brand' || l.ende === 'abbruch' ? 100 : l.verlust; // % der eingefüllten TS
+  // verlorenes Heu in % der eingefüllten TS: der Lagerverlust aus der Bewertung (lagereHeu), sonst der Verlust während der Belüftung
+  const verloren = l.ende === 'brand' || l.ende === 'abbruch' ? 100 : l.lagerverlust ?? l.verlust;
   const teile = {
     strom: l.kwh * P0.strom / t,
     anlage: fix + (a.luefter === 'stark' ? P0.stark : 0),
@@ -508,7 +509,12 @@ export class Heustock {
     const tS = this.saeulen.map((sa) => Math.max(...sa.schichten.map((s) => s.temp)));
     const temp = Math.max(...tS, this.warte?.temp ?? -99), nest = tS.indexOf(Math.max(...tS));
     for (const g of WENDE_TEMP) if (temp > g && this.tempMax <= g) this.wendepunkte.push({ t: this.t, art: 'temp', grenze: g, temp, wo: this.wo(tS, nest) });
-    if (!eine && !this.nestGemeldet && Math.max(...tS) - Math.min(...tS) > 8 && Math.max(...tS) > 35) { this.nestGemeldet = true; this.wendepunkte.push({ t: this.t, art: 'nest', temp: Math.max(...tS), wo: SAEULEN[nest] }); }
+    if (!eine && !this.nestGemeldet) {
+      // Nest: eine Säule ist deutlich wärmer (über 35 °C und 8 K mehr) oder nach zwei Tagen deutlich feuchter (8 Punkte TS) als die trockenste
+      const tsS = this.saeulen.map((sa) => Math.min(...sa.schichten.map((s) => tsAusU(s.u)))), feucht = tsS.indexOf(Math.min(...tsS));
+      const warm = Math.max(...tS) - Math.min(...tS) > 8 && Math.max(...tS) > 35, nass = this.t - this.t0 >= 48 && Math.max(...tsS) - Math.min(...tsS) > 8;
+      if (warm || nass) { this.nestGemeldet = true; this.wendepunkte.push({ t: this.t, art: 'nest', temp: Math.max(...tS), ts: Math.min(...tsS), feucht: !warm, wo: SAEULEN[warm ? nest : feucht] }); }
+    }
     if (f > 0 && !this.luftGemeldet && L.anteil < 0.9) { this.luftGemeldet = true; this.wendepunkte.push({ t: this.t, art: 'luft', anteil: L.anteil }); }
     this.tempMax = Math.max(this.tempMax, temp);
     // Ernstfall: bleibt der Stock über der Alarmschwelle, ohne dass alarmiert wird, brennt er (Annahme zur Dauer)
@@ -554,7 +560,7 @@ export class Heustock {
       this.messe(stellen);
       this.messungen++; this.arbeit += stellen.length === 1 ? ARBEIT.sondeMitte : ARBEIT.sonde;
       const g = stellen.map((i) => this.gemessen.stellen[i].schichten);
-      h = { t: this.t, art: 'sonde', stellen: stellen.length, temp: Math.max(...g.flat().map((s) => s.temp)), tsMin: Math.min(...g.flat().map((s) => s.ts)), wahr: temp };
+      h = { t: this.t, art: 'sonde', stellen: stellen.length, temp: Math.max(...g.flat().map((s) => s.temp)), tsMin: Math.min(...g.flat().map((s) => s.ts)), wahr: temp, tsWahr: this.tsMin() };
     } else if (x.art === 'vorinfo') {
       if (this.vorinfoBei != null) return null;
       this.vorinfoBei = this.t;

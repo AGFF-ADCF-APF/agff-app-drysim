@@ -120,6 +120,23 @@ export const PROGNOSEN = [
     plan: { ...HEUPLAN, siloart: 'belueftung', zetten: [10, 14], schwaden: 34, ernte: 36, belueftung: { luefter: 'intervall', dach: false, entfeuchter: false } },
   },
   {
+    // Bedienung am Heustock: plan.anlage (Lüfter, Warmdach, Entfeuchter, Box), plan.einfuellen und plan.belueftungLog (Messen, Eingriffe)
+    id: 'lueftermagnicht', lernziel: 'Wenn der Lüfter «nicht mag»: Was passiert mit der Luftmenge, wenn viel nasses, kleereiches Futter hoch in einer kleinen Box liegt?', name: 'Belüftung: Standardlüfter bei 55 % TS', wetter: 'gewitter',
+    text: 'Kleereicher Bestand mit hohem Ertrag (45 dt TS/ha), gemäht am Tag 1 um 9 Uhr mit Walzenaufbereiter und Breitablage, gezettet um 10 und 14 Uhr. Am Tag 2 droht ein Gewitter: Schon um 6 Uhr wird geschwadet und um 7 Uhr eingeführt, noch mit Tau und erst rund 55 % TS. Die Box ist klein (28 m²), der Stock wird fast 4 m hoch. Standardlüfter mit Warmdach, Intervallbetrieb.',
+    plan: { ...HEUPLAN, bestand: 'klee', ertrag: 45, siloart: 'belueftung', zetten: [10, 14], schwaden: 30, ernte: 31, anlage: { luefter: 'standard', dach: true, entfeuchter: false, box: 'klein' } },
+  },
+  {
+    id: 'zuhoch', lernziel: 'Die Box ist zu klein für die Parzelle: Reicht die Luft, wenn die ganze Ernte auf einmal 2,6 m hoch eingefüllt wird?', name: 'Belüftung: zu hoch gefüllt', wetter: 'gewitter',
+    text: 'Ausgewogener Bestand bei Beginn Blüte, gemäht am Tag 1 um 9 Uhr mit Walzenaufbereiter und Breitablage, gezettet um 10 und 14 Uhr. Am Tag 2 um 10 Uhr schwaden, um 12 Uhr mit gut 60 % TS einführen. Die ganze Ernte kommt auf einmal in eine kleine Box (28 m² statt 50 m²): Der Stock liegt 2,6 m hoch. Standardlüfter mit Warmdach, Intervallbetrieb.',
+    plan: { ...HEUPLAN, siloart: 'belueftung', zetten: [10, 14], schwaden: 34, ernte: 36, anlage: { luefter: 'standard', dach: true, entfeuchter: false, box: 'klein' } },
+  },
+  {
+    id: 'nest', lernziel: 'Abgeladen, wie es kommt, und nur in der Mitte gemessen: Wer findet das feuchte Nest an der Abladestelle?', name: 'Belüftung: Nest übersehen', wetter: 'gewitter',
+    text: 'Ausgewogener Bestand bei Beginn Blüte, gemäht am Tag 1 um 9 Uhr mit Walzenaufbereiter und Breitablage, gezettet um 10 und 14 Uhr. Am Tag 2 um 10 Uhr schwaden, um 12 Uhr einführen. Es eilt: Das Heu wird abgeladen, wie es kommt, hinten liegt es höher und dichter. Standardanlage mit Warmdach, Intervallbetrieb. Jeden Tag um 12 Uhr wird die Heusonde gesteckt, aber nur in der Mitte. Umgeschichtet wird nicht.',
+    plan: { ...HEUPLAN, siloart: 'belueftung', zetten: [10, 14], schwaden: 34, ernte: 36, anlage: { luefter: 'standard', dach: true, entfeuchter: false, box: 'passend' }, einfuellen: { lagen: 1, verteilen: false, start: 'sofort' },
+      belueftungLog: Array.from({ length: 9 }, (_, i) => ({ t: 36 + 24 * (i + 1), art: 'sonde', wert: 'mitte' })) },
+  },
+  {
     id: 'kleeheu', lernziel: 'Die Blätter sind das Beste am Heu: Was kostet es, kleereiches Heu trocken und oft zu zetten?', name: 'Kleeheu zu oft gezettet', wetter: 'sommer',
     text: 'Kleereicher Bestand bei Beginn Blüte, gemäht um 9 Uhr mit Zinkenaufbereiter und Breitablage. Gezettet wird jeden Tag mehrmals, auch über Mittag, wenn das Futter schon raschelt: am Tag 1 um 10 und 14 Uhr, am Tag 2 um 10, 13 und 16 Uhr und am Tag 3 um 11 Uhr. Schwaden am Tag 3 um 14 Uhr, Einfahren um 16 Uhr in den Heustock.',
     plan: { ...HEUPLAN, bestand: 'klee', aufbereiter: 'zinken', zetten: [10, 14, 34, 37, 40, 59], schwaden: 62, ernte: 64 },

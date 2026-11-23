@@ -739,8 +739,9 @@ export function kontrolleVon(l) {
   const tage = Math.max(1, Math.ceil((l.tEnde - l.t0) / 24));
   const mitMessung = new Set(sonden.map((x) => Math.min(tage - 1, Math.floor((x.t - l.t0) / 24)))).size;
   const problem = l.wendepunkte.find((x) => (x.art === 'temp' && x.grenze >= 45) || x.art === 'nest') ?? null;
-  const entdeckt = problem ? sonden.find((x) => x.t >= problem.t && x.temp >= Math.min(45, problem.temp - 2)) ?? null : null;
-  const uebersehen = sonden.filter((x) => x.stellen === 1 && x.wahr - x.temp > 5).length; // nur Mitte gemessen, das Nest war woanders
+  // entdeckt: Messung an allen Stellen (ein Nest liegt nicht in der Mitte) oder eine, die die Temperatur zeigt
+  const entdeckt = problem ? sonden.find((x) => x.t >= problem.t && (problem.art === 'nest' ? x.stellen === 3 : x.temp >= Math.min(45, problem.temp - 2))) ?? null : null;
+  const uebersehen = sonden.filter((x) => x.stellen === 1 && (x.wahr - x.temp > 5 || x.tsMin - x.tsWahr > 5)).length; // nur Mitte gemessen, das Nest war woanders
   return { sonden, tage, mitMessung, problem, entdeckt, uebersehen };
 }
 // Zeitstrahl: eigene Handlungen und Wendepunkte in der Reihenfolge der Stunden
@@ -752,7 +753,7 @@ export function zeitstrahl(l, z = (x, d = 0) => x.toFixed(d).replace('.', ',')) 
   for (const h of l.handlungen) {
     const text = {
       schalter: () => (h.was === 'luefter' ? `Lüfter: ${BETRIEB[h.wert]}` : h.was === 'dach' ? `Warmluft vom Dach ${h.wert ? 'ein' : 'aus'}` : `Entfeuchter ${h.wert ? 'ein' : 'aus'}`),
-      sonde: () => `Heusonde ${h.stellen === 1 ? 'nur in der Mitte' : 'an drei Stellen'}: wärmste Stelle ${z(h.temp)} °C, feuchteste Schicht ${z(h.tsMin)} % TS` + (h.stellen === 1 && h.wahr - h.temp > 5 ? ` – an einer anderen Stelle waren es ${z(h.wahr)} °C` : ''),
+      sonde: () => `Heusonde ${h.stellen === 1 ? 'nur in der Mitte' : 'an drei Stellen'}: wärmste Stelle ${z(h.temp)} °C, feuchteste Schicht ${z(h.tsMin)} % TS` + (h.stellen === 1 && h.wahr - h.temp > 5 ? ` – an einer anderen Stelle waren es ${z(h.wahr)} °C` : h.stellen === 1 && h.tsMin - h.tsWahr > 5 ? ` – an einer anderen Stelle erst ${z(h.tsWahr)} % TS` : ''),
       vorinfo: () => `Feuerwehr vorinformiert${h.temp < ERNSTFALL.vorinfo ? ' (der Stock war unter 60 °C)' : ''}`,
       alarm: () => `Feuerwehr alarmiert bei ${z(h.temp)} °C`,
       fehlalarm: () => `Fehlalarm: Feuerwehr alarmiert, der Stock hatte höchstens ${z(h.temp)} °C`,
@@ -768,12 +769,12 @@ export function zeitstrahl(l, z = (x, d = 0) => x.toFixed(d).replace('.', ',')) 
   for (const w of l.wendepunkte) {
     const ort = w.wo ? (w.wo === 'wartendes Heu' ? 'Wartendes Heu' : `Nest ${w.wo}`) : 'Stock';
     // Wurde das Problem gemessen? Nächste Messung nach dem Wendepunkt, die es zeigen konnte
-    const gesehen = l.handlungen.find((x) => x.art === 'sonde' && x.t >= w.t && x.temp >= (w.grenze ?? 45) - 2);
+    const gesehen = l.handlungen.find((x) => x.art === 'sonde' && x.t >= w.t && (w.art === 'nest' ? x.stellen === 3 : x.temp >= (w.grenze ?? 45) - 2));
     const mess = l.messenAuto || !(l.gespielt || l.handlungen.some((x) => x.art === 'sonde')) ? '' : gesehen ? `, gemessen ${gesehen.t === w.t ? 'in derselben Stunde' : `nach ${gesehen.t - w.t} h`}` : ', nicht gemessen';
     const text = {
       spaet: () => `Lüfter startet erst nach dem Einfüllen: ${EINGRIFF.sperre} Stunden ohne Luft`,
       temp: () => `${ort} über ${w.grenze} °C${w.grenze >= 45 ? mess : ''}`,
-      nest: () => `Nest in der Säule ${w.wo}: ${z(w.temp)} °C, deutlich wärmer als der Rest${mess}`,
+      nest: () => (w.feucht ? `Feuchtes Nest ${w.wo}: erst ${z(w.ts)} % TS, deutlich feuchter als der Rest${mess}` : `Nest ${w.wo}: ${z(w.temp)} °C, deutlich wärmer als der Rest${mess}`),
       luft: () => `Der Lüfter schafft nur ${z(w.anteil * 100)} % der Soll-Luftmenge`,
       luefterDa: () => 'Der stärkere Lüfter läuft',
       stromausfall: () => `Panne: Stromausfall, ${w.dauer} Stunden ohne Lüfter`,
@@ -796,7 +797,7 @@ function belueftungsKarten(f, r, z) {
   // --- Anlage
   f.push({
     id: 'anlage', titel: 'Anlage', wert: `${LUEFTER[a.luefter].name}, ${z(l.luftMin * 100, 0)} % Luft, Box ${z(flaeche, 0)} m²`,
-    stufe: stufe(l.luftMin >= 0.95 && urteil !== 'zuHoch', l.luftMin >= 0.8),
+    stufe: stufe(l.luftMin >= 0.95 && (urteil === 'gut' || urteil === 'niedrig'), l.luftMin >= 0.8 && urteil !== 'zuHoch'),
     text: (l.luftMin >= 0.95 ? `Der ${LUEFTER[a.luefter].name} brachte die Soll-Luftmenge von ${z(ANLAGE.luft, 2)} m³/s je m² Stockfläche. `
       : `Der ${LUEFTER[a.luefter].name} schaffte gegen den Stock zeitweise nur ${z(l.luftMin * 100, 0)} % der Soll-Luftmenge (im Mittel ${z(l.luftMittel * 100, 0)} %). `) +
       `Die Box hat ${z(flaeche, 0)} m² für ${z(l.tonnenEin, 1)} t Heu: Der Stock wurde ${z(l.hoeheMax, 1)} m hoch. ` +
@@ -809,9 +810,9 @@ function belueftungsKarten(f, r, z) {
   // --- Einfüllen
   f.push({
     id: 'einfuellen', titel: 'Einfüllen', wert: `${z(l.hoehe, 1)} m, ${ef.verteilen ? 'gleichmässig' : 'ungleich'}${ef.lagen === 2 ? ', zwei Lagen' : ''}`,
-    stufe: stufe(ef.verteilen && ef.start === 'sofort' && urteil !== 'zuHoch' && !l.wartetNoch && !l.handlungen.some((x) => x.zuFrueh), (ef.verteilen || l.umgeschichtet > 0) && !l.wartetNoch),
+    stufe: stufe(ef.verteilen && ef.start === 'sofort' && urteil !== 'zuHoch' && urteil !== 'hoch' && !l.wartetNoch && !l.handlungen.some((x) => x.zuFrueh), (ef.verteilen || l.umgeschichtet > 0) && !l.wartetNoch),
     text: (ef.verteilen ? 'Das Heu wurde gleichmässig und locker verteilt: Die Luft geht überall gleich gut durch. '
-      : `Das Heu wurde abgeladen, wie es kam: An der Abladestelle lag es höher und dichter. Die Luft nimmt den leichtesten Weg (Kamin), daneben bleibt ein feuchtes Nest${nest ? ` – ${tagZeit(nest.t)} war es ${z(nest.temp, 0)} °C warm` : ''}. ` + (l.umgeschichtet ? 'Das Umschichten hat das wieder ausgeglichen. ' : 'Verdichtete Stellen werden umströmt und verderben leicht (Agroscope 2014). ')) +
+      : `Das Heu wurde abgeladen, wie es kam: An der Abladestelle lag es höher und dichter. Die Luft nimmt den leichtesten Weg (Kamin), daneben bleibt ein feuchtes Nest${nest ? (nest.feucht ? ` – ${tagZeit(nest.t)} hatte es ${nest.wo} erst ${z(nest.ts, 0)} % TS` : ` – ${tagZeit(nest.t)} war es ${z(nest.temp, 0)} °C warm`) : ''}. ` + (l.umgeschichtet ? 'Das Umschichten hat das wieder ausgeglichen. ' : 'Verdichtete Stellen werden umströmt und verderben leicht (Agroscope 2014). ')) +
       (ef.start === 'danach' ? `Der Lüfter lief erst ${EINGRIFF.sperre} Stunden nach dem Einfüllen: In dieser Zeit atmet das feuchte Heu und erwärmt sich. Beim Beschicken soll der Ventilator schon laufen (Agroscope 2014). ` : 'Der Lüfter lief schon beim Einfüllen. ') +
       (ef.lagen === 2 ? (l.nachgefuelltBei != null ? `Die zweite Lage kam nach ${l.nachgefuelltBei - l.t0} Stunden dazu${l.nachgefuelltBei - l.t0 < EINGRIFF.nachfuellenAb ? ': früh. Nachgefüllt wird nach zwei bis drei schönen Belüftungstagen (FAT 1982)' : ''}. ` : 'Die zweite Lage wurde nie eingefüllt: Sie lag unbelüftet daneben und ist verdorben. ') +
         'Im Spiel muss die zweite Lage warten; in der Praxis mäht man dafür an zwei Tagen. ' : ''),
@@ -859,6 +860,7 @@ function belueftungsKarten(f, r, z) {
     });
   }
   // --- Kosten in Franken je Tonne Heu (neben den Punkten, nicht in ihnen)
+  l.lagerverlust = r.lagerverlust; // für die Kosten: verlorenes Heu wie in der Bewertung
   const ko = kosten(l);
   r.kosten = ko;
   f.push({
