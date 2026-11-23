@@ -212,7 +212,7 @@ export class HeustockSpiel {
     } else if (h.art === 'auslagern') {
       this.melde(`${t}: Oberste Lage ausgelagert (${z(h.kg / 1000 / 0.87, 1)} t Heu zum Verfüttern). Der Stock ist noch ${z(h.hoeheNach, 1)} m hoch.`);
     } else if (h.art === 'luefterHolen') {
-      this.melde(`${t}: Stärkeren Lüfter bestellt (Miete). Er läuft in ${NACHRUESTEN.warteStunden} Stunden, ${tagZeit(h.da)}.`);
+      this.melde(`${t}: Stärkeren Lüfter angefordert. Er läuft in ${NACHRUESTEN.warteStunden} Stunden, ${tagZeit(h.da)}; das Anschliessen braucht Arbeitsstunden.`);
     } else if (h.art === 'sicherung') {
       this.melde(`${t}: Sicherung wieder eingeschaltet, der Lüfter läuft wieder.`);
     } else if (h.art === 'vorinfo') {
@@ -352,7 +352,7 @@ export class HeustockSpiel {
       const art = b.dataset.eingriff;
       b.hidden = !this.eingriffe.includes(art) || (art === 'nachfuellen' && !this.stock.warte && this.stock.nachgefuelltBei == null && this.stock.einfuellen.lagen !== 2);
       b.disabled = !this.moeglich(art);
-      if (art === 'luefterHolen') b.querySelector('small').textContent = this.stock.luefter === 'stark' ? 'starker Lüfter läuft' : this.stock.bestelltBei != null ? `bestellt, läuft in ${this.stock.bestelltBei + NACHRUESTEN.warteStunden - this.stock.t} h` : `Miete, kommt nach ${NACHRUESTEN.warteStunden} h`;
+      if (art === 'luefterHolen') b.querySelector('small').textContent = this.stock.luefter === 'stark' ? 'starker Lüfter läuft' : this.stock.bestelltBei != null ? `bestellt, läuft in ${this.stock.bestelltBei + NACHRUESTEN.warteStunden - this.stock.t} h` : `läuft nach ${NACHRUESTEN.warteStunden} h, kostet Arbeit`;
     });
     r.querySelector('.hs-sicherung').hidden = !this.stock.sicherungAus;
     const wt = this.stock.warte, wEl = r.querySelector('.hs-warte');

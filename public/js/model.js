@@ -3,7 +3,7 @@
 // nach innerem Pflanzenwasser und Oberflächenwasser aus Tau und Regen).
 // Trocknungskonstante nach Rotz & Chen (1985); die übrigen Ansätze sind
 // vereinfachte Lehrmodelle (Quellen und offene Punkte: README.md).
-import { Heustock, spieleBelueftungNach, STANDARD, ANLAGE, ERNSTFALL, LUEFTER, BOX, BETRIEB, EINGRIFF, NACHRUESTEN, PREISE, kosten, schuetthoeheUrteil } from './belueftung.js';
+import { Heustock, spieleBelueftungNach, STANDARD, ANLAGE, ERNSTFALL, LUEFTER, BOX, BETRIEB, EINGRIFF, NACHRUESTEN, kosten, schuetthoeheUrteil } from './belueftung.js';
 import { belueftungsWetter } from './weather.js';
 
 export const BESTAENDE = {
@@ -638,7 +638,7 @@ function erklaere(r, c) {
         : 'Gut belüftet: zur rechten Zeit und ohne Strom zu verschwenden.') : '',
     kontrolle: 'Miss in den ersten Tagen jeden Tag an allen Stellen. Ab 45 °C öfter, von 60 bis 70 °C alle fünf Stunden.',
     eingriffe: 'Schichte um, solange der Stock kühl ist (unter 60 °C). Einen heissen Stock öffnet nur die Feuerwehr.',
-    kosten: 'Am meisten sparst du mit trocken eingeführtem Futter, Warmluft vom Dach und Lüften nur bei trockener Luft.',
+    kosten: 'Am meisten sparst du mit wenigen Durchgängen auf dem Feld, trocken eingeführtem Futter, Warmluft vom Dach und Lüften nur bei trockener Luft.',
     ernstfall: r.ende === 'brand' ? 'Miss feuchtes Heu jeden Tag mit der Heusonde. Ab 60 °C die Feuerwehr vorinformieren, ab 70 °C sofort alarmieren, und einen heissen Stock nie selbst öffnen.'
       : 'Richtig gehandelt. Damit es gar nicht so weit kommt: trockener einführen, den Lüfter nicht abstellen, solange das Heu feucht ist, und täglich messen.',
     fk: s?.fk < 45 ? 'Welke stärker an und schone den Zucker mit einer kurzen Feldliegezeit.' : 'Gute Voraussetzung für eine saubere Gärung.',
@@ -805,7 +805,7 @@ function belueftungsKarten(f, r, z) {
       'Je Meter Stockhöhe braucht es rund 160 Pa Druck, bei kleereichem Futter 240 Pa, bei nassem Heu mehr (LK Salzburg). ' +
       (a.dach ? 'Die Dachabsaugung wärmt die Zuluft an sonnigen Stunden vor. ' : 'Ohne Warmdach ist es eine reine Kaltbelüftung: Bei feuchtem Wetter dauert es lange. ') +
       (a.entfeuchter ? (l.kwhEntf > 0 ? `Der Entfeuchter brauchte ${z(l.kwhEntf, 0)} kWh. ` : 'Der Entfeuchter war vorhanden, lief aber nie. ') : '') +
-      (l.nachgeruestet ? 'Der stärkere Lüfter wurde während der Belüftung nachgerüstet: Das kostet mehr als die Wahl im Voraus, und er fehlte einen Tag lang. ' : l.bestelltBei != null ? 'Der stärkere Lüfter war bestellt, kam aber nicht mehr rechtzeitig. ' : ''),
+      (l.nachgeruestet ? 'Der stärkere Lüfter wurde während der Belüftung nachgerüstet: Das kostet Arbeitsstunden, sein laufender Ansatz ist höher, und er fehlte einen Tag lang. ' : l.bestelltBei != null ? 'Der stärkere Lüfter war bestellt, kam aber nicht mehr rechtzeitig. ' : ''),
   });
   // --- Einfüllen
   f.push({
@@ -861,16 +861,22 @@ function belueftungsKarten(f, r, z) {
   }
   // --- Kosten in Franken je Tonne Heu (neben den Punkten, nicht in ihnen)
   l.lagerverlust = r.lagerverlust; // für die Kosten: verlorenes Heu wie in der Bewertung
+  // Feldarbeit für die Kosten: Fläche, Aufbereiter, Durchgänge, eingeführte TS (kg)
+  const pl = r.plan;
+  l.feld = { ha: ANLAGE.feldHa, aufbereiter: pl.aufbereiter !== 'ohne', zetten: pl.zetten?.length ?? 0, schwaden: pl.schwadZeiten?.length ?? 1, kgTs: r.ernte.dm * 10 * ANLAGE.feldHa };
   const ko = kosten(l);
   r.kosten = ko;
+  const fr = (x) => `${z(x, 0)} Fr.`;
   f.push({
     id: 'kosten', titel: 'Kosten', wert: `${z(ko.total, 0)} Fr. je t Heu`,
-    stufe: stufe(ko.total <= 35, ko.total <= 70),
-    text: `Die Belüftung kostete rund ${z(ko.total, 0)} Franken je Tonne eingefülltes Heu. ` +
-      `Strom ${z(ko.strom, 0)} Fr. (${z(l.kwh, 0)} kWh zu ${z(ko.preise.strom, 2)} Fr.), Anlage ${z(ko.anlage, 0)} Fr., Arbeit ${z(ko.arbeit, 0)} Fr. (${z(l.arbeit, 1)} Stunden)` +
-      (ko.miete > 0 ? `, Miete für den nachgerüsteten Lüfter ${z(ko.miete, 0)} Fr.` : '') + `, verlorenes Heu ${z(ko.verlust, 0)} Fr. ` +
-      'Zum Vergleich: Die LK Salzburg rechnet für Kaltbelüftung und Dachabsaugung mit rund 22 bis 24 Euro je Tonne Heu, mit Entfeuchter 36 bis 39 Euro. ' +
-      'Die Kosten zählen nicht für die Punkte. Strompreis, Stundenansatz und Miete sind Annahmen.',
+    // Bewertet wird, was die Spielenden beeinflussen: verlorenes Heu und Strom (Feldkosten sind grösstenteils fest)
+    stufe: stufe(ko.verlust + ko.strom <= 25, ko.verlust + ko.strom <= 50),
+    text: `Als angestellte Betriebsleitung zählen die laufenden Kosten: rund ${z(ko.total, 0)} Franken je Tonne eingeführtes Heu. ` +
+      `Feld: Maschinen ${fr(ko.feldMaschinen)}, Traktor ${fr(ko.traktor)}, Arbeit ${fr(ko.arbeitFeld)} (${z(ko.feldStunden, 1)} Stunden). ` +
+      `Heustock: Anlage ${fr(ko.anlage)}, Strom ${fr(ko.strom)} (${z(l.kwh, 0)} kWh), Arbeit ${fr(ko.arbeitStock)} (${z(l.arbeit, 1)} Stunden). ` +
+      `Verlorenes Heu ${fr(ko.verlust)} ` +
+      `Die Ansätze für Maschinen, Traktor, Lüfter, Gebläse, Strom und Arbeit stammen aus dem Kostenkatalog 2025 von Agroscope, Warmdach und Entfeuchter aus der LK Salzburg. ` +
+      'Die Kosten zählen nicht für die Punkte.',
   });
 }
 

@@ -11,7 +11,7 @@ import { BEGRIFFE, mitBegriffen } from './begriffe.js';
 import { Assistent } from './assistent.js';
 import { KARTEN_GRAFIK } from './grafik.js';
 import { HeustockSpiel, feldAusRunde } from './heustock.js';
-import { Heustock, BOX, LUEFTER, ANLAGE, PREISE, kosten, fuellhoehe, schuetthoeheUrteil, druckSchaetzung, pannenAus } from './belueftung.js';
+import { Heustock, BOX, LUEFTER, ANLAGE, ANSAETZE, KOSTEN_QUELLE, luefterAnsatz, kosten, fuellhoehe, schuetthoeheUrteil, druckSchaetzung, pannenAus } from './belueftung.js';
 import { niveau, info as niveauInfo, gueltig as niveauGueltig, zeigt, karteSichtbar, beiWechsel, baueNiveauWahl, setzeNiveau } from './niveau.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -139,7 +139,7 @@ const OPTIONEN = {
   modus: [{ wert: 'live', titel: 'Live: die Uhr läuft' }, { wert: 'ruhig', titel: 'Ruhig: du bestimmst, wann die Zeit weiterläuft' }],
   anlLuefter: [
     { wert: 'standard', titel: 'Standardlüfter', text: `${z(LUEFTER.standard.kw, 2)} kW je m² Box. Reicht für eine normale Füllhöhe.`, textEinfach: 'Reicht für eine normale Füllhöhe.' },
-    { wert: 'stark', titel: 'Starker Lüfter', text: `Mehr Druck für hohe, nasse oder kleereiche Stöcke. ${z(LUEFTER.stark.kw, 2)} kW je m² Box: mehr Strom, teurer.`, textEinfach: 'Mehr Druck für hohe, nasse Stöcke. Braucht mehr Strom und kostet mehr.' },
+    { wert: 'stark', titel: 'Starker Lüfter', text: `Mehr Druck für hohe, nasse oder kleereiche Stöcke. ${z(LUEFTER.stark.kw, 2)} kW je m² Box: mehr Strom und ein höherer laufender Ansatz.`, textEinfach: 'Mehr Druck für hohe, nasse Stöcke. Braucht mehr Strom, die laufenden Kosten sind höher.' },
   ],
   anlDach: [
     { wert: true, titel: 'Mit Dachabsaugung', text: 'Die Sonne wärmt die Luft unter dem Dach vor: Das Heu trocknet schneller und mit weniger Strom.' },
@@ -150,7 +150,7 @@ const OPTIONEN = {
     { wert: true, titel: 'Mit Entfeuchter', text: 'Trocknet auch nachts und bei Regen. Braucht viel Strom; unter 10 °C oder bei trockener Luft kostet er nur.' },
   ],
   anlBox: Object.entries(BOX).map(([k, b]) => ({ wert: k, titel: `${b.name.replace(/^./, (c) => c.toUpperCase())}: ${b.m2JeHa * ANLAGE.feldHa} m²`,
-    text: { klein: 'Wenig Fläche für die Parzelle: Der Stock wird hoch.', passend: `${b.m2JeHa} m² je Hektare, wie die Beratung empfiehlt.`, gross: 'Viel Fläche: niedriger Stock, aber mehr Lüfterleistung und teurer.' }[k] })),
+    text: { klein: 'Wenig Fläche für die Parzelle: Der Stock wird hoch.', passend: `${b.m2JeHa} m² je Hektare, wie die Beratung empfiehlt.`, gross: 'Viel Fläche: niedriger Stock, aber ein grösserer Lüfter mit höheren laufenden Kosten.' }[k] })),
 };
 
 // Kleine Punkteskala für Zucker, Eiweiss und Silierbarkeit
@@ -284,11 +284,12 @@ function zeigeAnlage() {
   if (!zeigt('belueftung.kennlinie')) { profi.innerHTML = ''; return; }
   const d = (ts) => druckSchaetzung({ hoehe: h, bestand: wahl.bestand, ts, dach: wahl.anlDach, entfeuchter: wahl.anlEntf, luefter: wahl.anlLuefter });
   const zeile = (ts) => { const x = d(ts); return `<tr><th scope="row">Heu mit ${ts} % TS</th><td>${z(x.stock, 0)} Pa Stock + ${z(x.anlage, 0)} Pa Anlage = ${z(x.bedarf, 0)} Pa</td><td>${x.reicht ? 'reicht' : '<b>reicht nicht für die Soll-Luftmenge</b>'}</td></tr>`; };
-  const fix = wahl.anlDach && wahl.anlEntf ? PREISE.fixDachEntf : wahl.anlEntf ? PREISE.fixEntf : wahl.anlDach ? PREISE.fixDach : PREISE.fixKalt;
+  const kw = LUEFTER[wahl.anlLuefter].kw * BOX[wahl.anlBox].m2JeHa * ANLAGE.feldHa, pos = ANSAETZE[luefterAnsatz(kw)];
+  const zuschlag = wahl.anlDach && wahl.anlEntf ? ANSAETZE.dachEntfeuchter : wahl.anlEntf ? ANSAETZE.entfeuchter : wahl.anlDach ? ANSAETZE.dach : null;
   profi.innerHTML = `<h3>Kennlinie und Kosten</h3><table class="rechnung"><tbody>
     <tr><th scope="row">${LUEFTER[wahl.anlLuefter].name}</th><td colspan="2">bringt die Soll-Luftmenge von ${z(ANLAGE.luft, 2)} m³/s je m² bis ${z(d(65).luefter, 0)} Pa; ${z(LUEFTER[wahl.anlLuefter].kw * BOX[wahl.anlBox].m2JeHa * ANLAGE.feldHa)} kW</td></tr>
     ${[55, 65, 75].map(zeile).join('')}
-    <tr><th scope="row">Festkosten der Anlage</th><td colspan="2">rund ${z(fix.wert * BOX[wahl.anlBox].m2JeHa / BOX.passend.m2JeHa + (wahl.anlLuefter === 'stark' ? PREISE.stark.wert : 0))} Fr. je t Heu, dazu Strom (${z(PREISE.strom.wert, 2)} Fr. je kWh, Annahme)</td></tr>
+    <tr><th scope="row">Laufende Kosten der Anlage</th><td colspan="2">${esc(pos.name)} ${z(pos.wert, 0)} Fr. je Jahr und Heugebläse ${z(ANSAETZE.geblaese.wert, 0)} Fr. je Jahr (${esc(KOSTEN_QUELLE)})${zuschlag ? `, dazu ${esc(zuschlag.name)} ${z(zuschlag.wert)} Fr. je t Heu (LK Salzburg)` : ''}; Strom ${z(ANSAETZE.strom.wert, 2)} Fr. je kWh, Arbeit ${z(ANSAETZE.arbeit.wert, 0)} Fr. je Stunde</td></tr>
   </tbody></table><p class="hinweis">Druckbedarf: 160 Pa je Meter Stockhöhe (kleereich 240, gräserreich 120), Dachabsaugung und Entfeuchter je 120 Pa (LK Salzburg); nasses Heu braucht mehr (Annahme). ${einstellungenPannen() ? 'Pannen sind eingeschaltet (abschalten mit ?pannen=aus in der Adresse).' : ''}</p>`;
 }
 const einstellungenPannen = () => !!zeigt('belueftung.pannen') && new URLSearchParams(location.search).get('pannen') !== 'aus';
@@ -706,7 +707,7 @@ function ergebnisNiveau() {
   // Heubelüftung: Kosten neben den Punkten (nicht im Einstieg) und Zeitstrahl der eigenen Handlungen und Wendepunkte
   const lauf = res.belueftung, zeigeZs = !!lauf && (lauf.gespielt || lauf.handlungen.length > 0 || lauf.ende === 'brand');
   $('#kosten-zeile').hidden = !(lauf && zahlen && res.kosten);
-  if (lauf && res.kosten) $('#kosten-zeile').textContent = `Kosten der Belüftung: ${z(kostenJetzt(lauf).total, 0)} Fr. je Tonne Heu`;
+  if (lauf && res.kosten) $('#kosten-zeile').textContent = `Laufende Kosten: ${z(kostenJetzt(lauf).total, 0)} Fr. je Tonne Heu`;
   $('#zeitstrahl-karte').hidden = !zeigeZs;
   if (zeigeZs) {
     const zs = zeitstrahl(lauf, z0).filter((x) => zahlen || x.stufe !== 'neutral' || (x.art === 'handlung' && !x.text.startsWith('Lüfter:')));
@@ -723,19 +724,20 @@ const z0 = (x, d = 0) => z(x, d);
 const eigenePreise = {};
 const kostenJetzt = (lauf) => kosten(lauf, eigenePreise);
 function kostenRechenweg(lauf) {
-  const k = kostenJetzt(lauf), zeile = (a, b) => `<tr><th scope="row">${a}</th><td>${b}</td></tr>`;
-  const fixKey = lauf.anlage.dach && lauf.anlage.entfeuchter ? 'fixDachEntf' : lauf.anlage.entfeuchter ? 'fixEntf' : lauf.anlage.dach ? 'fixDach' : 'fixKalt';
-  const felder = ['strom', 'arbeit', 'heu', fixKey, ...(lauf.anlage.luefter === 'stark' ? ['stark'] : []), ...(lauf.bestelltBei != null ? ['miete'] : [])];
-  return '<h3>Kosten der Belüftung (Franken je Tonne eingefülltes Heu)</h3><table class="rechnung"><tbody>'
-    + zeile('Strom', `${z(lauf.kwh, 0)} kWh × ${z(k.preise.strom, 2)} Fr. / ${z(k.tonnen)} t = ${z(k.strom)} Fr.`)
-    + zeile('Anlage (Festkosten)', `${z(k.preise[fixKey])} Fr./t × Boxfläche ${BOX[lauf.anlage.box].m2JeHa}/${BOX.passend.m2JeHa}${lauf.anlage.luefter === 'stark' ? ` + ${z(k.preise.stark)} Fr. starker Lüfter` : ''} = ${z(k.anlage)} Fr.`)
-    + (k.miete > 0 ? zeile('Lüfter nachgerüstet', `${z(k.preise.miete, 0)} Fr. / ${z(k.tonnen)} t = ${z(k.miete)} Fr.`) : '')
-    + zeile('Arbeit', `${z(lauf.arbeit)} h × ${z(k.preise.arbeit, 0)} Fr. / ${z(k.tonnen)} t = ${z(k.arbeit)} Fr.`)
-    + zeile('Verlorenes Heu', `${z(lauf.ende === 'brand' || lauf.ende === 'abbruch' ? 100 : lauf.lagerverlust ?? lauf.verlust)} % der TS (Lagerverlust) × 8,7 dt TS je t × ${z(k.preise.heu)} Fr. = ${z(k.verlust)} Fr.`)
+  const k = kostenJetzt(lauf), P = k.preise, zeile = (a, b) => `<tr><th scope="row">${a}</th><td>${b}</td></tr>`, f = lauf.feld, t = k.tonnen;
+  const zuschlagKey = lauf.anlage.dach && lauf.anlage.entfeuchter ? 'dachEntfeuchter' : lauf.anlage.entfeuchter ? 'entfeuchter' : lauf.anlage.dach ? 'dach' : null;
+  const felder = ['arbeit', 'strom', 'traktor', f?.aufbereiter ? 'maeherAuf' : 'maeher', 'zetter', 'schwader', 'ladewagen', k.luefterPos, 'geblaese', ...(zuschlagKey ? [zuschlagKey] : []), 'heu', 'fuellungen', 'fuder'];
+  return '<h3>Laufende Kosten (Franken je Tonne eingeführtes Heu)</h3><table class="rechnung"><tbody>'
+    + (f ? zeile('Feld: Maschinen', `Mähen ${f.ha} ha, Zetten ${f.zetten}×, Schwaden ${f.schwaden}× je ${f.ha} ha, ${Math.ceil(f.kgTs / P.fuder)} Fuder → ${z(k.feldMaschinen * t, 0)} Fr. / ${z(t)} t = ${z(k.feldMaschinen)} Fr.`)
+      + zeile('Feld: Traktor und Arbeit', `${z(k.feldStunden, 1)} h × (${z(P.traktor, 0)} + ${z(P.arbeit, 0)} Fr.) / ${z(t)} t = ${z(k.traktor + k.arbeitFeld)} Fr.`) : '')
+    + zeile('Anlage', `(${esc(ANSAETZE[k.luefterPos].name)} ${z(P[k.luefterPos], 0)} + Heugebläse ${z(P.geblaese, 0)} Fr. je Jahr) / ${z(P.fuellungen, 0)} Einfuhrtage / ${z(t)} t${zuschlagKey ? ` + ${z(k.zuschlag)} Fr. ${esc(ANSAETZE[zuschlagKey].name)}` : ''} = ${z(k.anlage)} Fr.`)
+    + zeile('Strom', `${z(lauf.kwh, 0)} kWh × ${z(P.strom, 2)} Fr. / ${z(t)} t = ${z(k.strom)} Fr.`)
+    + zeile('Arbeit am Stock', `${z(lauf.arbeit)} h × ${z(P.arbeit, 0)} Fr. / ${z(t)} t = ${z(k.arbeitStock)} Fr.`)
+    + zeile('Verlorenes Heu', `${z(lauf.ende === 'brand' || lauf.ende === 'abbruch' ? 100 : lauf.lagerverlust ?? lauf.verlust)} % der TS (Lagerverlust) × 8,7 dt TS je t × ${z(P.heu)} Fr. = ${z(k.verlust)} Fr.`)
     + zeile('Total', `<b>${z(k.total)} Fr. je t Heu</b>`)
     + zeile('Luftmenge', `mindestens ${z(lauf.luftMin * 100, 0)} %, im Mittel ${z(lauf.luftMittel * 100, 0)} % der Soll-Luftmenge von ${z(ANLAGE.luft, 2)} m³/s je m²; Stock bis ${z(lauf.hoeheMax)} m`)
-    + '</tbody></table><div class="preise">' + felder.map((f) => `<label>${esc(PREISE[f].name)} (${esc(PREISE[f].einheit)})<input name="preis-${f}" inputmode="decimal" value="${String(k.preise[f]).replace('.', ',')}"><small>${PREISE[f].annahme ? 'Annahme' : 'aus LK Salzburg, 1 € = 1 Fr.'}</small></label>`).join('')
-    + '</div><p class="hinweis">Ändere die Preise und sieh, wie sich die Kosten verschieben. Festkosten: «Gesamtkosten Trocknungssysteme» (LK Salzburg, abgelesen). Die Kosten zählen nicht für die Punkte.</p>';
+    + '</tbody></table><div class="preise">' + felder.map((x) => `<label>${esc(ANSAETZE[x].name)} (${esc(ANSAETZE[x].einheit)})<input name="preis-${x}" inputmode="decimal" value="${String(P[x]).replace('.', ',')}"><small>${esc(ANSAETZE[x].quelle)}</small></label>`).join('')
+    + `</div><p class="hinweis">Ändere die Ansätze und sieh, wie sich die Kosten verschieben. Quelle: ${esc(KOSTEN_QUELLE)}; Maschinen ohne Bedienung und ohne MWST, Hoftechnik als Jahreskosten ohne Strom. Die Kosten zählen nicht für die Punkte.</p>`;
 }
 
 // ---------- Profi: Rechenwege, Kalibrierung, Modell gegen Messung, Datenexport und Begründungsaufgaben
@@ -807,7 +809,7 @@ function csvRunde() {
     ...(res.silage ? [['FK', f(res.silage.fk, 1), ''], ['pH', f(res.silage.pH), ''], ['pH kritisch', f(res.silage.pHkrit), ''], ['Buttersäure', f(res.silage.buttersaeure / 10), '% TS'], ['DLG-Punkte', res.silage.dlg, '']] : []),
     ...(res.heu ? [['Heustock bis', f(res.heu.temp, 0), '°C'], ['Belüftungstage', f(res.heu.belueftTage, 1), 'd'], ['Heuqualität', res.heu.punkte, 'Punkte']] : []),
     ...(res.belueftung ? [['Belüftung Ende', res.belueftung.ende, ''], ['Belüftung Strom', f(res.belueftung.kwh, 0), 'kWh'], ['Luftmenge mindestens', f(res.belueftung.luftMin * 100, 0), '% vom Soll'], ['Stockhöhe höchstens', f(res.belueftung.hoeheMax), 'm'],
-      ...(res.kosten ? [['Kosten Belüftung', f(kostenJetzt(res.belueftung).total, 1), 'Fr./t Heu']] : [])] : []),
+      ...(res.kosten ? [['Laufende Kosten', f(kostenJetzt(res.belueftung).total, 1), 'Fr./t Heu']] : [])] : []),
     ['Punkte', res.punkte, ''], [],
     ['Arbeitsgänge'], ['Stunde', 'Tag', 'Uhrzeit', 'Arbeitsgang', 'TS %'],
     ...res.ereignisse.map((x) => [x.t, Math.floor(x.t / 24) + 1, `${String(x.t % 24).padStart(2, '0')}:00`, x.text, f(x.ts)]), [],

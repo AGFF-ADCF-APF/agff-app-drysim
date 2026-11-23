@@ -153,7 +153,7 @@ export const LUEFTER = {
   standard: { name: 'Standardlüfter', kw: ANLAGE.luefterKw, kennlinie: KENN },
   stark: { name: 'starker Lüfter', kw: ANLAGE.luefterKw * N_STARK ** 3, kennlinie: KENN.map(([v, p]) => [v * N_STARK, p * N_STARK ** 2]) },
 };
-// Nachrüsten während der Belüftung: Wartezeit, bis der gemietete Lüfter läuft (Annahme)
+// Nachrüsten während der Belüftung: Wartezeit, bis der stärkere Lüfter läuft (Annahme)
 export const NACHRUESTEN = { warteStunden: 24 };
 const interp = (tab, x) => {
   if (x <= tab[0][0]) return tab[0][1];
@@ -205,7 +205,8 @@ const UNGLEICH = (() => { const rho = [65, ANLAGE.dichte, 91], h = [0.8, 1, 1.2]
 // Wärme viel schneller ab als ein Stock (Anteil der Übertemperatur je Stunde).
 export const EINGRIFF = { sperre: 3, nachfuellenAb: 48, last: 0.04, greiferDichte: 65, broeckel: 0.01, abkuehlen: 0.5, warteKuehl: 0.15 };
 // Arbeitszeit in Stunden je Handlung (Annahmen, für die Kosten)
-export const ARBEIT = { sonde: 0.25, sondeMitte: 0.1, verteilen: 1, umschichten: 1.5, nachfuellen: 1, auslagern: 1, luefterHolen: 1 };
+// Nachrüsten: den stärkeren Lüfter holen und anschliessen, 4 Arbeitsstunden (Annahme); er läuft nach der Wartezeit.
+export const ARBEIT = { sonde: 0.25, sondeMitte: 0.1, verteilen: 1, umschichten: 1.5, nachfuellen: 1, auslagern: 1, luefterHolen: 4 };
 // Richtwerte zur Schütthöhe einer Charge: 1 bis 2 m (Agroscope 2014 S. 7), höchstens 3 m, bei Klee und sehr jungem
 // Futter höchstens 2 m (LK Salzburg S. 39); erste Schicht mindestens 1 m (LK Salzburg S. 44).
 export const SCHUETTHOEHE = { min: 1, gut: 2, max: 3, kleeMax: 2 };
@@ -231,38 +232,73 @@ export function pannenAus(schluessel) {
   return s % 2 === 0 ? [{ nach: 30, art: 'stromausfall', dauer: 8 }] : [{ nach: 40, art: 'sicherung' }];
 }
 
-// ---------- Kosten in Franken je Tonne Heu (stehen neben den Punkten, fliessen nicht in sie ein).
-// Belegt: Festkosten der Anlage aus «Gesamtkosten Trocknungssysteme» (LK Salzburg S. 43, n. Wirleitner; abgelesen:
-// Gesamtkosten minus variable Kosten in € je t Heu: Kaltbelüftung 10, Dachabsaugung 11,5, Entfeuchter 19,3, Dach und
-// Entfeuchter 20,8) und der Wert des Heus (LK Salzburg S. 6: Vollkosten 25,40 € je dt TM). Euro werden 1:1 als Franken
-// gerechnet (Annahme). Alles andere sind Annahmen, im Niveau Profi sichtbar und änderbar: Strompreis, Stundenansatz,
-// Zuschlag für den starken Lüfter (FAT 1982, Tab. 8: Lüfter der nächsten Grösse rund ein Drittel teurer; Anteil an den
-// Festkosten angenommen), Miete beim Nachrüsten.
-export const PREISE = {
-  strom: { name: 'Strom', wert: 0.25, einheit: 'Fr. je kWh', annahme: true },
-  arbeit: { name: 'Arbeit', wert: 30, einheit: 'Fr. je Stunde', annahme: true },
-  heu: { name: 'Wert des Heus', wert: 25.4, einheit: 'Fr. je dt TS', annahme: false },
-  fixKalt: { name: 'Anlage Kaltbelüftung', wert: 10, einheit: 'Fr. je t Heu', annahme: false },
-  fixDach: { name: 'Anlage mit Dachabsaugung', wert: 11.5, einheit: 'Fr. je t Heu', annahme: false },
-  fixEntf: { name: 'Anlage mit Entfeuchter', wert: 19.3, einheit: 'Fr. je t Heu', annahme: false },
-  fixDachEntf: { name: 'Anlage mit Dach und Entfeuchter', wert: 20.8, einheit: 'Fr. je t Heu', annahme: false },
-  stark: { name: 'Zuschlag starker Lüfter', wert: 1, einheit: 'Fr. je t Heu', annahme: true },
-  miete: { name: 'Lüfter nachrüsten (Miete, Eilzuschlag)', wert: 300, einheit: 'Fr. pauschal', annahme: true },
+// ---------- Laufende Kosten in Franken je Tonne Heu (Konzept 10.1: angestellte Betriebsleitung, kein Budget, kein Kaufpreis).
+// Stehen neben den Punkten und fliessen nicht in sie ein. Ansätze ohne MWST.
+// Kostenkatalog 2025 = Agroscope Transfer Nr. 598/2025, «Kostenkatalog 2025: Richtwerte für die Kosten von Maschinen,
+// Arbeit, Gebäude und Hoftechnik» (Rutz, Gazzarin), gültig bis September 2026 (Positionsnummer und Seite je Ansatz).
+// Entschädigungsansätze der Maschinen gelten je Arbeitsdurchgang ohne Bedienung (Kostenkatalog 2025 S. 6); Hoftechnik nur
+// als Jahreskosten (S. 56), ohne Strom (S. 7). Arbeitsleistung der Geräte aus derselben Tabelle (Spalte Arbeitsleistung).
+export const KOSTEN_QUELLE = 'Agroscope, Kostenkatalog 2025 (Transfer Nr. 598/2025)';
+export const ANSAETZE = {
+  arbeit: { name: 'Arbeit', wert: 32, einheit: 'Fr. je Stunde', quelle: 'Vorgabe des Auftraggebers; gleich dem Lohnansatz innerlandwirtschaftlich, Kostenkatalog 2025 S. 8, Tab. 6' },
+  strom: { name: 'Strom', wert: 0.29, einheit: 'Fr. je kWh', quelle: 'Kostenkatalog 2025 S. 4, Tab. 1' },
+  traktor: { name: 'Traktor 65–74 kW (88–101 PS)', wert: 43, einheit: 'Fr. je Stunde', quelle: 'Kostenkatalog 2025 S. 10, Pos. 1005' },
+  maeher: { name: 'Rotationsmähwerk Heck 2,1–2,6 m', wert: 27, einheit: 'Fr. je ha', quelle: 'Kostenkatalog 2025 S. 34, Pos. 9021; 1,72 ha/h' },
+  maeherAuf: { name: 'Rotationsmähwerk mit Aufbereiter, Heck 2,1–2,6 m', wert: 49, einheit: 'Fr. je ha', quelle: 'Kostenkatalog 2025 S. 34, Pos. 9022; 1,72 ha/h' },
+  zetter: { name: 'Kreiselheuer 3,5–4,5 m', wert: 15, einheit: 'Fr. je ha', quelle: 'Kostenkatalog 2025 S. 36, Pos. 9041; 2,80 ha/h' },
+  schwader: { name: 'Kreiselschwader 2,8–3,3 m', wert: 15, einheit: 'Fr. je ha', quelle: 'Kostenkatalog 2025 S. 36, Pos. 9061; 1,39 ha/h' },
+  ladewagen: { name: 'Ladewagen mit Schneidvorrichtung 15 m³ DIN', wert: 27, einheit: 'Fr. je Fuder', quelle: 'Kostenkatalog 2025 S. 36, Pos. 9083; 2,7 Fuder/h' },
+  luefter4: { name: 'Radialventilator 4 kW', wert: 707, einheit: 'Fr. je Jahr', quelle: 'Kostenkatalog 2025 S. 56, Pos. 24001' },
+  luefter7: { name: 'Radialventilator 7,5 kW', wert: 836, einheit: 'Fr. je Jahr', quelle: 'Kostenkatalog 2025 S. 56, Pos. 24002' },
+  luefter11: { name: 'Radialventilator 11 kW', wert: 1110, einheit: 'Fr. je Jahr', quelle: 'Kostenkatalog 2025 S. 56, Pos. 24004' },
+  luefter30: { name: 'Radialventilator 30 kW', wert: 1497, einheit: 'Fr. je Jahr', quelle: 'Kostenkatalog 2025 S. 56, Pos. 24005' },
+  geblaese: { name: 'Heugebläse 10–15 kW', wert: 1249, einheit: 'Fr. je Jahr', quelle: 'Kostenkatalog 2025 S. 56, Pos. 24010' },
+  // Nicht im Kostenkatalog: Dachabsaugung und Entfeuchter. Zuschlag gegenüber Kaltbelüftung aus «Gesamtkosten
+  // Trocknungssysteme» (LK Salzburg S. 43, abgelesen; Festkosten = Gesamt- minus variable Kosten: Kalt 10, Dach 11,5,
+  // Entfeuchter 19,3, Dach und Entfeuchter 20,8 € je t Heu), Euro 1:1 als Franken (Annahme).
+  dach: { name: 'Zuschlag Dachabsaugung', wert: 1.5, einheit: 'Fr. je t Heu', quelle: 'LK Salzburg S. 43 (abgelesen), € = Fr. angenommen' },
+  entfeuchter: { name: 'Zuschlag Entfeuchter', wert: 9.3, einheit: 'Fr. je t Heu', quelle: 'LK Salzburg S. 43 (abgelesen), € = Fr. angenommen' },
+  dachEntfeuchter: { name: 'Zuschlag Dach und Entfeuchter', wert: 10.8, einheit: 'Fr. je t Heu', quelle: 'LK Salzburg S. 43 (abgelesen), € = Fr. angenommen' },
+  heu: { name: 'Wert des Heus', wert: 25.4, einheit: 'Fr. je dt TS', quelle: 'LK Salzburg S. 6 (Vollkosten Heu, € = Fr. angenommen)' },
+  // Annahmen (README, offene Punkte)
+  fuellungen: { name: 'Einfuhrtage dieser Grösse je Jahr', wert: 12, einheit: 'je Jahr', quelle: 'Annahme: 3 Schnitte auf 4 Parzellen; verteilt die Jahreskosten von Lüfter und Gebläse auf das Heu', annahme: true },
+  fuder: { name: 'Ladung je Fuder', wert: 1170, einheit: 'kg TS', quelle: 'Annahme: 15 m³ × 78 kg TS/m³ (Raumgewicht wie im Stock, FAT 1982)', annahme: true },
 };
+// Arbeitsleistung in ha (bzw. Fuder) je Stunde, Kostenkatalog 2025 (Spalte Arbeitsleistung, gleiche Positionen)
+export const LEISTUNG_HA = { maeher: 1.72, zetter: 2.8, schwader: 1.39, ladewagen: 2.7 };
+// Radialventilator: der kleinste im Kostenkatalog, der die nötige Motorleistung hat
+const LUEFTER_STUFEN = [[4, 'luefter4'], [7.5, 'luefter7'], [11, 'luefter11'], [30, 'luefter30']];
+export const luefterAnsatz = (kw) => (LUEFTER_STUFEN.find(([k]) => k >= kw - 1e-9) ?? LUEFTER_STUFEN.at(-1))[1];
+
+// l = Ergebnis der Belüftung; l.feld = { ha, aufbereiter, zetten, schwaden, kgTs } (aus der Feldphase, model.js)
 export function kosten(l, preise = {}) {
-  const P0 = Object.fromEntries(Object.entries(PREISE).map(([k, v]) => [k, Number.isFinite(preise[k]) ? preise[k] : v.wert]));
-  const t = l.tonnenEin, a = l.anlage;
-  const fix = (a.dach && a.entfeuchter ? P0.fixDachEntf : a.entfeuchter ? P0.fixEntf : a.dach ? P0.fixDach : P0.fixKalt) * (BOX[a.box] ?? BOX.passend).m2JeHa / BOX.passend.m2JeHa;
+  const P = Object.fromEntries(Object.entries(ANSAETZE).map(([k, v]) => [k, Number.isFinite(preise[k]) ? preise[k] : v.wert]));
+  const t = l.tonnenEin, a = l.anlage, f = l.feld ?? null;
+  // Feld: Geräte je ha bzw. Fuder, dazu Traktor und Arbeit für die Zeit nach der Arbeitsleistung
+  let feldMaschinen = 0, feldStunden = 0;
+  if (f) {
+    const fuder = Math.ceil(f.kgTs / P.fuder);
+    const gaenge = [[f.aufbereiter ? 'maeherAuf' : 'maeher', 'maeher', 1], ['zetter', 'zetter', f.zetten], ['schwader', 'schwader', f.schwaden]];
+    for (const [ansatz, leist, n] of gaenge) { feldMaschinen += P[ansatz] * f.ha * n; feldStunden += f.ha * n / LEISTUNG_HA[leist]; }
+    feldMaschinen += P.ladewagen * fuder; feldStunden += fuder / LEISTUNG_HA.ladewagen;
+  }
+  // Stock: Lüfter nach Motorleistung (starker Lüfter = höherer laufender Ansatz, auch wenn nachgerüstet) und Heugebläse
+  // je Jahr, verteilt auf die Füllungen eines Jahres; Warmdach und Entfeuchter als Zuschlag je t
+  const kw = LUEFTER[l.luefterEnde ?? a.luefter].kw * l.flaeche;
+  const jahr = P[luefterAnsatz(kw)] + P.geblaese;
+  const zuschlag = a.dach && a.entfeuchter ? P.dachEntfeuchter : a.entfeuchter ? P.entfeuchter : a.dach ? P.dach : 0;
   // verlorenes Heu in % der eingefüllten TS: der Lagerverlust aus der Bewertung (lagereHeu), sonst der Verlust während der Belüftung
   const verloren = l.ende === 'brand' || l.ende === 'abbruch' ? 100 : l.lagerverlust ?? l.verlust;
   const teile = {
-    strom: l.kwh * P0.strom / t,
-    anlage: fix + (a.luefter === 'stark' ? P0.stark : 0),
-    miete: l.bestelltBei != null ? P0.miete / t : 0,
-    arbeit: l.arbeit * P0.arbeit / t,
-    verlust: verloren / 100 * (ANLAGE.zielTs / 100) * 10 * P0.heu, // je t eingefülltes Heu: dt TS × Preis
+    feldMaschinen: feldMaschinen / t,
+    traktor: feldStunden * P.traktor / t,
+    arbeitFeld: feldStunden * P.arbeit / t,
+    anlage: jahr / P.fuellungen / t + zuschlag,
+    strom: l.kwh * P.strom / t,
+    arbeitStock: l.arbeit * P.arbeit / t,
+    verlust: verloren / 100 * (ANLAGE.zielTs / 100) * 10 * P.heu, // je t eingefülltes Heu: dt TS × Preis
   };
-  return { ...teile, total: Object.values(teile).reduce((s, x) => s + x, 0), preise: P0, tonnen: t };
+  return { ...teile, total: Object.values(teile).reduce((s, x) => s + x, 0), preise: P, tonnen: t, feldStunden, luefterKw: kw, luefterPos: luefterAnsatz(kw), zuschlag, jahr };
 }
 
 export class Heustock {

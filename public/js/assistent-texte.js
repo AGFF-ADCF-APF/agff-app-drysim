@@ -356,7 +356,7 @@ export const T = {
   },
   'setup.anlage.luefter.stark': {
     titel: 'Starker Lüfter',
-    einfach: 'Der starke Lüfter drückt die Luft auch durch einen hohen, nassen Stock. Er braucht aber deutlich mehr Strom und kostet mehr.',
+    einfach: 'Der starke Lüfter drückt die Luft auch durch einen hohen, nassen Stock. Er braucht aber deutlich mehr Strom, und seine laufenden Kosten sind höher.',
     fachlich: 'Im Spiel derselbe Lüfter mit 20 % höherer Drehzahl: Volumenstrom ∝ n, Druck ∝ n², Leistung ∝ n³ (Agroscope 2014), also rund 44 % mehr Druck und 73 % mehr Leistung. Der Höchstdruck von Heulüftern liegt typisch bei 1300 bis 1900 Pa (LK Salzburg).',
     lernen: 'anlage',
   },
@@ -394,7 +394,7 @@ export const T = {
   },
   'setup.anlage.box.gross': {
     titel: 'Grosse Box',
-    einfach: 'In der grossen Box liegt das Heu niedrig und trocknet schnell. Dafür braucht es einen grösseren Lüfter, und die Anlage kostet mehr.',
+    einfach: 'In der grossen Box liegt das Heu niedrig und trocknet schnell. Dafür braucht es einen grösseren Lüfter mit höheren laufenden Kosten.',
     fachlich: 'Bei geringer Beschickungshöhe führen grosse Volumenströme zu Kaminbildung und Luftverlust; erste Mindestbeschickungshöhe 1 bis 1,5 m (Agroscope 2014). Der Luftverlust bei niedrigem Stock ist im Spiel nicht gerechnet.',
     lernen: 'anlage',
   },

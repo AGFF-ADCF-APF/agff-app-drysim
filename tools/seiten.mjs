@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import { WETTER, PROGNOSEN } from '../public/js/scenarios.js';
 import { BESTAENDE, SILOARTEN, STADIEN, AUFBEREITER, ablageVon, KAL } from '../public/js/model.js';
 import { grafikTrocknung, grafikFeldverluste, grafikAblage, grafikInsekten, grafikZucker, grafikHx, grafikAbb29 } from '../public/js/grafik.js';
-import { ANLAGE, LUFT, LUEFTER, BOX, DRUCK_JE_M, DRUCK_BESTAND, DRUCK_ZUSCHLAG, ERNSTFALL, EINGRIFF, NACHRUESTEN, PREISE, SCHUETTHOEHE, luefterDruck, fuellhoehe, druckSchaetzung } from '../public/js/belueftung.js';
+import { ANLAGE, LUFT, LUEFTER, BOX, DRUCK_JE_M, DRUCK_BESTAND, DRUCK_ZUSCHLAG, ERNSTFALL, EINGRIFF, NACHRUESTEN, ANSAETZE, KOSTEN_QUELLE, SCHUETTHOEHE, luefterDruck, fuellhoehe, druckSchaetzung } from '../public/js/belueftung.js';
 import { konstant } from '../public/js/belueftung-vergleich.js';
 import { LKS_VERFAHREN, LKS_RICHTWERTE, ABLUFT_TS } from '../public/js/versuche.js';
 import { tsAusU, uGleich } from '../public/js/belueftung.js';
@@ -209,18 +209,15 @@ ${(() => { const h = fuellhoehe(0.45 * 0.94, 'klein'), d = druckSchaetzung({ hoe
     </ul>
     <p><strong>Annahmen des Spiels:</strong> Die Unterlagen nennen Temperaturstufen, aber keine Zeiten. Wie schnell ein Stock über 60 °C weiter heiss wird (chemische Erwärmung nach Philipsen 1965) und nach wie vielen Stunden über 70 °C er brennt, ist für das Spiel angenommen. Auch wie stark nasses und dichtes Heu den Druck erhöht, wie ungleich ein schlecht verteilter Stock ist, die Arbeitszeiten und der Bröckelverlust beim Umschichten sind Annahmen.</p>
 
-    <h3 id="kosten-belueftung">Was kostet die Belüftung?</h3>
-    <p>Das Spiel zeigt neben den Punkten die Kosten in Franken je Tonne Heu: Strom, Festkosten der Anlage, Arbeit und verlorenes Heu. Sie zählen nicht für die Punkte. Die Festkosten stammen aus dem Vergleich «Gesamtkosten Trocknungssysteme» der LK Salzburg (aus der Grafik abgelesen, in Euro je Tonne Heu, im Spiel 1:1 als Franken gerechnet):</p>
+    <h3 id="kosten-belueftung">Was kostet das Heu?</h3>
+    <p>Im Spiel bist du angestellte Betriebsleiterin oder angestellter Betriebsleiter: Es gibt kein Budget und keinen Kaufpreis, es zählen die laufenden Kosten. Das Ergebnis zeigt sie neben den Punkten in Franken je Tonne eingeführtes Heu; sie zählen nicht für die Punkte. Die Ansätze stammen aus dem Kostenkatalog von Agroscope (${esc(KOSTEN_QUELLE)}); Maschinen gelten je Arbeitsdurchgang ohne Bedienung, Hoftechnik als Jahreskosten ohne Strom.</p>
     <div class="tabelle"><table class="zahlen">
-      <thead><tr><th>System</th><th>Gesamtkosten, € je t Heu</th><th>davon variabel</th><th>Festkosten im Spiel, Fr. je t</th></tr></thead>
+      <thead><tr><th>Ansatz</th><th>Wert</th><th>Quelle</th></tr></thead>
       <tbody>
-        <tr><td>Kaltbelüftung</td><td>23,5</td><td>13,5</td><td>${z(PREISE.fixKalt.wert)}</td></tr>
-        <tr><td>Dachabsaugung</td><td>22</td><td>10,5</td><td>${z(PREISE.fixDach.wert)}</td></tr>
-        <tr><td>Luftentfeuchter</td><td>39</td><td>19,7</td><td>${z(PREISE.fixEntf.wert)}</td></tr>
-        <tr><td>Dachabsaugung und Entfeuchter</td><td>36</td><td>15,2</td><td>${z(PREISE.fixDachEntf.wert)}</td></tr>
+${Object.values(ANSAETZE).map((a) => `        <tr><td>${esc(a.name)}</td><td>${z(a.wert, a.wert < 10 && a.wert % 1 ? 2 : 0)} ${esc(a.einheit)}</td><td>${esc(a.quelle)}</td></tr>`).join('\n')}
       </tbody>
     </table></div>
-    <p>Annahmen (im Niveau Profi änderbar): Strom ${z(PREISE.strom.wert, 2)} Fr. je kWh, Arbeit ${z(PREISE.arbeit.wert, 0)} Fr. je Stunde, Zuschlag für den starken Lüfter ${z(PREISE.stark.wert, 0)} Fr. je Tonne, Miete beim Nachrüsten ${z(PREISE.miete.wert, 0)} Fr. Verlorenes Heu wird mit ${z(PREISE.heu.wert)} Fr. je dt TS bewertet (Vollkosten von Heu nach LK Salzburg).</p>
+    <p>So rechnet das Spiel: Feldgeräte je Hektare und Durchgang (Ladewagen je Fuder), dazu Traktor und Arbeit für die Zeit, die aus der Arbeitsleistung der Geräte folgt. Der Lüfter ist der kleinste Radialventilator im Katalog, der die nötige Motorleistung hat; ein starker Lüfter hat einen höheren Ansatz, auch wenn er erst während der Belüftung angeschlossen wird (das kostet zusätzlich Arbeitsstunden). Jahreskosten von Lüfter und Heugebläse werden auf die Füllungen eines Jahres verteilt. Warmdach und Entfeuchter stehen nicht im Katalog; ihr Zuschlag kommt aus dem Vergleich «Gesamtkosten Trocknungssysteme» der LK Salzburg (Festkosten Kaltbelüftung 10, Dachabsaugung 11,5, Entfeuchter 19,3, beides 20,8 Euro je Tonne Heu, aus der Grafik abgelesen). Verlorenes Heu wird mit den Vollkosten von Heu bewertet (LK Salzburg). Im Niveau Profi lassen sich alle Ansätze im Ergebnis ändern.</p>
 
     <h3>Spiel gegen Quelle</h3>
     <p>Das Belüftungsmodell ist an zwei Angaben eingestellt: an der Grafik «Durchschnittlicher Wasserentzug» im «ABC der Heubelüftung» (FAT 1982, Abb. 29) und an der Ausnutzung des Sättigungsdefizits von 50 bis 65 % (LK Salzburg). Die Werte der LK Salzburg zu Strom und Trocknungsleistung in der Tabelle oben dienen als Prüfung.</p>

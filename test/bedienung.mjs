@@ -1,6 +1,6 @@
 // Bedienung am Heustock: Heusonde, Feuerwehr, Brand und Abbruch; später Kennlinie, Säulen, Eingriffe.
 //   docker run --rm --user 1000:1000 -v "$PWD":/app -w /app node:22-alpine node test/bedienung.mjs
-import { Heustock, spieleBelueftungNach, STANDARD, ERNSTFALL, ANLAGE, EINGRIFF, NACHRUESTEN, luefterDruck, druckSchaetzung, kosten, pannenAus } from '../public/js/belueftung.js';
+import { Heustock, spieleBelueftungNach, STANDARD, ERNSTFALL, ANLAGE, EINGRIFF, NACHRUESTEN, luefterDruck, druckSchaetzung, kosten, pannenAus, ANSAETZE, luefterAnsatz } from '../public/js/belueftung.js';
 import { spieleNach, simuliere, zeitstrahl } from '../public/js/model.js';
 import { stundenwetter, belueftungsWetter } from '../public/js/weather.js';
 import { WETTER, PROGNOSEN, gewitterAus, mitGewitter, gewitterPanne } from '../public/js/scenarios.js';
@@ -83,8 +83,10 @@ export function feldVon(id, plan = {}) {
   const vor = spieleBelueftungNach({ ...sk, anlage: { ...A, box: 'klein' } }, log, sk.t0 + 2 + NACHRUESTEN.warteStunden);
   const nachher = spieleBelueftungNach({ ...sk, anlage: { ...A, box: 'klein' } }, log, sk.t0 + 3 + NACHRUESTEN.warteStunden);
   pruefe('Lüfter nachrüsten mit Wartezeit', vor.luefter === 'standard' && nachher.luefter === 'stark' && nachher.luftmengen().anteil > vor.luftmengen().anteil, `${(vor.luftmengen().anteil * 100).toFixed(0)} % → ${(nachher.luftmengen().anteil * 100).toFixed(0)} %`);
-  const rk = nachher.ergebnis(), k = kosten({ ...spieleBelueftungNach({ ...sk, anlage: { ...A, box: 'klein' } }, log).ergebnis() });
-  pruefe('Kosten: Miete und Strom ausgewiesen', k.miete > 0 && k.strom > 0 && k.total > k.anlage && rk.bestelltBei === sk.t0 + 2, `${k.total.toFixed(0)} Fr./t, davon Miete ${k.miete.toFixed(0)}`);
+  const rk = nachher.ergebnis();
+  const lr = spieleBelueftungNach({ ...sk, anlage: { ...A, box: 'klein' } }, log).ergebnis(), lo = spieleBelueftungNach({ ...sk, anlage: { ...A, box: 'klein' } }).ergebnis();
+  const k = kosten(lr), ko = kosten(lo);
+  pruefe('Kosten: Nachrüsten = Arbeit und höherer Ansatz', k.arbeitStock > ko.arbeitStock && k.anlage > ko.anlage && k.strom > 0 && rk.bestelltBei === sk.t0 + 2 && !('miete' in k), `${ko.total.toFixed(0)} → ${k.total.toFixed(0)} Fr./t, Lüfter ${ko.luefterPos} → ${k.luefterPos}`);
   // Ohne Warmdach lässt sich keines zuschalten
   const ohne = spieleBelueftungNach({ ...s0, anlage: { ...A, dach: false } }, [], Infinity, { ...STANDARD, dach: true }).ergebnis();
   const mit = spieleBelueftungNach({ ...s0, anlage: A }, [], Infinity, { ...STANDARD, dach: true }).ergebnis();
@@ -155,7 +157,7 @@ export function feldVon(id, plan = {}) {
   pruefe('Eingriffe nachspielen identisch', gleich(direkt, nach) && gleich(nach, nochmal) && nach.handlungen.filter((x) => x.art !== 'schalter').length === 7 && nach.luefter === 'stark' && JSON.stringify(nach.ergebnis()) === JSON.stringify(direkt.ergebnis()), `t ${nach.t}, ${nach.handlungen.map((x) => x.art).join(', ')}`);
   // Wette: plan.belueftungLog und plan.anlage ergeben denselben Verlauf wie das Nachspielen
   const fw = feldVon('taenikon', { anlage: alles.anlage, einfuellen: alles.einfuellen, pannen: alles.pannen, belueftungLog: log });
-  pruefe('Wette mit Protokoll identisch', JSON.stringify({ ...fw.res.belueftung, lagerverlust: undefined }) === JSON.stringify(spieleBelueftungNach(fw.heustockStart(), log).ergebnis()) && fw.res.faktoren.every((x) => x.tipp && !/undefined|NaN/.test(x.text + x.wert)), `Ende ${fw.res.belueftung.ende}, ${fw.res.punkte} Punkte`);
+  pruefe('Wette mit Protokoll identisch', JSON.stringify({ ...fw.res.belueftung, lagerverlust: undefined, feld: undefined }) === JSON.stringify(spieleBelueftungNach(fw.heustockStart(), log).ergebnis()) && fw.res.faktoren.every((x) => x.tipp && !/undefined|NaN/.test(x.text + x.wert)), `Ende ${fw.res.belueftung.ende}, ${fw.res.punkte} Punkte`);
 }
 
 // ---------- 6. Neue Wetten und Zeitstrahl
@@ -169,6 +171,18 @@ export function feldVon(id, plan = {}) {
   pruefe('Karten der Belüftung vorhanden', [a, b, c].every((r) => ['anlage', 'einfuellen', 'lueften', 'lager', 'kosten'].every((id) => r.faktoren.some((x) => x.id === id)) && r.faktoren.every((x) => x.tipp && x.ab && !/undefined|NaN/.test(x.text + x.wert + x.tipp)) && r.kosten.total > 0), `${a.kosten.total.toFixed(0)} / ${b.kosten.total.toFixed(0)} / ${c.kosten.total.toFixed(0)} Fr. je t`);
   const std = wette('heugewitter');
   pruefe('Standardwette ohne Kontrollkarte', !std.faktoren.some((x) => x.id === 'kontrolle' || x.id === 'eingriffe') && std.faktoren.find((x) => x.id === 'lager').wert.includes('% Verlust'), std.faktoren.find((x) => x.id === 'lager').wert);
+}
+
+// ---------- Laufende Kosten (Konzept 10.1)
+{
+  const r = feldVon('taenikon').res, k = r.kosten, P = ANSAETZE;
+  const t = r.belueftung.tonnenEin, f = r.belueftung.feld;
+  const feldErwartet = (P.maeherAuf.wert * f.ha + P.zetter.wert * f.ha * f.zetten + P.schwader.wert * f.ha * f.schwaden + P.ladewagen.wert * Math.ceil(f.kgTs / P.fuder.wert)) / t;
+  pruefe('Kosten: Ansätze Kostenkatalog 2025', P.arbeit.wert === 32 && P.strom.wert === 0.29 && P.traktor.wert === 43 && Math.abs(k.feldMaschinen - feldErwartet) < 1e-9 && k.luefterPos === 'luefter7' && Math.abs(k.total - Object.entries(k).filter(([n]) => ['feldMaschinen', 'traktor', 'arbeitFeld', 'anlage', 'strom', 'arbeitStock', 'verlust'].includes(n)).reduce((a, [, x]) => a + x, 0)) < 1e-9,
+    `${k.total.toFixed(0)} Fr./t: Feld ${(k.feldMaschinen + k.traktor + k.arbeitFeld).toFixed(0)}, Anlage ${k.anlage.toFixed(1)}, Strom ${k.strom.toFixed(1)}, Arbeit Stock ${k.arbeitStock.toFixed(1)}, Verlust ${k.verlust.toFixed(0)}`);
+  const k2 = kosten(r.belueftung, { arbeit: 64 });
+  pruefe('Kosten: Ansätze änderbar', Math.abs(k2.arbeitFeld - 2 * k.arbeitFeld) < 1e-9 && Math.abs(k2.arbeitStock - 2 * k.arbeitStock) < 1e-9 && r.punkte === feldVon('taenikon').res.punkte, `Arbeit 64 Fr./h: ${k2.total.toFixed(0)} Fr./t, Punkte unverändert ${r.punkte}`);
+  pruefe('Kosten: Ventilator nach Motorleistung', luefterAnsatz(3.08) === 'luefter4' && luefterAnsatz(5.5) === 'luefter7' && luefterAnsatz(9.5) === 'luefter11' && luefterAnsatz(13.7) === 'luefter30');
 }
 
 // ---------- 7. Panne «Wetterrisiko – Gewitter»
