@@ -2,8 +2,8 @@
 //   docker run --rm --user 1000:1000 -v "$PWD":/app -w /app node:22-alpine node test/bedienung.mjs
 import { Heustock, spieleBelueftungNach, STANDARD, ERNSTFALL, ANLAGE, EINGRIFF, NACHRUESTEN, luefterDruck, druckSchaetzung, kosten, pannenAus } from '../public/js/belueftung.js';
 import { spieleNach, simuliere, zeitstrahl } from '../public/js/model.js';
-import { stundenwetter } from '../public/js/weather.js';
-import { WETTER, PROGNOSEN } from '../public/js/scenarios.js';
+import { stundenwetter, belueftungsWetter } from '../public/js/weather.js';
+import { WETTER, PROGNOSEN, gewitterAus, mitGewitter, gewitterPanne } from '../public/js/scenarios.js';
 
 let fehler = 0;
 export const pruefe = (name, ok, text = '') => { if (!ok) fehler++; console.log(`${ok ? 'OK     ' : 'FEHLER '} ${name}${text ? ': ' + text : ''}`); };
@@ -169,6 +169,32 @@ export function feldVon(id, plan = {}) {
   pruefe('Karten der Belüftung vorhanden', [a, b, c].every((r) => ['anlage', 'einfuellen', 'lueften', 'lager', 'kosten'].every((id) => r.faktoren.some((x) => x.id === id)) && r.faktoren.every((x) => x.tipp && x.ab && !/undefined|NaN/.test(x.text + x.wert + x.tipp)) && r.kosten.total > 0), `${a.kosten.total.toFixed(0)} / ${b.kosten.total.toFixed(0)} / ${c.kosten.total.toFixed(0)} Fr. je t`);
   const std = wette('heugewitter');
   pruefe('Standardwette ohne Kontrollkarte', !std.faktoren.some((x) => x.id === 'kontrolle' || x.id === 'eingriffe') && std.faktoren.find((x) => x.id === 'lager').wert.includes('% Verlust'), std.faktoren.find((x) => x.id === 'lager').wert);
+}
+
+// ---------- 7. Panne «Wetterrisiko – Gewitter»
+{
+  const hoch = WETTER.find((w) => w.id === 'hoch');
+  const codes = ['hoch', 'hochA', 'hochB', 'hochC', 'hochD', 'hochE', 'hochF', 'hochG'].map((k) => gewitterAus(k, hoch));
+  pruefe('Gewitter fest je Code', JSON.stringify(gewitterAus('hochB', hoch)) === JSON.stringify(gewitterAus('hochB', hoch)) && codes.some((g) => g.eintritt) && codes.some((g) => !g.eintritt) && codes.every((g) => g.tag === 2),
+    codes.map((g) => (g.eintritt ? 'ja' : 'nein')).join(' '));
+  const ja = codes.find((g) => g.eintritt), nein = codes.find((g) => !g.eintritt);
+  const szJa = mitGewitter(hoch, ja), szNein = mitGewitter(hoch, nein);
+  const mm = (d) => (d.regen ?? []).reduce((a, r) => a + r.mm, 0);
+  pruefe('Bericht zeigt nur das Risiko', szJa.prognose[1].gewitterRisiko && mm(szJa.prognose[1]) === 0 && mm(szJa.tage[1]) === 15 && mm(szNein.tage[1]) === 0 && szNein.prognose[1].gewitterRisiko, `Tag 2: Prognose ${mm(szJa.prognose[1])} mm, wirklich ${mm(szJa.tage[1])} mm`);
+  // Feld: Belüftungsheu am Tag 2 um 17 Uhr einführen; tritt das Gewitter ein, regnet es aufs Heu
+  const plan = { ...PROGNOSEN.find((x) => x.id === 'heugewitter').plan, schwaden: 38, ernte: 41 };
+  const rJa = simuliere(plan, stundenwetter(szJa)), rNein = simuliere(plan, stundenwetter(szNein)), rOhne = simuliere(plan, stundenwetter(hoch));
+  pruefe('Gewitter auf dem Feld: Regen aufs Heu', rJa.ernte.regenFeld >= 5 && rJa.ernte.ts < rNein.ernte.ts && rNein.ernte.ts === rOhne.ernte.ts, `TS ${rNein.ernte.ts.toFixed(1)} → ${rJa.ernte.ts.toFixed(1)} %, ${rJa.ernte.regenFeld.toFixed(0)} mm`);
+  // Früher und feuchter einführen (Tag 2, 13 Uhr) entgeht dem Regen
+  const frueh = simuliere({ ...plan, schwaden: 35, ernte: 37 }, stundenwetter(szJa));
+  pruefe('Früher einführen entgeht dem Gewitter', frueh.ernte.regenFeld === 0 && frueh.ernte.ts < rNein.ernte.ts, `${frueh.ernte.ts.toFixed(1)} % TS ohne Regen`);
+  // Am Stock: schwüle Luft und zwei Stunden Stromausfall
+  const f = feldVon('heugewitter', {}), s0 = f.heustockStart();
+  const wJa = stundenwetter(szJa), wNein = stundenwetter(szNein), t0 = 24 + 14;
+  pruefe('Gewitterluft ist schwül', wJa[t0 + 2].rh > wNein[t0 + 2].rh + 10, `${wNein[t0 + 2].rh.toFixed(0)} → ${wJa[t0 + 2].rh.toFixed(0)} % rF um 16 Uhr`);
+  const start = { ...s0, t0: 30, wetter: belueftungsWetter(wJa), pannen: gewitterPanne(ja) };
+  const st = spieleBelueftungNach(start, [], 30 + 16), r = st.ergebnis();
+  pruefe('Gewitter am Stock: Stromausfall', gewitterPanne(nein).length === 0 && r.wendepunkte.some((x) => x.art === 'stromausfall' && x.grund === 'gewitter') && Math.abs(st.laufStunden - 14) < 1e-9 && zeitstrahl({ ...r, gespielt: true }).some((x) => x.text.includes('durch das Gewitter')), `${st.laufStunden} Laufstunden in 16 h`);
 }
 
 if (typeof process !== 'undefined' && process.argv[1]?.endsWith('bedienung.mjs')) { console.log(fehler ? `${fehler} FEHLER` : 'Alle Prüfungen bestanden'); process.exitCode = fehler ? 1 : 0; }

@@ -777,7 +777,7 @@ export function zeitstrahl(l, z = (x, d = 0) => x.toFixed(d).replace('.', ',')) 
       nest: () => (w.feucht ? `Feuchtes Nest ${w.wo}: erst ${z(w.ts)} % TS, deutlich feuchter als der Rest${mess}` : `Nest ${w.wo}: ${z(w.temp)} °C, deutlich wärmer als der Rest${mess}`),
       luft: () => `Der Lüfter schafft nur ${z(w.anteil * 100)} % der Soll-Luftmenge`,
       luefterDa: () => 'Der stärkere Lüfter läuft',
-      stromausfall: () => `Panne: Stromausfall, ${w.dauer} Stunden ohne Lüfter`,
+      stromausfall: () => `Panne: Stromausfall${w.grund === 'gewitter' ? ' durch das Gewitter' : ''}, ${w.dauer} Stunden ohne Lüfter`,
       sicherung: () => 'Panne: Die Sicherung des Lüfters fällt',
       haupt: () => `Haupttrocknung geschafft nach ${w.t - l.t0} Stunden${w.t - l.t0 > 80 ? ' (Richtwert: 80)' : ''}`,
       lagerfaehig: () => `Lagerfähig nach ${w.t - l.t0} Stunden`,

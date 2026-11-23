@@ -230,6 +230,8 @@ export class Spiel {
       this.tipp('ev.zweistunden');
     }
     if (zs.phase === 'stehend' && alt.nass > 0.08 && zs.nass <= 0.08) einmal('tauweg' + w.tag, `${t}: Der Tau ist abgetrocknet.`);
+    const g = this.sz.gewitter;
+    if (g && w.tag === g.tag && w.h === 7) einmal('gewitterrisiko', `${t}: Wetterbericht: Heute am Nachmittag Gewitterrisiko. Früher und feuchter einführen, oder warten und hoffen?`, true);
     if (zs.phase !== 'stehend' && w.h === 20) einmal('abend' + w.tag, `${t}: Es wird Abend. Über Nacht fällt Tau aufs Futter.${this.heu && zs.phase === 'gemaeht' && !this.gemeldet.has('nachtschwad') ? ' Tipp: Ein Nachtschwad nimmt weniger Tau auf; am Morgen wieder zetten.' : ''}`);
     if (this.heu && zs.phase === 'gemaeht' && w.h === 20) this.gemeldet.add('nachtschwad');
     if (zs.phase !== 'stehend' && w.h === 20 && !this.gemeldet.has('abendtipp' + w.tag)) { this.gemeldet.add('abendtipp' + w.tag); this.tipp(this.heu && zs.phase === 'gemaeht' ? 'ev.abend.heu' : 'ev.abend'); }
@@ -306,9 +308,10 @@ export class Spiel {
   // ---------- Aufbau der Bedienelemente
   baueWetterbericht() {
     const box = $('.bericht', this.root);
-    box.innerHTML = this.sz.tage.map((d, i) => {
+    // Der Bericht zeigt die Prognose: ein Gewitterrisiko (Panne im Profi) nur als Risiko, nicht ob es eintritt
+    box.innerHTML = (this.sz.prognose ?? this.sz.tage).map((d, i) => {
       const mm = (d.regen ?? []).reduce((a, r) => a + r.mm, 0);
-      return `<div class="tageskarte" data-tag="${i + 1}"><b>Tag ${i + 1}</b>${wetterSymbol(d)}<span>${Math.round(d.tmax)}° / ${Math.round(d.tmin)}°</span><small>${mm > 0 ? z(mm, 0) + ' mm' : 'trocken'}</small></div>`;
+      return `<div class="tageskarte${d.gewitterRisiko ? ' risiko' : ''}" data-tag="${i + 1}"><b>Tag ${i + 1}</b>${wetterSymbol(d)}<span>${Math.round(d.tmax)}° / ${Math.round(d.tmin)}°</span><small>${mm > 0 ? z(mm, 0) + ' mm' : 'trocken'}</small>${d.gewitterRisiko ? '<small class="risiko-text">⚡ Gewitterrisiko am Nachmittag</small>' : ''}</div>`;
     }).join('');
   }
 

@@ -440,7 +440,7 @@ export class Heustock {
     // Pannen, die zu dieser Stunde eintreten
     for (const p of this.pannen) if (p.t === this.t) {
       if (p.art === 'sicherung') this.sicherungAus = true;
-      this.wendepunkte.push({ t: this.t, art: p.art, dauer: p.dauer });
+      this.wendepunkte.push({ t: this.t, art: p.art, dauer: p.dauer, grund: p.grund });
     }
     if (this.bestelltBei != null && !this.nachgeruestet && this.t >= this.bestelltBei + NACHRUESTEN.warteStunden) {
       this.luefter = 'stark'; this.nachgeruestet = true; this.wendepunkte.push({ t: this.t, art: 'luefterDa' });

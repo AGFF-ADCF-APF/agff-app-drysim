@@ -59,6 +59,29 @@ export const WETTER = [
   },
 ];
 
+// ---------- Panne «Wetterrisiko – Gewitter» (Konzept Heubelüftung 10.3; nur Niveau Profi, abschaltbar mit ?pannen=aus).
+// Der Wetterbericht kündigt für einen Tag ein Gewitterrisiko an. Ob es eintritt, folgt fest aus Wetterlage und Code
+// (keine Zufallswerte: alle in der Klasse erleben dasselbe). Tritt es ein, regnet es wie in der Wetterlage «Gewitter am
+// Tag 2» (16 bis 18 Uhr, 9 / 5 / 1 mm) und die Luft ist an diesem Tag so schwül wie dort (rhmax 96 %, Spielwerte dieser
+// Wetterlage). Am Heustock fällt der Strom zwei Stunden aus (Annahme). Tag: der erste Tag ab Tag 2 ohne Regen im Bericht.
+export const GEWITTER = { quelle: 'gewitter', stromausfall: 2 };
+export function gewitterAus(schluessel, sz) {
+  let s = 17;
+  for (const c of String(schluessel)) s = (s * 131 + c.charCodeAt(0)) >>> 0;
+  const vorlage = WETTER.find((w) => w.id === GEWITTER.quelle).tage[1];
+  const tagIdx = [1, 2, 3].find((i) => sz.tage[i] && !(sz.tage[i].regen ?? []).length) ?? 1;
+  return { tag: tagIdx + 1, eintritt: (s >>> 3) % 2 === 0, regen: vorlage.regen.map((r) => ({ ...r })), rhmax: vorlage.rhmax };
+}
+// Wetterlage mit dem Gewitter: `prognose` ist, was der Wetterbericht zeigt (nur das Risiko), `tage` das wirkliche Wetter
+export function mitGewitter(sz, g) {
+  if (!sz || !g) return sz;
+  const prognose = sz.tage.map((d, i) => (i === g.tag - 1 ? { ...d, gewitterRisiko: true } : d));
+  const tage = !g.eintritt ? sz.tage : sz.tage.map((d, i) => (i === g.tag - 1 ? { ...d, rhmax: Math.max(d.rhmax, g.rhmax), regen: [...(d.regen ?? []), ...g.regen] } : d));
+  return { ...sz, tage, prognose, gewitter: g };
+}
+// Stromausfall am Heustock, wenn das Gewitter eintritt (Stunde ab Tag 1, 00:00)
+export const gewitterPanne = (g) => (g?.eintritt ? [{ t: (g.tag - 1) * 24 + g.regen[0].h, art: 'stromausfall', dauer: GEWITTER.stromausfall, grund: 'gewitter' }] : []);
+
 export const GRUNDPLAN = {
   bestand: 'ausgewogen', stadium: 3, ertrag: 30, boden: 'eben',
   maehen: 9, schnitthoehe: 7, aufbereiter: 'walzen', ablage: 85,

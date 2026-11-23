@@ -2,7 +2,7 @@ import { stundenwetter, zufallswetter } from './weather.js';
 import { BESTAENDE, STADIEN, AUFBEREITER, SILOARTEN, zinken, ablageVon, KAL, GAERFAKTOR, zielFaktor, zeitstrahl } from './model.js';
 import { bestandBild, stadiumBild, ertragBild, bodenBild } from './wiese.js';
 import { schnittBild, aufbereiterBild, ablageBild, zinkenBild } from './maschinen.js';
-import { WETTER, PROGNOSEN, GRUNDPLAN } from './scenarios.js';
+import { WETTER, PROGNOSEN, GRUNDPLAN, gewitterAus, mitGewitter, gewitterPanne } from './scenarios.js';
 import { Szene } from './scene.js';
 import { Spiel, gespeicherteRunde, vergissRunde } from './game.js';
 import { zeichne } from './chart.js';
@@ -506,9 +506,14 @@ setup.addEventListener('submit', (ev) => {
   const einstellungen = { ...wahl, ertrag: Number(setup.ertrag.value), name: setup.name.value.trim(), niveau: niveau() };
   if (wahl.siloart === 'belueftung') {
     einstellungen.anlage = { luefter: wahl.anlLuefter, dach: wahl.anlDach, entfeuchter: wahl.anlEntf, box: wahl.anlBox };
-    if (einstellungenPannen()) einstellungen.pannen = pannenAus(`${wetterRef.id}${wetterRef.code}`);
   }
-  starteSpiel({ einstellungen, sz: wetterVon(wetterRef.id, wetterRef.code), wetterRef });
+  // Pannen (nur Profi, ?pannen=aus schaltet ab): Gewitterrisiko für alle Lagerarten, am Heustock dazu Strom oder Sicherung
+  const sz0 = wetterVon(wetterRef.id, wetterRef.code);
+  if (einstellungenPannen()) {
+    einstellungen.gewitter = gewitterAus(`${wetterRef.id}${wetterRef.code}`, sz0);
+    if (wahl.siloart === 'belueftung') einstellungen.pannen = [...pannenAus(`${wetterRef.id}${wetterRef.code}`), ...gewitterPanne(einstellungen.gewitter)];
+  }
+  starteSpiel({ einstellungen, sz: mitGewitter(sz0, einstellungen.gewitter), wetterRef });
 });
 
 // ---------- Angefangene Runde fortsetzen
@@ -521,7 +526,7 @@ function zeigeFortsetzen() {
 }
 $('#fortsetzen-los').addEventListener('click', () => {
   const g = gespeicherteRunde();
-  const sz = g && wetterVon(g.wetterRef?.id, g.wetterRef?.code);
+  const sz = g && mitGewitter(wetterVon(g.wetterRef?.id, g.wetterRef?.code), g.einstellungen?.gewitter);
   if (!sz) { vergissRunde(); zeigeFortsetzen(); return; }
   try {
     if (g.heustock) {

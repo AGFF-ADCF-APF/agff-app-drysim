@@ -608,3 +608,7 @@ dialog .niveau-wahl { grid-template-columns: minmax(0, 1fr); }
 .preise label { display: grid; gap: 2px; font-size: .95rem; }
 .preise input { min-height: 48px; border: 2px solid var(--linie); border-radius: 10px; padding: .3rem .6rem; background: var(--karte); color: var(--text); font-size: 1.05rem; }
 .preise small { color: var(--leise); }
+
+/* Wetterbericht: Gewitterrisiko (Panne im Profi) */
+.tageskarte.risiko { box-shadow: inset 0 0 0 2px var(--gelb), var(--schatten); }
+.tageskarte .risiko-text { color: var(--gelb-dunkel); font-weight: 700; }

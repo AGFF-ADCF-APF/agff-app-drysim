@@ -283,6 +283,9 @@ export class HeustockSpiel {
     if (seit === 80 && s.hauptBei == null) einmal('80h', this.ampel ? `${t}: Schon über drei Tage – das Heu sollte jetzt fast trocken sein. Die oberste Schicht ist noch feucht.` : `${t}: 80 Stunden – die Haupttrocknung sollte jetzt vorbei sein (LK Salzburg). Die Abluft ist noch feucht: Oben im Stock ist das Heu noch nicht trocken.`, true);
     if (p?.f > 0 && p.dachK > 1 && !this.gemeldet.has('dach')) einmal('dach', `${t}: Die Sonne wärmt das Dach: Die Zuluft ist ${z(p.dachK, 1)} °C wärmer und nimmt mehr Wasser auf.`, false, 'hs.dach');
     if (this.e.entfeuchter && p?.f > 0 && p.entfLh === 0) einmal('entf-kalt' + w.tag, `${t}: Der Entfeuchter bringt bei ${z(w.temp)} °C und ${z(w.rh)} % rF kaum etwas (unter 10 °C oder 40 % rF).`);
+    const gw = this.sz?.gewitter;
+    if (gw && w.tag === gw.tag && w.h === 7) einmal('gewitterrisiko', `${t}: Wetterbericht: Heute am Nachmittag Gewitterrisiko. Gewitterluft ist schwül und bringt dem Heu wenig; bei Blitz kann der Strom ausfallen.`, true);
+    if (gw?.eintritt && zs.sperre === 'stromausfall' && s.t - 1 === (gw.tag - 1) * 24 + gw.regen[0].h) einmal('gewitterstrom', `${t}: Gewitter! Der Blitz hat den Strom unterbrochen, der Lüfter steht.`, true);
     if (w.h === 20) einmal('abend' + w.tag, `${t}: Es wird Abend. Die Luft kühlt ab und wird feuchter.${this.e.luefter === 'dauer' ? ' Dauerbetrieb in der Nacht bringt meist wenig.' : ''}`);
     if (seit === 36 && this.optionen.rechnen && p?.f > 0) einmal('rechnen', `${t}: Tipp: Rechne den Wasserentzug selbst nach (Knopf «Nachrechnen»).`, false, 'hs.rechnen');
     this.vorher = zs;
@@ -303,9 +306,12 @@ export class HeustockSpiel {
     const tag0 = Math.floor(this.stock.t0 / 24), tage = [];
     for (let d = tag0; d < Math.min(tag0 + 7, Math.floor(this.wetter.length / 24)); d++) {
       const h = this.wetter.slice(d * 24, d * 24 + 24);
-      tage.push({ d, tmax: Math.max(...h.map((x) => x.temp)), tmin: Math.min(...h.map((x) => x.temp)), sonne: h[12].sonne, regen: h.filter((x) => x.regen > 0).map((x) => ({ h: x.h, mm: x.regen })), mm: h.reduce((a, x) => a + x.regen, 0) });
+      const g = this.sz?.gewitter, risiko = g && d === g.tag - 1;
+      // Am Gewittertag zeigt der Bericht nur die Prognose mit dem Risiko, nicht ob das Gewitter eintritt
+      const regen = risiko ? (this.sz.prognose[d].regen ?? []) : h.filter((x) => x.regen > 0).map((x) => ({ h: x.h, mm: x.regen }));
+      tage.push({ d, risiko, tmax: Math.max(...h.map((x) => x.temp)), tmin: Math.min(...h.map((x) => x.temp)), sonne: h[12].sonne, regen, mm: regen.reduce((a, x) => a + x.mm, 0) });
     }
-    $('.bericht', this.root).innerHTML = tage.map((x) => `<div class="tageskarte" data-tag="${x.d + 1}"><b>Tag ${x.d + 1}</b>${wetterSymbol(x)}<span>${Math.round(x.tmax)}° / ${Math.round(x.tmin)}°</span><small>${x.mm > 0 ? z(x.mm, 0) + ' mm' : 'trocken'}</small></div>`).join('');
+    $('.bericht', this.root).innerHTML = tage.map((x) => `<div class="tageskarte${x.risiko ? ' risiko' : ''}" data-tag="${x.d + 1}"><b>Tag ${x.d + 1}</b>${wetterSymbol(x)}<span>${Math.round(x.tmax)}° / ${Math.round(x.tmin)}°</span><small>${x.mm > 0 ? z(x.mm, 0) + ' mm' : 'trocken'}</small>${x.risiko ? '<small class="risiko-text">⚡ Gewitterrisiko</small>' : ''}</div>`).join('');
   }
 
   baueSteuerung() {
