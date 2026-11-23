@@ -81,7 +81,7 @@ Wie heute (Aus, Dauer, Intervall, Dach, Entfeuchter), neu mit Folgen für die Lu
 
 ### 3.6 Pannen (nur Niveau Profi, abschaltbar)
 
-Vorgegebene Ereignisse je Szenario oder aus dem Wettercode abgeleitet, damit alle in der Klasse dasselbe erleben: Stromausfall über Nacht, Sicherung des Lüfters fällt, Regenwoche. Keine echten Zufallswerte.
+Vorgegebene Ereignisse je Szenario oder aus dem Wettercode abgeleitet, damit alle in der Klasse dasselbe erleben: Stromausfall über Nacht, Sicherung des Lüfters fällt, Regenwoche, Wetterrisiko Gewitter (siehe 10.3). Keine echten Zufallswerte.
 
 ## 4. Was das Modell dafür neu können muss
 
@@ -91,7 +91,7 @@ Vorgegebene Ereignisse je Szenario oder aus dem Wettercode abgeleitet, damit all
 4. **Eingriffe als Protokoll:** Umschichten, Nachfüllen, Auslagern, Lüfterwechsel, Messen und Alarm stehen wie die Lüfterschaltungen im Protokoll, damit Fortsetzen, Nachspielen und die Wette weiter exakt stimmen.
 5. **Sichtbarkeit:** Der Zustand hat eine «gemessene» Sicht (letzte Messung je Stelle mit Zeitpunkt) neben der wahren.
 6. **Brand:** Zustand «Brand» ab einer Schwelle und Dauer, oder sofort bei Luftzutritt an heisses Heu. Die Erwärmung über 40 °C ist heute eine Annahme ohne Messreihe; sie muss für den Ernstfall neu geprüft werden (siehe 8).
-7. **Kosten:** Strom, Jahreskosten der Anlage, Arbeitsstunden, verlorenes Heu, zusammen als Franken je Tonne. Preise als sichtbare, änderbare Annahmen (Profi).
+7. **Kosten:** laufende Kosten aus Sicht des angestellten Betriebsleiters (siehe 10.1): Arbeit CHF 32.–/h, Maschinen und feste Einrichtungen gemäss maschinenkosten.ch, Strom, verlorenes Heu; zusammen als Franken je Tonne. Ansätze sichtbar und änderbar (Profi).
 
 ## 5. Ablauf im Spiel
 
@@ -143,7 +143,7 @@ Keine Zahl erfinden. Vor dem Bau in den Unterlagen unter `agff-drywatch/public/k
 - Dichte nach Beschickungsart (heute 78 kg TS/m³ Gebläse, 65 Greifer) und unter Last.
 - Umschichten: wann empfohlen, wann verboten.
 - Erwärmung und Selbstentzündung: Verlauf über 40 °C, Zeiträume, Ablauf im Ernstfall (heute Annahmen; Grafik «Prozesse Selbsterhitzung Heu, Philipsen 1965» liegt in drywatch).
-- Kosten: Strompreis, Jahreskosten Lüfter, Dach, Entfeuchter (Grafik «Gesamtkosten Trocknungssysteme» in drywatch).
+- Kosten: Ansätze für Maschinen und feste Einrichtungen aus maschinenkosten.ch (Agroscope, Ausgabejahr vermerken); Strompreis; ergänzend Grafik «Gesamtkosten Trocknungssysteme» in drywatch. Arbeit CHF 32.–/h ist Vorgabe des Auftraggebers.
 
 Was sich nicht belegen lässt, bleibt als Annahme gekennzeichnet (README, offene Punkte) und wird Fachleuten vorgelegt. Die GVB (Brandschutz) und die Betreiber von drywatch wären die naheliegenden Ansprechstellen für Ernstfall und Messreihen.
 
@@ -157,8 +157,13 @@ Was sich nicht belegen lässt, bleibt als Annahme gekennzeichnet (README, offene
 
 Randbedingungen: Tests in `test/run.mjs` und `test/belueftung.mjs` bleiben grün; gleichmässig gefüllter Stock mit Standardanlage ergibt dieselben Zahlen wie heute; gespeicherte Runden alter Version werden erkannt und verworfen oder umgerechnet; Silage und Feldphase bleiben unverändert.
 
-## 10. Offene Entscheide (Auftraggeber)
+## 10. Entscheide des Auftraggebers (23.11.2026)
 
-- Soll die Anlage Geld kosten, das man vorher «hat» (Budget), oder nur als Kosten je Tonne im Ergebnis erscheinen? Vorschlag: nur Kosten im Ergebnis.
-- Soll ein Brand die Rangliste mit null Punkten belasten oder gar nicht eingetragen werden? Vorschlag: eintragen, mit Vermerk.
-- Sind Pannen im Unterricht erwünscht, oder lenken sie ab? Vorschlag: nur Profi, abschaltbar per Link.
+1. **Kosten, kein Budget.** Die Spielerin oder der Spieler ist **angestellte Betriebsleiterin bzw. angestellter Betriebsleiter**. Es gibt kein Budget und keinen Kaufpreis; es zählen die **laufenden Kosten**:
+   - Arbeit: **CHF 32.–/h** (Vorgabe des Auftraggebers), für alle Arbeitsstunden auf dem Feld und am Stock (Einfüllen, Kontrollgänge, Umschichten, Nachfüllen, Auslagern).
+   - Maschinen und feste Einrichtungen (Lüfter, Warmdach, Entfeuchter, Kran/Gebläse, Feldmaschinen): Ansätze gemäss **maschinenkosten.ch** (Agroscope), mit Ausgabejahr im Code vermerkt. Fehlt dort ein Ansatz (z. B. für eine feste Einrichtung), wird der Wert aus den Fachunterlagen genommen oder klar als Annahme gekennzeichnet; keine Zahl erfinden.
+   - Strom und verlorenes Heu wie in Abschnitt 4.7.
+   - Ein «stärkerer Lüfter» ist damit kein Kauf, sondern ein höherer Ansatz je Jahr bzw. je Stunde; das Nachrüsten während der Belüftung kostet zusätzlich Arbeitsstunden und Wartezeit.
+   - Die Kosten stehen als Franken je Tonne Heu (bzw. je dt TS) im Ergebnis, neben den Punkten.
+2. **Brand in der Rangliste:** wird mit null Punkten und Vermerk eingetragen.
+3. **Pannen:** nur Niveau Profi, per Link abschaltbar. Zusätzlich die Panne **«Wetterrisiko – Gewitter»**: ein im Wetterbericht nur als Risiko angekündigtes Gewitter, das je Szenario bzw. Wettercode fest eintritt oder ausbleibt (kein echter Zufall, alle in der Klasse erleben dasselbe). Folgen auf dem Feld (Regen auf Heu kurz vor dem Einführen, Zwang zum feuchteren Einführen) und am Stock (schwüle Zuluft, allenfalls kurzer Stromausfall). Im Wetterbericht als Gewitterrisiko sichtbar, damit der Entscheid «früher und feuchter einführen oder warten» eine echte Abwägung ist.
