@@ -71,6 +71,7 @@ ${inhalt}
       <a href="${hoch}../drywatch/">Heutrocknung</a>
       <a href="https://www.agff.ch" rel="noopener">AGFF</a>
     </nav>
+    <p class="name-herkunft">Heureka kommt vom altgriechischen Ausruf <span lang="grc">εὕρηκα</span> («Ich habe es gefunden») und steht für die plötzliche Erkenntnis, bekannt aus der Anekdote um Archimedes von Syrakus.</p>
   </footer>
   <script type="module" src="${hoch}js/modus.js"></script>
 </body>
