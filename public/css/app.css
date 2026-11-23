@@ -599,3 +599,19 @@ dialog .niveau-wahl { grid-template-columns: minmax(0, 1fr); }
 #ergebnis.brand #ergebnis-titel::before { content: "🔥 "; }
 #ergebnis.abbruch #ergebnis-titel::before { content: "🚒 "; }
 .vermerk { color: var(--rot); }
+
+/* Ergebnis der Heubelüftung: Kosten neben den Punkten, Zeitstrahl */
+.kosten-zeile { margin: 4px 0 0; text-align: center; font-weight: 700; color: var(--leise); }
+.zeitstrahl { list-style: none; margin: 0; padding: 0 0 0 14px; border-left: 3px solid var(--linie); display: grid; gap: 8px; }
+.zeitstrahl li { position: relative; padding-left: 14px; }
+.zeitstrahl li::before { content: "●"; position: absolute; left: -24px; top: 0; color: var(--blau); background: var(--karte); width: 18px; text-align: center; }
+.zeitstrahl li.wende::before { content: "◆"; color: var(--leise); }
+.zeitstrahl li.schlecht::before { color: var(--rot); }
+.zeitstrahl li.gut::before { color: var(--gruen); }
+.zeitstrahl li.schlecht { color: var(--rot); font-weight: 600; }
+.zeitstrahl time { display: block; font-size: .9rem; color: var(--leise); font-weight: 400; }
+.zs-legende { white-space: nowrap; } .zs-h { color: var(--blau); } .zs-w { color: var(--leise); }
+.preise { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin: 8px 0; }
+.preise label { display: grid; gap: 2px; font-size: .95rem; }
+.preise input { min-height: 48px; border: 2px solid var(--linie); border-radius: 10px; padding: .3rem .6rem; background: var(--karte); color: var(--text); font-size: 1.05rem; }
+.preise small { color: var(--leise); }

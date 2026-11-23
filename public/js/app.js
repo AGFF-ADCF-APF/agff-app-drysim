@@ -1,5 +1,5 @@
 import { stundenwetter, zufallswetter } from './weather.js';
-import { BESTAENDE, STADIEN, AUFBEREITER, SILOARTEN, zinken, ablageVon, KAL, GAERFAKTOR, zielFaktor } from './model.js';
+import { BESTAENDE, STADIEN, AUFBEREITER, SILOARTEN, zinken, ablageVon, KAL, GAERFAKTOR, zielFaktor, zeitstrahl } from './model.js';
 import { bestandBild, stadiumBild, ertragBild, bodenBild } from './wiese.js';
 import { schnittBild, aufbereiterBild, ablageBild, zinkenBild } from './maschinen.js';
 import { WETTER, PROGNOSEN, GRUNDPLAN } from './scenarios.js';
@@ -11,7 +11,7 @@ import { BEGRIFFE, mitBegriffen } from './begriffe.js';
 import { Assistent } from './assistent.js';
 import { KARTEN_GRAFIK } from './grafik.js';
 import { HeustockSpiel, feldAusRunde } from './heustock.js';
-import { Heustock, BOX, LUEFTER, ANLAGE, PREISE, fuellhoehe, schuetthoeheUrteil, druckSchaetzung, pannenAus } from './belueftung.js';
+import { Heustock, BOX, LUEFTER, ANLAGE, PREISE, kosten, fuellhoehe, schuetthoeheUrteil, druckSchaetzung, pannenAus } from './belueftung.js';
 import { niveau, info as niveauInfo, gueltig as niveauGueltig, zeigt, karteSichtbar, beiWechsel, baueNiveauWahl, setzeNiveau } from './niveau.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -683,7 +683,7 @@ function ergebnisNiveau() {
   } else $('#kennzahlen').innerHTML = (heu ? [
     ['TS beim Einlagern', `${z(e.ts)} %`], ['Rohasche', `${z(e.asche, 0)} g/kg TS`], ['Heustock bis', `${z(res.heu.temp, 0)} °C`],
     ['Heuqualität', `Note ${res.note} · ${NOTEN[res.note - 1]}`], ['Energie', `${z(res.nel, 2)} MJ NEL/kg TS`], ['Verlust Feld bis Trog', `${z(res.verlustTotal, 0)} %`],
-    ...(res.belueftung ? [['Belüftung', `${z(res.belueftung.stunden, 0)} h · ${z(res.belueftung.kwhJeT, 0)} kWh/t`]] : []),
+    ...(res.belueftung ? [['Belüftung', `${z(res.belueftung.stunden, 0)} h · ${z(res.belueftung.kwhJeT, 0)} kWh/t`], ['Luftmenge mindestens', `${z(res.belueftung.luftMin * 100, 0)} % vom Soll`]] : []),
   ] : [
     ['TS beim Einfahren', `${z(e.ts)} %`], ['Rohasche', `${z(e.asche, 0)} g/kg TS`], ['Zucker', `${z(e.zucker, 0)} g/kg TS`],
     ['Gärqualität', `Note ${res.note} · ${NOTEN[res.note - 1]}`], ['Energie', `${z(res.nel, 2)} MJ NEL/kg TS`], ['Verlust Feld bis Trog', `${z(res.verlustTotal, 0)} %`],
@@ -698,10 +698,39 @@ function ergebnisNiveau() {
     b.addEventListener('click', () => zeigeDetail(f, res.plan));
     return b;
   }));
+  // Heubelüftung: Kosten neben den Punkten (nicht im Einstieg) und Zeitstrahl der eigenen Handlungen und Wendepunkte
+  const lauf = res.belueftung, zeigeZs = !!lauf && (lauf.gespielt || lauf.handlungen.length > 0 || lauf.ende === 'brand');
+  $('#kosten-zeile').hidden = !(lauf && zahlen && res.kosten);
+  if (lauf && res.kosten) $('#kosten-zeile').textContent = `Kosten der Belüftung: ${z(kostenJetzt(lauf).total, 0)} Fr. je Tonne Heu`;
+  $('#zeitstrahl-karte').hidden = !zeigeZs;
+  if (zeigeZs) {
+    const zs = zeitstrahl(lauf, z0).filter((x) => zahlen || x.stufe !== 'neutral' || (x.art === 'handlung' && !x.text.startsWith('Lüfter:')));
+    $('#zeitstrahl').innerHTML = zs.map((x) => `<li class="${x.art === 'wende' ? 'wende' : 'handlung'} ${x.stufe}"><time>${esc(x.zeit)}</time><span class="sr-only">${x.art === 'wende' ? 'Im Stock: ' : 'Du: '}</span>${esc(x.text)}</li>`).join('');
+  }
   $('#rueckblick-karte').hidden = !zeigt('ergebnis.rueckblick');
   if (zeigt('ergebnis.rueckblick')) zeichne($('#rueckblick'), stundenwetter(sz), { aktionen: res.ereignisse, verlauf: res.verlauf, ziel: SILOARTEN[res.plan.siloart].ziel });
   $('#profi').hidden = !zeigt('ergebnis.rechenweg');
   if (zeigt('ergebnis.rechenweg')) $('#rechenweg').innerHTML = rechenweg(res, sz, tipp);
+}
+
+// Preise für die Kosten der Belüftung: Annahmen, im Niveau Profi änderbar (gelten für die Anzeige, nicht für die Punkte)
+const z0 = (x, d = 0) => z(x, d);
+const eigenePreise = {};
+const kostenJetzt = (lauf) => kosten(lauf, eigenePreise);
+function kostenRechenweg(lauf) {
+  const k = kostenJetzt(lauf), zeile = (a, b) => `<tr><th scope="row">${a}</th><td>${b}</td></tr>`;
+  const fixKey = lauf.anlage.dach && lauf.anlage.entfeuchter ? 'fixDachEntf' : lauf.anlage.entfeuchter ? 'fixEntf' : lauf.anlage.dach ? 'fixDach' : 'fixKalt';
+  const felder = ['strom', 'arbeit', 'heu', fixKey, ...(lauf.anlage.luefter === 'stark' ? ['stark'] : []), ...(lauf.bestelltBei != null ? ['miete'] : [])];
+  return '<h3>Kosten der Belüftung (Franken je Tonne eingefülltes Heu)</h3><table class="rechnung"><tbody>'
+    + zeile('Strom', `${z(lauf.kwh, 0)} kWh × ${z(k.preise.strom, 2)} Fr. / ${z(k.tonnen)} t = ${z(k.strom)} Fr.`)
+    + zeile('Anlage (Festkosten)', `${z(k.preise[fixKey])} Fr./t × Boxfläche ${BOX[lauf.anlage.box].m2JeHa}/${BOX.passend.m2JeHa}${lauf.anlage.luefter === 'stark' ? ` + ${z(k.preise.stark)} Fr. starker Lüfter` : ''} = ${z(k.anlage)} Fr.`)
+    + (k.miete > 0 ? zeile('Lüfter nachgerüstet', `${z(k.preise.miete, 0)} Fr. / ${z(k.tonnen)} t = ${z(k.miete)} Fr.`) : '')
+    + zeile('Arbeit', `${z(lauf.arbeit)} h × ${z(k.preise.arbeit, 0)} Fr. / ${z(k.tonnen)} t = ${z(k.arbeit)} Fr.`)
+    + zeile('Verlorenes Heu', `${z(lauf.ende === 'brand' || lauf.ende === 'abbruch' ? 100 : lauf.verlust)} % der TS × 8,7 dt TS je t × ${z(k.preise.heu)} Fr. = ${z(k.verlust)} Fr.`)
+    + zeile('Total', `<b>${z(k.total)} Fr. je t Heu</b>`)
+    + zeile('Luftmenge', `mindestens ${z(lauf.luftMin * 100, 0)} %, im Mittel ${z(lauf.luftMittel * 100, 0)} % der Soll-Luftmenge von ${z(ANLAGE.luft, 2)} m³/s je m²; Stock bis ${z(lauf.hoeheMax)} m`)
+    + '</tbody></table><div class="preise">' + felder.map((f) => `<label>${esc(PREISE[f].name)} (${esc(PREISE[f].einheit)})<input name="preis-${f}" inputmode="decimal" value="${String(k.preise[f]).replace('.', ',')}"><small>${PREISE[f].annahme ? 'Annahme' : 'aus LK Salzburg, 1 € = 1 Fr.'}</small></label>`).join('')
+    + '</div><p class="hinweis">Ändere die Preise und sieh, wie sich die Kosten verschieben. Festkosten: «Gesamtkosten Trocknungssysteme» (LK Salzburg, abgelesen). Die Kosten zählen nicht für die Punkte.</p>';
 }
 
 // ---------- Profi: Rechenwege, Kalibrierung, Modell gegen Messung, Datenexport und Begründungsaufgaben
@@ -733,6 +762,7 @@ function rechenweg(res, sz, tipp) {
       + zeile('Sinnenprüfung', `100 − Geruch ${z(h.abzug.geruch, 0)} − Farbe ${z(h.abzug.farbe, 0)} − Gefüge ${z(h.abzug.gefuege, 0)} − Erde ${z(h.abzug.verunreinigung, 0)} = ${h.punkte} Punkte → Note ${h.note}`)
       + '</tbody></table>';
   }
+  if (res.belueftung && res.kosten) html += kostenRechenweg(res.belueftung);
   html += '<h3>Verluste vom Feld bis zum Trog (% der gemähten TS)</h3><table class="rechnung"><tbody>'
     + [['Atmung', v.atmung], ['Auswaschung', v.auswaschung], ['Bröckeln', v.broeckel], ['Liegen gelassen', v.liegen], [heu ? 'Lager' : 'Silo', res.lagerverlust]].map(([a, b]) => zeile(a, `${z(b)} %`)).join('')
     + zeile('Total', `<b>${z(res.verlustTotal)} %</b>`) + '</tbody></table>';
@@ -771,9 +801,14 @@ function csvRunde() {
     ['Verlust Feld bis Trog', f(res.verlustTotal), '%'], ...Object.entries(res.verlust).map(([k, x]) => [`Verlust ${k}`, f(x), '% TS']), ['Verlust Lager/Silo', f(res.lagerverlust), '% TS'],
     ...(res.silage ? [['FK', f(res.silage.fk, 1), ''], ['pH', f(res.silage.pH), ''], ['pH kritisch', f(res.silage.pHkrit), ''], ['Buttersäure', f(res.silage.buttersaeure / 10), '% TS'], ['DLG-Punkte', res.silage.dlg, '']] : []),
     ...(res.heu ? [['Heustock bis', f(res.heu.temp, 0), '°C'], ['Belüftungstage', f(res.heu.belueftTage, 1), 'd'], ['Heuqualität', res.heu.punkte, 'Punkte']] : []),
+    ...(res.belueftung ? [['Belüftung Ende', res.belueftung.ende, ''], ['Belüftung Strom', f(res.belueftung.kwh, 0), 'kWh'], ['Luftmenge mindestens', f(res.belueftung.luftMin * 100, 0), '% vom Soll'], ['Stockhöhe höchstens', f(res.belueftung.hoeheMax), 'm'],
+      ...(res.kosten ? [['Kosten Belüftung', f(kostenJetzt(res.belueftung).total, 1), 'Fr./t Heu']] : [])] : []),
     ['Punkte', res.punkte, ''], [],
     ['Arbeitsgänge'], ['Stunde', 'Tag', 'Uhrzeit', 'Arbeitsgang', 'TS %'],
     ...res.ereignisse.map((x) => [x.t, Math.floor(x.t / 24) + 1, `${String(x.t % 24).padStart(2, '0')}:00`, x.text, f(x.ts)]), [],
+    ...(res.belueftung ? [['Am Heustock: Handlungen und Wendepunkte'], ['Stunde', 'Zeit', 'Art', 'Was'], ...zeitstrahl(res.belueftung, z0).map((x) => [x.t, x.zeit, x.art === 'wende' ? 'Wendepunkt' : 'Handlung', x.text]), [],
+      ['Am Heustock: stündlicher Verlauf'], ['Stunde', 'Laufanteil', 'TS Mittel %', 'TS feuchteste Schicht %', 'wärmste Stelle °C', 'Wasserentzug g/m3', 'Luftmenge % vom Soll'],
+      ...res.belueftung.verlauf.map((x) => [x.t, f(x.f), f(x.ts), f(x.tsMin), f(x.temp, 1), f(x.gm3), f((x.luft ?? 1) * 100, 0)]), []] : []),
     ['Stündlicher Verlauf'], ['Stunde', 'Tag', 'Uhrzeit', 'Temperatur °C', 'rel. Luftfeuchte %', 'Strahlung W/m2', 'Dampfdruckdefizit kPa', 'Wind m/s', 'Regen mm', 'TS %', 'TS innen %', 'Oberflächenwasser g/g TS'],
   ];
   const nachT = new Map(res.verlauf.map((x) => [x.t, x]));
@@ -783,6 +818,13 @@ function csvRunde() {
   }
   return '\ufeff' + zeilen.map((r) => r.map(q).join(';')).join('\r\n');
 }
+$('#profi').addEventListener('change', (ev) => {
+  const el = ev.target.closest('input[name^="preis-"]');
+  if (!el || !letztesErgebnis) return;
+  const v = Number(String(el.value).replace(',', '.'));
+  if (Number.isFinite(v) && v >= 0) eigenePreise[el.name.slice(6)] = v; else delete eigenePreise[el.name.slice(6)];
+  ergebnisNiveau();
+});
 $('#profi').addEventListener('click', (ev) => {
   if (!ev.target.closest('[data-export]') || !letztesErgebnis) return;
   const url = URL.createObjectURL(new Blob([csvRunde()], { type: 'text/csv;charset=utf-8' }));

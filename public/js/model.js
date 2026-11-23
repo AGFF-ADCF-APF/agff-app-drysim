@@ -3,7 +3,7 @@
 // nach innerem Pflanzenwasser und Oberflächenwasser aus Tau und Regen).
 // Trocknungskonstante nach Rotz & Chen (1985); die übrigen Ansätze sind
 // vereinfachte Lehrmodelle (Quellen und offene Punkte: README.md).
-import { Heustock, spieleBelueftungNach, STANDARD, ANLAGE, ERNSTFALL } from './belueftung.js';
+import { Heustock, spieleBelueftungNach, STANDARD, ANLAGE, ERNSTFALL, LUEFTER, BOX, BETRIEB, EINGRIFF, NACHRUESTEN, PREISE, kosten, schuetthoeheUrteil } from './belueftung.js';
 import { belueftungsWetter } from './weather.js';
 
 export const BESTAENDE = {
@@ -626,11 +626,19 @@ function erklaere(r, c) {
       : e.ts > zmax ? 'Trockener als nötig: Früher einfahren spart Blätter.' : 'Lagerfähig eingefahren. Merke dir den Ablauf.')
       : e.ts < zmin ? 'Lass das Futter noch ein paar Stunden liegen oder zette einmal mehr.' : e.ts > zmax ? 'Fahre früher ein, sobald der Feuchtemesser den Zielbereich zeigt.' : 'Genau getroffen. Merke dir die Uhrzeit für das nächste Mal.',
     heuqualitaet: hq && hq.note > 2 ? 'Schau, wo die meisten Punkte verloren gingen: Geruch (zu feucht eingelagert), Farbe (Regen, zu lange Sonne), Blätter (zu oft trocken bearbeitet) oder Erde.' : 'Schönes Heu: grün, duftend, blattreich.',
-    lager: r.belueftung ? (!r.belueftung.lagerfaehig || r.belueftung.hauptStunden == null || r.belueftung.hauptStunden > 80
+    lager: r.belueftung ? (r.belueftung.lagerfaehig ? 'Kontrolliere den Stock trotzdem noch einige Wochen mit der Heusonde.' : 'Belüfte, bis die Abluft unter 50 % rF bleibt. Feucht eingelagertes Heu erwärmt sich weiter.')
+      : hq && hq.temp >= 45 ? 'Miss die Temperatur im Heustock mit der Heusonde nach Messkalender: ab 45 °C erhöhte Aufmerksamkeit, ab 60 °C die örtliche Feuerwehr vorinformieren und alle fünf Stunden messen, ab 70 °C sofort alarmieren.' : 'Kontrolliere frisches Heu in den ersten Wochen trotzdem regelmässig mit der Heusonde: zuerst täglich, später seltener, insgesamt zwölf Wochen lang.',
+    anlage: r.belueftung && r.belueftung.luftMin < 0.9 ? 'Wähle für hohe, nasse oder kleereiche Stöcke den starken Lüfter oder eine grössere Box, oder führe trockener ein.'
+      : r.belueftung && !r.belueftung.anlage.dach ? 'Ein Warmdach lohnt sich: Die Sonne wärmt die Zuluft gratis vor.' : 'Die Anlage passte zur Menge.',
+    einfuellen: r.belueftung && !r.belueftung.einfuellen.verteilen ? 'Verteile das Heu gleichmässig und locker, und löse verdichtete Stellen mit dem Greifer auf.'
+      : r.belueftung?.einfuellen.start === 'danach' ? 'Lass den Lüfter schon beim Einfüllen laufen.' : 'Gut eingefüllt: gleichmässig, locker, Lüfter an.',
+    lueften: r.belueftung ? (!r.belueftung.lagerfaehig || r.belueftung.hauptStunden == null || r.belueftung.hauptStunden > 80
       ? 'Führe das Futter trockener ein (ab 65 % TS) und lüfte, wenn die Luft trocken ist: am Tag, mit Warmluft vom Dach. Nachts hilft nur der Entfeuchter.'
       : r.belueftung.wasser > 0 && r.belueftung.kwh / r.belueftung.wasser > 0.3 ? 'Spare Strom: Lass den Lüfter nicht durchlaufen, wenn die Luft feucht ist. Im Intervall lüftet die Steuerung nur, wenn es etwas bringt.'
-        : 'Gut belüftet. Kontrolliere den Stock trotzdem noch einige Wochen mit der Heusonde.')
-      : hq && hq.temp >= 45 ? 'Miss die Temperatur im Heustock mit der Heusonde nach Messkalender: ab 45 °C erhöhte Aufmerksamkeit, ab 60 °C die örtliche Feuerwehr vorinformieren und alle fünf Stunden messen, ab 70 °C sofort alarmieren.' : 'Kontrolliere frisches Heu in den ersten Wochen trotzdem regelmässig mit der Heusonde: zuerst täglich, später seltener, insgesamt zwölf Wochen lang.',
+        : 'Gut belüftet: zur rechten Zeit und ohne Strom zu verschwenden.') : '',
+    kontrolle: 'Miss in den ersten Tagen jeden Tag an allen Stellen. Ab 45 °C öfter, von 60 bis 70 °C alle fünf Stunden.',
+    eingriffe: 'Schichte um, solange der Stock kühl ist (unter 60 °C). Einen heissen Stock öffnet nur die Feuerwehr.',
+    kosten: 'Am meisten sparst du mit trocken eingeführtem Futter, Warmluft vom Dach und Lüften nur bei trockener Luft.',
     ernstfall: r.ende === 'brand' ? 'Miss feuchtes Heu jeden Tag mit der Heusonde. Ab 60 °C die Feuerwehr vorinformieren, ab 70 °C sofort alarmieren, und einen heissen Stock nie selbst öffnen.'
       : 'Richtig gehandelt. Damit es gar nicht so weit kommt: trockener einführen, den Lüfter nicht abstellen, solange das Heu feucht ist, und täglich messen.',
     fk: s?.fk < 45 ? 'Welke stärker an und schone den Zucker mit einer kurzen Feldliegezeit.' : 'Gute Voraussetzung für eine saubere Gärung.',
@@ -642,7 +650,7 @@ function erklaere(r, c) {
 
   // Niveau: ab welchem Niveau die Karte erscheint (einstieg | praxis | profi, siehe niveau.js). Im Einstieg
   // stehen nur die vier wichtigsten Karten, je mit einem einfachen Satz (kurz) ohne Abkürzungen.
-  const ab = { ts: 'einstieg', asche: 'einstieg', wetter: 'einstieg', atmung: heu ? 'praxis' : 'einstieg', lager: 'einstieg', ernstfall: 'einstieg' };
+  const ab = { ts: 'einstieg', asche: 'einstieg', wetter: 'einstieg', atmung: heu ? 'praxis' : 'einstieg', lager: 'einstieg', ernstfall: 'einstieg', lueften: 'einstieg', kosten: 'praxis' };
   const belueft = p.siloart === 'belueftung', zuNass = e.ts < zmin, zuTrocken = e.ts > zmax, t = hq?.temp ?? 0;
   const kurz = {
     ts: heu
@@ -664,6 +672,8 @@ function erklaere(r, c) {
           : 'Kein Regen und keine Nacht im Tau: ideal für Silage.',
     atmung: v.atmung >= 2 ? `Das Futter lag ${e.stunden} Stunden auf dem Feld. Solange es liegt, verbraucht es Zucker. Mähe nach dem Tau, lege breit ab und fahre bald ein.`
       : 'Kurz auf dem Feld: Der Zucker blieb im Futter.',
+    lueften: !r.belueftung ? '' : r.belueftung.lagerfaehig ? (r.belueftung.wasser > 0 && r.belueftung.kwh / r.belueftung.wasser > 0.3 ? 'Das Heu wurde trocken, aber der Lüfter lief oft bei feuchter Luft. Das kostet nur Strom.' : 'Der Lüfter hat das Heu trocken geblasen. Gut gemacht!')
+      : 'Das Heu wurde nicht ganz trocken. Lüfte, wenn die Luft trocken ist, und fahre das Heu trockener ein.',
     ernstfall: r.ende === 'brand' ? 'Der Heustock wurde über 70 Grad heiss und hat gebrannt. Bei so heissem Heu sofort die Feuerwehr rufen und den Stock nie selbst öffnen.'
       : 'Der Heustock wurde gefährlich heiss. Du hast rechtzeitig die Feuerwehr gerufen: Das Heu ist weg, aber Scheune und Tiere sind sicher.',
     lager: t >= 70 ? 'Der Heustock wurde gefährlich heiss: Brandgefahr! Sofort die Feuerwehr alarmieren und den Stock nicht selbst abtragen.'
@@ -671,7 +681,7 @@ function erklaere(r, c) {
         : t >= 45 ? 'Der Heustock wurde warm. Jetzt öfter mit der Heusonde messen.'
           : 'Der Heustock blieb kühl. Miss trotzdem regelmässig mit der Heusonde.',
   };
-  const titelEinfach = { ts: heu ? 'Wie trocken eingelagert?' : 'Wie trocken eingefahren?', asche: 'Erde im Futter', wetter: 'Wetter', atmung: 'Zeit auf dem Feld', lager: 'Wärme im Heustock', ernstfall: r.ende === 'brand' ? 'Es hat gebrannt' : 'Feuerwehr gerufen' };
+  const titelEinfach = { ts: heu ? 'Wie trocken eingelagert?' : 'Wie trocken eingefahren?', asche: 'Erde im Futter', wetter: 'Wetter', atmung: 'Zeit auf dem Feld', lager: 'Wärme im Heustock', ernstfall: r.ende === 'brand' ? 'Es hat gebrannt' : 'Feuerwehr gerufen', lueften: 'Lüften' };
   for (const x of f) { x.ab = ab[x.id] ?? 'praxis'; if (kurz[x.id]) { x.kurz = kurz[x.id]; x.titelEinfach = titelEinfach[x.id]; } }
   return f;
 }
@@ -705,16 +715,160 @@ function heuKarten(f, r, c, z) {
       'Die Bewertung ist angelehnt an die Sinnenprüfung von Heu und für das Spiel vereinfacht.',
   });
   const lauf = r.belueftung;
+  if (lauf) belueftungsKarten(f, r, z);
   if (lauf && (lauf.ende === 'brand' || lauf.ende === 'abbruch')) ernstfallKarte(f, lauf, z);
   f.push({
-    id: 'lager', titel: belueft ? 'Belüftung und Lager' : 'Lagerung und Erwärmung', wert: `${z(r.lagerverlust)} % Verlust, bis ${z(hq.temp, 0)} °C` + (lauf ? `, ${z(lauf.kwhJeT, 0)} kWh/t` : ''),
+    id: 'lager', titel: belueft ? 'Lager' : 'Lagerung und Erwärmung', wert: `${z(r.lagerverlust)} % Verlust, bis ${z(hq.temp, 0)} °C` + (hq.schimmel !== 'kein' ? `, Schimmel ${hq.schimmel}` : ''),
     stufe: stufe(hq.temp < 40 && hq.schimmel === 'kein' && (!lauf || lauf.lagerfaehig), hq.temp < 55),
-    grafik: lauf ? 'belueftung' : undefined, grafikDaten: lauf ?? undefined,
-    text: (lauf ? belueftungText(lauf, hq, z) : '') +
-      `Im Lager wurde es bis etwa ${z(hq.temp, 0)} °C warm. ` +
+    text: `Im Lager wurde es bis etwa ${z(hq.temp, 0)} °C warm. ` +
       (hq.temp >= 70 ? 'Akute Brandgefahr! Ein feuchter Heustock kann sich selbst entzünden: sofort die Feuerwehr alarmieren und den Stock nicht selbst abtragen. ' : hq.temp >= 60 ? 'Ab 60 °C die örtliche Feuerwehr vorinformieren und um Rat fragen, bis 70 °C alle fünf Stunden messen und den Stock nicht abtragen: Luft und Hitze führen zum Brand. Ab 70 °C sofort alarmieren. ' : hq.temp >= 45 ? 'Ab 45 °C erhöhte Aufmerksamkeit: öfter mit der Heusonde messen. ' : 'Unbedenklich. ') +
-      `Verluste im Lager: ${z(hq.sv.grund)} % normal${hq.sv.erwaermung > 0.05 ? `, ${z(hq.sv.erwaermung)} % durch Erwärmung und Schimmel` : ''}.` +
+      (lauf ? (lauf.lagerfaehig ? `Nach ${z(lauf.stunden, 0)} Stunden war das Heu lagerfähig (Abluft unter 50 % rF). ` : lauf.ende === 'zeit' ? `Am Ende war die feuchteste Schicht erst bei ${z(lauf.tsMinEnde, 1)} % TS: Was so eingelagert bleibt, erwärmt sich weiter. ` : '') : '') +
+      (hq.schimmel !== 'kein' ? `Schimmel: ${hq.schimmel}. Zu lange zu feucht, die Pilze konnten wachsen. ` : '') +
+      (lauf && (lauf.ende === 'brand' || lauf.ende === 'abbruch') ? 'Der Verlust im Lager ist 100 % der Trockensubstanz: Vom Heu bleibt nichts. '
+        : `Verlust im Lager (in % der eingelagerten Trockensubstanz): ${z(hq.sv.grund)} % normal${hq.sv.erwaermung > 0.05 ? `, ${z(hq.sv.erwaermung)} % durch Erwärmung, Schimmel${lauf?.ausgelagertT > 0 ? ', ausgelagertes Heu' : ''} und lange Belüftung` : ''}.`) +
       (belueft ? ' Mit eigenen Messwerten rechnet die App «Heutrocknung» (drywatch).' : ''),
+  });
+}
+
+// ---------- Heubelüftung: Zeitstrahl und aufgeteilte Karten (Anlage, Einfüllen, Lüften, Kontrolle, Eingriffe, Kosten)
+const tagZeit = (t) => uhr(t);
+// Messkalender: in den ersten Tagen täglich (LK Salzburg S. 24). Gezählt werden die Belüftungstage mit mindestens einer Messung;
+// dazu, wann das erste Problem (über 45 °C oder Nest) da war und wann es die Heusonde zeigte.
+export function kontrolleVon(l) {
+  const sonden = l.handlungen.filter((x) => x.art === 'sonde');
+  const tage = Math.max(1, Math.ceil((l.tEnde - l.t0) / 24));
+  const mitMessung = new Set(sonden.map((x) => Math.min(tage - 1, Math.floor((x.t - l.t0) / 24)))).size;
+  const problem = l.wendepunkte.find((x) => (x.art === 'temp' && x.grenze >= 45) || x.art === 'nest') ?? null;
+  const entdeckt = problem ? sonden.find((x) => x.t >= problem.t && x.temp >= Math.min(45, problem.temp - 2)) ?? null : null;
+  const uebersehen = sonden.filter((x) => x.stellen === 1 && x.wahr - x.temp > 5).length; // nur Mitte gemessen, das Nest war woanders
+  return { sonden, tage, mitMessung, problem, entdeckt, uebersehen };
+}
+// Zeitstrahl: eigene Handlungen und Wendepunkte in der Reihenfolge der Stunden
+export function zeitstrahl(l, z = (x, d = 0) => x.toFixed(d).replace('.', ',')) {
+  const k = kontrolleVon(l), e = [];
+  const ef = l.einfuellen;
+  e.push({ t: l.t0, art: 'handlung', stufe: !ef.verteilen || ef.start === 'danach' ? 'schlecht' : 'neutral',
+    text: `Eingefüllt: ${z(l.tonnenEin, 1)} t mit ${z(l.tsEin)} % TS, ${ef.lagen === 2 ? 'erste von zwei Lagen, ' : ''}${ef.verteilen ? 'gleichmässig verteilt' : 'abgeladen, wie es kam'}, ${z(l.hoehe, 1)} m hoch. ${LUEFTER[l.anlage.luefter].name}${l.anlage.dach ? ', Warmluft vom Dach' : ', ohne Warmluft'}${l.anlage.entfeuchter ? ', Entfeuchter' : ''}.` });
+  for (const h of l.handlungen) {
+    const text = {
+      schalter: () => (h.was === 'luefter' ? `Lüfter: ${BETRIEB[h.wert]}` : h.was === 'dach' ? `Warmluft vom Dach ${h.wert ? 'ein' : 'aus'}` : `Entfeuchter ${h.wert ? 'ein' : 'aus'}`),
+      sonde: () => `Heusonde ${h.stellen === 1 ? 'nur in der Mitte' : 'an drei Stellen'}: wärmste Stelle ${z(h.temp)} °C, feuchteste Schicht ${z(h.tsMin)} % TS` + (h.stellen === 1 && h.wahr - h.temp > 5 ? ` – an einer anderen Stelle waren es ${z(h.wahr)} °C` : ''),
+      vorinfo: () => `Feuerwehr vorinformiert${h.temp < ERNSTFALL.vorinfo ? ' (der Stock war unter 60 °C)' : ''}`,
+      alarm: () => `Feuerwehr alarmiert bei ${z(h.temp)} °C`,
+      fehlalarm: () => `Fehlalarm: Feuerwehr alarmiert, der Stock hatte höchstens ${z(h.temp)} °C`,
+      brandluft: () => `Heissen Stock (${z(h.temp)} °C) ${h.bei === 'umschichten' ? 'umgeschichtet' : 'abgetragen'}: Luft kam an das heisse Heu`,
+      umschichten: () => `Umgeschichtet: wärmste Stelle ${z(h.tempVor)} → ${z(h.tempNach)} °C${h.luftNach - h.luftVor > 0.03 ? `, Luftmenge ${z(h.luftVor * 100)} → ${z(h.luftNach * 100)} %` : ''}`,
+      nachfuellen: () => `Zweite Lage nachgefüllt, Stock ${z(h.hoeheVor, 1)} → ${z(h.hoeheNach, 1)} m${h.zuFrueh ? ` – zu früh, die untere Lage hatte erst ${z(h.tsUnten)} % TS` : ''}`,
+      auslagern: () => `Oberste Lage ausgelagert (${z(h.kg / 1000 / (ANLAGE.zielTs / 100), 1)} t Heu)`,
+      luefterHolen: () => `Stärkeren Lüfter bestellt (Luftmenge ${z(h.luft * 100)} % vom Soll)`,
+      sicherung: () => 'Sicherung wieder eingeschaltet',
+    }[h.art]?.();
+    if (text) e.push({ t: h.t, art: 'handlung', stufe: ['brandluft', 'fehlalarm'].includes(h.art) || h.zuFrueh ? 'schlecht' : 'neutral', text });
+  }
+  for (const w of l.wendepunkte) {
+    const ort = w.wo ? (w.wo === 'wartendes Heu' ? 'Wartendes Heu' : `Nest ${w.wo}`) : 'Stock';
+    // Wurde das Problem gemessen? Nächste Messung nach dem Wendepunkt, die es zeigen konnte
+    const gesehen = l.handlungen.find((x) => x.art === 'sonde' && x.t >= w.t && x.temp >= (w.grenze ?? 45) - 2);
+    const mess = l.messenAuto || !(l.gespielt || l.handlungen.some((x) => x.art === 'sonde')) ? '' : gesehen ? `, gemessen ${gesehen.t === w.t ? 'in derselben Stunde' : `nach ${gesehen.t - w.t} h`}` : ', nicht gemessen';
+    const text = {
+      spaet: () => `Lüfter startet erst nach dem Einfüllen: ${EINGRIFF.sperre} Stunden ohne Luft`,
+      temp: () => `${ort} über ${w.grenze} °C${w.grenze >= 45 ? mess : ''}`,
+      nest: () => `Nest in der Säule ${w.wo}: ${z(w.temp)} °C, deutlich wärmer als der Rest${mess}`,
+      luft: () => `Der Lüfter schafft nur ${z(w.anteil * 100)} % der Soll-Luftmenge`,
+      luefterDa: () => 'Der stärkere Lüfter läuft',
+      stromausfall: () => `Panne: Stromausfall, ${w.dauer} Stunden ohne Lüfter`,
+      sicherung: () => 'Panne: Die Sicherung des Lüfters fällt',
+      haupt: () => `Haupttrocknung geschafft nach ${w.t - l.t0} Stunden${w.t - l.t0 > 80 ? ' (Richtwert: 80)' : ''}`,
+      lagerfaehig: () => `Lagerfähig nach ${w.t - l.t0} Stunden`,
+      brand: () => 'Brand',
+    }[w.art]?.();
+    if (text) e.push({ t: w.t, art: 'wende', stufe: ['haupt', 'lagerfaehig', 'luefterDa'].includes(w.art) ? 'gut' : w.art === 'temp' && w.grenze < 45 ? 'neutral' : 'schlecht', text });
+  }
+  if (l.ende === 'zeit') e.push({ t: l.tEnde, art: 'wende', stufe: 'schlecht', text: `Zeit um: feuchteste Schicht ${z(l.tsMinEnde)} % TS${l.wartetNoch ? ', die zweite Lage wurde nie eingefüllt' : ''}` });
+  return e.sort((a, b) => a.t - b.t).map((x) => ({ ...x, zeit: tagZeit(x.t), k }));
+}
+
+function belueftungsKarten(f, r, z) {
+  const l = r.belueftung, hq = r.heu, a = l.anlage, ef = l.einfuellen;
+  const stufe = (gut, mittel) => (gut ? 'gut' : mittel ? 'mittel' : 'schlecht');
+  const urteil = schuetthoeheUrteil(l.hoeheMax, l.bestand), flaeche = l.flaeche;
+  const nest = l.wendepunkte.find((x) => x.art === 'nest'), luftW = l.wendepunkte.find((x) => x.art === 'luft');
+  // --- Anlage
+  f.push({
+    id: 'anlage', titel: 'Anlage', wert: `${LUEFTER[a.luefter].name}, ${z(l.luftMin * 100, 0)} % Luft, Box ${z(flaeche, 0)} m²`,
+    stufe: stufe(l.luftMin >= 0.95 && urteil !== 'zuHoch', l.luftMin >= 0.8),
+    text: (l.luftMin >= 0.95 ? `Der ${LUEFTER[a.luefter].name} brachte die Soll-Luftmenge von ${z(ANLAGE.luft, 2)} m³/s je m² Stockfläche. `
+      : `Der ${LUEFTER[a.luefter].name} schaffte gegen den Stock zeitweise nur ${z(l.luftMin * 100, 0)} % der Soll-Luftmenge (im Mittel ${z(l.luftMittel * 100, 0)} %). `) +
+      `Die Box hat ${z(flaeche, 0)} m² für ${z(l.tonnenEin, 1)} t Heu: Der Stock wurde ${z(l.hoeheMax, 1)} m hoch. ` +
+      { gut: 'Das liegt im Richtwert von 1 bis 2 m je Charge (Agroscope 2014). ', hoch: 'Das ist über dem Richtwert von 1 bis 2 m je Charge (Agroscope 2014); höchstens 3 m (LK Salzburg). ', zuHoch: 'Das ist zu hoch für eine Charge: höchstens 3 m, bei Klee und sehr jungem Futter 2 m (LK Salzburg). ', niedrig: 'Das ist unter 1 m: Bei so wenig Heu entweicht Luft ungenutzt (LK Salzburg). ' }[urteil] +
+      'Je Meter Stockhöhe braucht es rund 160 Pa Druck, bei kleereichem Futter 240 Pa, bei nassem Heu mehr (LK Salzburg). ' +
+      (a.dach ? 'Die Dachabsaugung wärmt die Zuluft an sonnigen Stunden vor. ' : 'Ohne Warmdach ist es eine reine Kaltbelüftung: Bei feuchtem Wetter dauert es lange. ') +
+      (a.entfeuchter ? (l.kwhEntf > 0 ? `Der Entfeuchter brauchte ${z(l.kwhEntf, 0)} kWh. ` : 'Der Entfeuchter war vorhanden, lief aber nie. ') : '') +
+      (l.nachgeruestet ? 'Der stärkere Lüfter wurde während der Belüftung nachgerüstet: Das kostet mehr als die Wahl im Voraus, und er fehlte einen Tag lang. ' : l.bestelltBei != null ? 'Der stärkere Lüfter war bestellt, kam aber nicht mehr rechtzeitig. ' : ''),
+  });
+  // --- Einfüllen
+  f.push({
+    id: 'einfuellen', titel: 'Einfüllen', wert: `${z(l.hoehe, 1)} m, ${ef.verteilen ? 'gleichmässig' : 'ungleich'}${ef.lagen === 2 ? ', zwei Lagen' : ''}`,
+    stufe: stufe(ef.verteilen && ef.start === 'sofort' && urteil !== 'zuHoch' && !l.wartetNoch && !l.handlungen.some((x) => x.zuFrueh), (ef.verteilen || l.umgeschichtet > 0) && !l.wartetNoch),
+    text: (ef.verteilen ? 'Das Heu wurde gleichmässig und locker verteilt: Die Luft geht überall gleich gut durch. '
+      : `Das Heu wurde abgeladen, wie es kam: An der Abladestelle lag es höher und dichter. Die Luft nimmt den leichtesten Weg (Kamin), daneben bleibt ein feuchtes Nest${nest ? ` – ${tagZeit(nest.t)} war es ${z(nest.temp, 0)} °C warm` : ''}. ` + (l.umgeschichtet ? 'Das Umschichten hat das wieder ausgeglichen. ' : 'Verdichtete Stellen werden umströmt und verderben leicht (Agroscope 2014). ')) +
+      (ef.start === 'danach' ? `Der Lüfter lief erst ${EINGRIFF.sperre} Stunden nach dem Einfüllen: In dieser Zeit atmet das feuchte Heu und erwärmt sich. Beim Beschicken soll der Ventilator schon laufen (Agroscope 2014). ` : 'Der Lüfter lief schon beim Einfüllen. ') +
+      (ef.lagen === 2 ? (l.nachgefuelltBei != null ? `Die zweite Lage kam nach ${l.nachgefuelltBei - l.t0} Stunden dazu${l.nachgefuelltBei - l.t0 < EINGRIFF.nachfuellenAb ? ': früh. Nachgefüllt wird nach zwei bis drei schönen Belüftungstagen (FAT 1982)' : ''}. ` : 'Die zweite Lage wurde nie eingefüllt: Sie lag unbelüftet daneben und ist verdorben. ') +
+        'Im Spiel muss die zweite Lage warten; in der Praxis mäht man dafür an zwei Tagen. ' : ''),
+  });
+  // --- Lüften
+  const kwhKg = l.wasser > 0 ? l.kwh / l.wasser : 0, nutzlos = l.laufStunden > 0 ? l.nutzlos / l.laufStunden : 0;
+  f.push({
+    id: 'lueften', titel: 'Lüften', wert: `${z(l.laufStunden, 0)} h, ${z(l.kwhJeT, 0)} kWh/t, ${z(kwhKg, 2)} kWh/kg`,
+    stufe: stufe(l.lagerfaehig && l.hauptStunden != null && l.hauptStunden <= 80 && kwhKg <= 0.3, l.lagerfaehig),
+    grafik: 'belueftung', grafikDaten: l,
+    text: belueftungText(l, hq, z) + (nutzlos > 0.15 ? `In ${z(nutzlos * 100, 0)} % der Laufstunden nahm die Luft kaum Wasser mit (unter 0,3 g je m³): Strom ohne Nutzen. ` : ''),
+  });
+  // --- Kontrolle (nur wo von Hand gemessen wird)
+  const k = kontrolleVon(l);
+  if (!l.messenAuto && (l.gespielt || k.sonden.length)) {
+    f.push({
+      id: 'kontrolle', titel: 'Kontrolle', wert: `${k.sonden.length} Messung${k.sonden.length === 1 ? '' : 'en'} an ${k.mitMessung} von ${k.tage} Tagen`,
+      stufe: stufe(k.mitMessung >= k.tage && (!k.problem || k.entdeckt) && !k.uebersehen, k.mitMessung >= k.tage / 2 && (!k.problem || k.entdeckt)),
+      text: `Du hast ${k.sonden.length}-mal mit der Heusonde gemessen, an ${k.mitMessung} von ${k.tage} Belüftungstagen. ` +
+        'Der Heumesskalender verlangt in den ersten Tagen eine Messung täglich, mit Messstellen höchstens 1,5 m auseinander (LK Salzburg). ' +
+        (k.problem ? `Das erste Problem war ${tagZeit(k.problem.t)} da (${k.problem.art === 'nest' ? `Nest ${k.problem.wo}` : `über ${k.problem.grenze} °C`}). ` + (k.entdeckt ? `Die Heusonde zeigte es ${k.entdeckt.t === k.problem.t ? 'sofort' : `${k.entdeckt.t - k.problem.t} Stunden später`}. ` : 'Mit der Heusonde wurde es nie gesehen. ') : 'Es gab nichts Auffälliges zu finden. ') +
+        (k.uebersehen ? `${k.uebersehen}-mal wurde nur in der Mitte gemessen, während es an einer anderen Stelle über 5 °C wärmer war: Ein Nest findet nur, wer an genug Stellen misst. ` : '') +
+        (l.vorinfoBei != null ? `Die Feuerwehr wurde ${tagZeit(l.vorinfoBei)} vorinformiert. ` : l.tempMax >= ERNSTFALL.vorinfo ? 'Über 60 °C hätte die Feuerwehr vorinformiert werden sollen. ' : '') +
+        (l.fehlalarme ? 'Ein Fehlalarm: Vor dem Alarm lohnt sich die Messung. ' : ''),
+    });
+  }
+  // --- Eingriffe (wenn eingegriffen wurde oder es nötig gewesen wäre)
+  const ein = l.handlungen.filter((x) => ['umschichten', 'nachfuellen', 'auslagern', 'luefterHolen', 'sicherung', 'brandluft'].includes(x.art));
+  const noetig = (nest && !l.umgeschichtet) || (luftW && l.bestelltBei == null && a.luefter !== 'stark');
+  if (ein.length || (l.gespielt && noetig)) {
+    const namen = { umschichten: 'Umschichten', nachfuellen: 'Nachfüllen', auslagern: 'Auslagern', luefterHolen: 'Lüfter holen', sicherung: 'Sicherung', brandluft: 'heissen Stock geöffnet' };
+    f.push({
+      id: 'eingriffe', titel: 'Eingriffe', wert: ein.length ? [...new Set(ein.map((x) => namen[x.art]))].join(', ') : 'keiner',
+      stufe: stufe(ein.length > 0 && !noetig && !ein.some((x) => x.art === 'brandluft' || x.zuFrueh || (x.art === 'luefterHolen' && x.luft >= 0.95)), !ein.some((x) => x.art === 'brandluft')),
+      text: (ein.length ? '' : 'Du hast nicht eingegriffen. ') + ein.map((x) => ({
+        umschichten: () => `${tagZeit(x.t)} umgeschichtet: Kamine und Nester waren danach aufgelöst, die wärmste Stelle fiel von ${z(x.tempVor, 0)} auf ${z(x.tempNach, 0)} °C. Das kostet Arbeit und rund 1 % Bröckelverlust (Annahme). `,
+        nachfuellen: () => `${tagZeit(x.t)} nachgefüllt, der Stock wuchs auf ${z(x.hoeheNach, 1)} m. ${x.zuFrueh ? 'Das war zu früh: Die untere Lage war noch feucht und trocknet unter der neuen Last langsamer. ' : 'Der Zeitpunkt passte. '}`,
+        auslagern: () => `${tagZeit(x.t)} die oberste Lage ausgelagert: ${z(x.kg / 1000 / (ANLAGE.zielTs / 100), 1)} t weniger Lagerheu, dafür weniger Höhe und weniger Wasser im Stock. `,
+        luefterHolen: () => `${tagZeit(x.t)} den stärkeren Lüfter geholt (bei ${z(x.luft * 100, 0)} % Luftmenge)${l.nachgeruestet ? `; er lief ${NACHRUESTEN.warteStunden} Stunden später` : '; er kam nicht mehr rechtzeitig'}. ${x.luft >= 0.95 ? 'Nötig war das nicht: Der Standardlüfter brachte die volle Luftmenge. ' : ''}`,
+        sicherung: () => `${tagZeit(x.t)} die Sicherung wieder eingeschaltet. `,
+        brandluft: () => `${tagZeit(x.t)} den ${z(x.temp, 0)} °C heissen Stock geöffnet: Das hat den Brand ausgelöst. Ab 60 °C darf ein Stock nie selbst abgetragen werden (LK Salzburg). `,
+      }[x.art]())).join('') +
+        (nest && !l.umgeschichtet ? `Das Nest ${nest.wo} (${tagZeit(nest.t)}) blieb bestehen: Umschichten hätte es aufgelöst, solange der Stock unter 60 °C war. ` : '') +
+        (luftW && l.bestelltBei == null && a.luefter !== 'stark' ? `Der Lüfter schaffte ab ${tagZeit(luftW.t)} die Soll-Luftmenge nicht: Ein stärkerer Lüfter oder weniger Höhe hätten geholfen. ` : ''),
+    });
+  }
+  // --- Kosten in Franken je Tonne Heu (neben den Punkten, nicht in ihnen)
+  const ko = kosten(l);
+  r.kosten = ko;
+  f.push({
+    id: 'kosten', titel: 'Kosten', wert: `${z(ko.total, 0)} Fr. je t Heu`,
+    stufe: stufe(ko.total <= 35, ko.total <= 70),
+    text: `Die Belüftung kostete rund ${z(ko.total, 0)} Franken je Tonne eingefülltes Heu. ` +
+      `Strom ${z(ko.strom, 0)} Fr. (${z(l.kwh, 0)} kWh zu ${z(ko.preise.strom, 2)} Fr.), Anlage ${z(ko.anlage, 0)} Fr., Arbeit ${z(ko.arbeit, 0)} Fr. (${z(l.arbeit, 1)} Stunden)` +
+      (ko.miete > 0 ? `, Miete für den nachgerüsteten Lüfter ${z(ko.miete, 0)} Fr.` : '') + `, verlorenes Heu ${z(ko.verlust, 0)} Fr. ` +
+      'Zum Vergleich: Die LK Salzburg rechnet für Kaltbelüftung und Dachabsaugung mit rund 22 bis 24 Euro je Tonne Heu, mit Entfeuchter 36 bis 39 Euro. ' +
+      'Die Kosten zählen nicht für die Punkte. Strompreis, Stundenansatz und Miete sind Annahmen.',
   });
 }
 

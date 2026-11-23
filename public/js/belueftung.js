@@ -527,6 +527,12 @@ export class Heustock {
   }
   wo(tS, nest) { return this.warte && this.warte.temp >= Math.max(...tS) ? 'wartendes Heu' : this.saeulen.length > 1 ? SAEULEN[nest] : null; }
 
+  // Schaltung (Lüfter, Dach, Entfeuchter) für den Zeitstrahl vermerken; je Stunde und Schalter gilt die letzte Wahl
+  schaltung(x) {
+    this.handlungen = this.handlungen.filter((h) => !(h.art === 'schalter' && h.t === x.t && h.was === x.art));
+    this.handlungen.push({ t: x.t, art: 'schalter', was: x.art, wert: x.wert });
+  }
+
   // Säule an einer der drei Messstellen (vorne, Mitte, hinten); ein gleichmässiger Stock ist überall gleich
   saeuleAn(i) { return this.saeulen[Math.min(i, this.saeulen.length - 1)]; }
   messe(stellen) {
@@ -659,7 +665,7 @@ export function spieleBelueftungNach(start, log = [], tEnde = Infinity, betrieb 
   const h = new Heustock(start);
   const e = { ...betrieb };
   for (;;) {
-    for (const x of log) if (x.t === h.t) { if (SCHALTER.includes(x.art)) e[x.art] = x.wert; else h.handle(x); }
+    for (const x of log) if (x.t === h.t) { if (SCHALTER.includes(x.art)) { e[x.art] = x.wert; h.schaltung(x); } else h.handle(x); }
     if (h.ende || h.t >= tEnde) break;
     h.stunde(e);
   }

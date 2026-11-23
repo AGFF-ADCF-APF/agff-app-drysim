@@ -163,6 +163,7 @@ export class HeustockSpiel {
     if (this.fertig) return;
     this.fertig = true; clearTimeout(this.timer);
     const s = this.stock, r = s.ergebnis();
+    r.gespielt = true; r.messenAuto = this.sondeAuto; // für die Karten «Kontrolle» und den Zeitstrahl
     this.melde(r.ende === 'brand' ? `${tagZeit(s.t)}: Der Heustock brennt! ${r.handlungen.some((x) => x.art === 'brandluft') ? 'Luft kam an das heisse Heu.' : `Er war zu lange über ${ERNSTFALL.alarm} °C, und niemand hat alarmiert.`}`
       : r.ende === 'abbruch' ? `${tagZeit(s.t)}: Feuerwehr alarmiert. Sie trägt den Stock kontrolliert ab: Das Heu ist verloren, das Gebäude bleibt stehen.`
         : s.lagerfaehig
@@ -182,6 +183,7 @@ export class HeustockSpiel {
     this.e[art] = wert;
     this.log = this.log.filter((x) => !(x.t === this.stock.t && x.art === art)); // pro Stunde gilt die letzte Wahl
     this.log.push({ t: this.stock.t, art, wert });
+    this.stock.schaltung({ t: this.stock.t, art, wert });
     const text = art === 'luefter' ? `Lüfter: ${BETRIEB[wert]}` : art === 'dach' ? `Warmluft vom Dach ${wert ? 'ein' : 'aus'}` : `Entfeuchter ${wert ? 'ein' : 'aus'}`;
     this.melde(`${tagZeit(this.stock.t)}: ${text}.`);
     if (art === 'entfeuchter' && wert) Assistent.hinweis('hs.entfeuchter');

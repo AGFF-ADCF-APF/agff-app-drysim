@@ -45,7 +45,7 @@ export function feldVon(id, plan = {}) {
   // Fortsetzen: Protokoll bis t nachspielen = direkt gespielter Stand, auch mit Handlungen in der letzten Stunde
   const direkt = new Heustock(start), e = { ...STANDARD };
   const bis = t60 + 1;
-  while (direkt.t <= bis) { for (const x of log) if (x.t === direkt.t) { if (['luefter', 'dach', 'entfeuchter'].includes(x.art)) e[x.art] = x.wert; else direkt.handle(x); } if (direkt.t === bis) break; direkt.stunde(e); }
+  while (direkt.t <= bis) { for (const x of log) if (x.t === direkt.t) { if (['luefter', 'dach', 'entfeuchter'].includes(x.art)) { e[x.art] = x.wert; direkt.schaltung(x); } else direkt.handle(x); } if (direkt.t === bis) break; direkt.stunde(e); }
   const nach = spieleBelueftungNach(start, log, bis);
   pruefe('Ernstfall nachspielen identisch', gleich(direkt, nach) && nach.gemessen?.t === bis && nach.vorinfoBei === bis, `t ${nach.t}, gemessen ${nach.gemessen?.t}`);
   // Messen verändert den Stock nicht
@@ -150,9 +150,9 @@ export function feldVon(id, plan = {}) {
   const log = [{ t: s0.t0 + 6, art: 'sonde', wert: 'mitte' }, { t: s0.t0 + 20, art: 'luefter', wert: 'dauer' }, { t: s0.t0 + 26, art: 'umschichten' }, { t: s0.t0 + 26, art: 'luefterHolen' },
     { t: s0.t0 + 50, art: 'nachfuellen' }, { t: s0.t0 + 52, art: 'sonde', wert: 'alle' }, { t: s0.t0 + 70, art: 'auslagern' }, { t: s0.t0 + 75, art: 'vorinfo' }, { t: s0.t0 + 80, art: 'luefter', wert: 'intervall' }];
   const direkt = new Heustock(alles), e = { ...STANDARD }, bis = s0.t0 + 90;
-  for (;;) { for (const x of log) if (x.t === direkt.t) { if (['luefter', 'dach', 'entfeuchter'].includes(x.art)) e[x.art] = x.wert; else direkt.handle(x); } if (direkt.t >= bis) break; direkt.stunde(e); }
+  for (;;) { for (const x of log) if (x.t === direkt.t) { if (['luefter', 'dach', 'entfeuchter'].includes(x.art)) { e[x.art] = x.wert; direkt.schaltung(x); } else direkt.handle(x); } if (direkt.t >= bis) break; direkt.stunde(e); }
   const nach = spieleBelueftungNach(alles, log, bis), nochmal = spieleBelueftungNach(alles, log, bis);
-  pruefe('Eingriffe nachspielen identisch', gleich(direkt, nach) && gleich(nach, nochmal) && nach.handlungen.length === 7 && nach.luefter === 'stark' && JSON.stringify(nach.ergebnis()) === JSON.stringify(direkt.ergebnis()), `t ${nach.t}, ${nach.handlungen.map((x) => x.art).join(', ')}`);
+  pruefe('Eingriffe nachspielen identisch', gleich(direkt, nach) && gleich(nach, nochmal) && nach.handlungen.filter((x) => x.art !== 'schalter').length === 7 && nach.luefter === 'stark' && JSON.stringify(nach.ergebnis()) === JSON.stringify(direkt.ergebnis()), `t ${nach.t}, ${nach.handlungen.map((x) => x.art).join(', ')}`);
   // Wette: plan.belueftungLog und plan.anlage ergeben denselben Verlauf wie das Nachspielen
   const fw = feldVon('taenikon', { anlage: alles.anlage, einfuellen: alles.einfuellen, pannen: alles.pannen, belueftungLog: log });
   pruefe('Wette mit Protokoll identisch', JSON.stringify(fw.res.belueftung) === JSON.stringify(spieleBelueftungNach(fw.heustockStart(), log).ergebnis()) && fw.res.faktoren.every((x) => x.tipp && !/undefined|NaN/.test(x.text + x.wert)), `Ende ${fw.res.belueftung.ende}, ${fw.res.punkte} Punkte`);
