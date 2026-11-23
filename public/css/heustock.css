@@ -70,3 +70,25 @@
 .hs-svg .hs-alt { opacity: .6; }
 .messer.ungemessen strong { color: var(--leise); }
 .messer.ungemessen .nadel { display: none; }
+
+/* Anlage wählen (Einsatz), Einfüllen, Luftmenge, Eingriffe */
+.anlage-feld[hidden] { display: none; }
+.anlage-feld h3 { margin: 12px 0 6px; }
+.fuellhoehe { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--linie); background: var(--bg); font-weight: 600; }
+.fuellhoehe.warnung { border-color: var(--rot); background: var(--rot-hell); }
+.fuellhoehe.achtung { border-color: var(--gelb); background: var(--gelb-hell); }
+.fuellhoehe.gut { border-color: var(--gruen); background: var(--gruen-hell); }
+#einfuellen { max-width: 760px; }
+#einfuellen h3 { margin: 14px 0 6px; }
+#einfuellen [data-ef][hidden] { display: none; }
+#heustock .messer-reihe { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.messer.hs-menge i { background: var(--blau); }
+.hs-eingriff { border-color: var(--gelb); }
+.hs-eingriff[hidden], .hs-sicherung[hidden], .hs-warte[hidden] { display: none; }
+.hs-sicherung { border-color: var(--rot); background: var(--rot-hell); }
+.hs-warte { margin: 0; font-weight: 600; }
+#heustock.ohne-raster .hs-nur-raster { display: none; }
+.hs-svg .hs-stelle { font-size: 12px; fill: var(--leise); }
+.hs-svg .hs-schicht.klein { font-size: 12px; }
+@media (max-width: 1000px) { #heustock .messer-reihe { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px) { #heustock .messer-reihe { grid-template-columns: 1fr 1fr; } #heustock .messer.hs-menge { grid-column: 1 / -1; } }

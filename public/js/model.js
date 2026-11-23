@@ -278,7 +278,9 @@ export class Feld {
 
   // Startwerte für den Heustock (Spielphase und Standardbetrieb); Wetter über die vier Tage hinaus verlängert
   heustockStart(optionen) {
-    return { dmFeld: this.dm / 1000, ts: this.eingefahren.ernte.ts, t0: this.t, wetter: belueftungsWetter(this.wetter), optionen };
+    const p = this.p;
+    return { dmFeld: this.dm / 1000, ts: this.eingefahren.ernte.ts, t0: this.t, wetter: belueftungsWetter(this.wetter), optionen,
+      anlage: p.anlage, einfuellen: p.einfuellen, bestand: p.bestand, pannen: p.pannen };
   }
 
   // Lager, Energie, Punkte und Erklärungen; lauf = Ergebnis der Belüftung (nur Belüftungsheu)

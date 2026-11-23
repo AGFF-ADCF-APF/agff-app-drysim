@@ -2,7 +2,7 @@
 // (Tempo, Pause, ruhiger Modus). Die Spieler schalten den Lüfter (aus, Dauer, Intervall), die Warmluft vom Dach
 // und den Entfeuchter. Die Entscheidungen werden als Protokoll gesichert und lassen sich exakt nachspielen.
 // Was eine Anlage hat und was der Bildschirm zeigt, steuert `optionen` (dach, entfeuchter, rechnen), z. B. je Niveau.
-import { Heustock, spieleBelueftungNach, OPTIONEN, ANLAGE, LUFT, BETRIEB, SCHALTER, ERNSTFALL, PROTOKOLL_VERSION, uAusTs } from './belueftung.js';
+import { Heustock, spieleBelueftungNach, OPTIONEN, ANLAGE, LUFT, BETRIEB, SCHALTER, ERNSTFALL, PROTOKOLL_VERSION, LUEFTER, SAEULEN, EINGRIFF, NACHRUESTEN, uAusTs } from './belueftung.js';
 import { halteKnopf } from './halten.js';
 import { spieleNach } from './model.js';
 import { stundenwetter } from './weather.js';
@@ -30,7 +30,12 @@ export class HeustockSpiel {
   constructor(root, { feld, setup, wetterSzenario, wetterRef = null, feldLog = [], resume = null, onEnde }) {
     this.root = root; this.feld = feld; this.setup = setup; this.sz = wetterSzenario; this.wetterRef = wetterRef;
     this.feldLog = feldLog; this.onEnde = onEnde; this.plan = null;
+    // Was die Anlage hat (im Einsatz gewählt) und was der Bildschirm je Niveau zeigt
+    const anlage = setup.anlage ?? {};
     this.optionen = { ...OPTIONEN, ...(setup.belueftungOptionen ?? {}) };
+    if (anlage.dach === false) this.optionen.dach = false;
+    if (anlage.entfeuchter === false) this.optionen.entfeuchter = false;
+    this.eingriffe = this.optionen.eingriffe ?? [];
     this.start = feld.heustockStart(this.optionen);
     this.e = { luefter: 'intervall', dach: !!this.optionen.dach, entfeuchter: false };
     this.log = resume ? resume.log.slice() : [];
@@ -51,6 +56,8 @@ export class HeustockSpiel {
     this.sondeAuto = this.ampel || this.optionen.messen === 'auto';
     this.warnen = this.optionen.ernstfall ?? (this.ampel ? 'vorschlag' : 'warnung');
     root.classList.toggle('ohne-sonde', this.sondeAuto);
+    root.classList.toggle('ohne-raster', this.optionen.messen !== 'raster');
+    root.classList.remove('brennt', 'automatik');
     const titel = (sel, t) => { $(sel, root).querySelector('span').innerHTML = t; };
     titel('.messer.hs-ts', this.ampel ? 'Wie trocken ist das Heu?' : 'Heustock (<abbr title="Trockensubstanz">TS</abbr>)');
     titel('.messer.hs-temp', this.ampel ? 'Wärme im Heustock' : 'Stocktemperatur');
@@ -63,7 +70,10 @@ export class HeustockSpiel {
     const s = this.stock;
     if (resume) this.melde(`${tagZeit(s.t)}: Runde am Heustock fortgesetzt. ${this.ruhig ? 'Weiter mit +1 h oder +6 h.' : 'Weiter mit ▶ oder Leertaste.'}`);
     else {
-      this.melde(`${tagZeit(s.t)}: ${z(s.mengeTonnen(), 1)} t Heu mit ${z(s.tsEin, 1)} % TS liegen ${z(s.hoehe, 1)} m hoch auf ${s.flaeche} m² Rost. Bis ${ANLAGE.zielTs} % TS müssen noch rund ${z(Math.round(s.restWasser() / 10) * 10)} Liter Wasser weg.`);
+      const ef = s.einfuellen, L = s.luftmengen();
+      this.melde(`${tagZeit(s.t)}: ${z(s.mengeTonnen(), 1)} t Heu mit ${z(s.tsEin, 1)} % TS${ef.lagen === 2 ? ', die erste Hälfte liegt' : ' liegen'} ${ef.verteilen ? '' : 'bis '}${z(s.hoehe, 1)} m hoch auf ${s.flaeche} m² Rost${ef.verteilen ? '' : ' (ungleich verteilt)'}.${this.ampel ? '' : ` Bis ${ANLAGE.zielTs} % TS müssen aus dem eingefüllten Heu noch rund ${z(Math.round(s.restWasser() / 10) * 10)} Liter Wasser weg.`}`);
+      if (!this.ampel && L.anteil < 0.95) this.melde(`${tagZeit(s.t)}: Der ${LUEFTER[s.luefter].name} schafft gegen diesen Stock nur ${z(L.anteil * 100)} % der Soll-Luftmenge.`, true);
+      if (ef.start === 'danach') this.melde(`${tagZeit(s.t)}: Der Lüfter startet erst nach dem Einfüllen (in ${EINGRIFF.sperre} Stunden). Bis dahin atmet das feuchte Heu ohne Luft.`, true);
       this.melde(this.ruhig ? 'Die ersten 24 Stunden läuft der Lüfter durch. Du bestimmst, wann die Zeit weiterläuft.' : 'Die ersten 24 Stunden läuft der Lüfter durch (LK Salzburg). Starte die Uhr mit ▶.', true);
     }
     Assistent.kontext('heustock');
@@ -111,7 +121,7 @@ export class HeustockSpiel {
       else if (k === 'w' && this.optionen.dach) this.schalte('dach', !this.e.dach);
       else if (k === 'e' && this.optionen.entfeuchter) this.schalte('entfeuchter', !this.e.entfeuchter);
       else if (k === 'r' && this.optionen.rechnen) this.oeffneRechnen();
-      else if (k === 's' && !this.sondeAuto) this.handle('sonde');
+      else if (k === 's' && !this.sondeAuto) this.handle('sonde', { wert: 'alle' });
       else if (k === 'f') this.handle('vorinfo');
     };
     document.addEventListener('keydown', this.beiTaste);
@@ -189,8 +199,20 @@ export class HeustockSpiel {
     this.log.push(x);
     const t = tagZeit(this.stock.t);
     if (h.art === 'sonde') {
-      this.melde(`${t}: Heusonde gesteckt: wärmste Stelle ${z(h.temp)} °C, feuchteste Schicht ${z(h.tsMin)} % TS.`);
+      this.melde(`${t}: Heusonde ${h.stellen === 1 ? 'in der Mitte' : 'an drei Stellen'} gesteckt: wärmste Stelle ${z(h.temp)} °C, feuchteste Schicht ${z(h.tsMin)} % TS.`);
       this.warneNachMessung(h.temp, t);
+    } else if (h.art === 'brandluft') {
+      /* die Meldung kommt beim Ende */
+    } else if (h.art === 'umschichten') {
+      this.melde(`${t}: Mit dem Greifer umgeschichtet: Kamine und Nester sind aufgelöst, das Heu liegt locker. Wärmste Stelle vorher ${z(h.tempVor)} °C, jetzt ${z(h.tempNach)} °C. Die Messwerte gelten nicht mehr: neu messen.`);
+    } else if (h.art === 'nachfuellen') {
+      this.melde(`${t}: Zweite Lage eingefüllt: Der Stock ist jetzt ${z(h.hoeheNach, 1)} m hoch.${h.zuFrueh ? ` Das war früh: Nachgefüllt wird nach zwei bis drei schönen Belüftungstagen (FAT 1982), die untere Lage hatte erst ${z(h.tsUnten)} % TS.` : ''}${h.luftNach < 0.95 ? ` Der Lüfter schafft jetzt noch ${z(h.luftNach * 100)} % der Soll-Luftmenge.` : ''}`, h.zuFrueh);
+    } else if (h.art === 'auslagern') {
+      this.melde(`${t}: Oberste Lage ausgelagert (${z(h.kg / 1000 / 0.87, 1)} t Heu zum Verfüttern). Der Stock ist noch ${z(h.hoeheNach, 1)} m hoch.`);
+    } else if (h.art === 'luefterHolen') {
+      this.melde(`${t}: Stärkeren Lüfter bestellt (Miete). Er läuft in ${NACHRUESTEN.warteStunden} Stunden, ${tagZeit(h.da)}.`);
+    } else if (h.art === 'sicherung') {
+      this.melde(`${t}: Sicherung wieder eingeschaltet, der Lüfter läuft wieder.`);
     } else if (h.art === 'vorinfo') {
       this.melde(`${t}: Feuerwehr vorinformiert. Sie weiss Bescheid und gibt Rat${h.temp >= ERNSTFALL.vorinfo ? ': alle fünf Stunden messen, den Stock nicht abtragen.' : '.'}`);
     } else if (h.art === 'fehlalarm') {
@@ -200,6 +222,15 @@ export class HeustockSpiel {
     this.zeichne();
     this.speichere();
     if (this.stock.ende) this.beende();
+  }
+  // Umschichten, Nachfüllen und Auslagern nur, wo es etwas zu tun gibt und das Niveau es vorsieht
+  moeglich(art) {
+    const s = this.stock;
+    if (this.fertig || !this.eingriffe.includes(art)) return false;
+    if (art === 'nachfuellen') return !!s.warte;
+    if (art === 'auslagern') return s.n > 1;
+    if (art === 'luefterHolen') return s.luefter !== 'stark' && s.bestelltBei == null;
+    return true;
   }
   // Was die Messung bedeutet (Schwellen: LK Salzburg). Profi sieht nur die Werte.
   warneNachMessung(temp, t) {
@@ -236,10 +267,16 @@ export class HeustockSpiel {
     } else if (this.warnen !== 'werte') {
       // Praxis: Wer nicht misst, merkt es erst an den Anzeichen (LK Salzburg: Schwitzwasser, süsslicher Geruch)
       const g = s.gemessen;
-      if (w.h === 8 && seit >= 12 && (!g || s.t - g.t >= 24)) einmal('messen' + w.tag, `${t}: Heute noch nicht gemessen. In den ersten Tagen wird der Stock täglich mit der Heusonde kontrolliert (LK Salzburg).`);
+      if (w.h === 8 && seit >= 12 && (g.t == null || s.t - g.t >= 24)) einmal('messen' + w.tag, `${t}: Heute noch nicht gemessen. In den ersten Tagen wird der Stock täglich mit der Heusonde kontrolliert (LK Salzburg).`);
       if (zs.temp >= 50 && alt.temp < 50) einmal('geruch', `${t}: Im Heustall riecht es seltsam süsslich, auf dem Heu liegt Schwitzwasser. Höchste Zeit für die Heusonde!`, true, 'hs.ernstfall');
     }
     if (p && p.f === 0 && zs.ts < ANLAGE.hauptTs && s.seitLauf === 6) einmal('still' + s.t, `${t}: Seit 6 Stunden kein Luftzug: Das feuchte Heu atmet und erwärmt sich${this.sondeAuto ? ` (jetzt ${z(zs.temp)} °C)` : ''}.`);
+    // Luftmenge, Pannen, Lüfter da, zweite Lage
+    const ohneLuft = { einfuellen: null, sicherung: `${t}: Der Lüfter steht – die Sicherung ist gefallen! Schalte sie wieder ein.`, stromausfall: `${t}: Stromausfall! Der Lüfter steht, bis der Strom wieder da ist.` }[zs.sperre];
+    if (ohneLuft) einmal('sperre-' + zs.sperre, ohneLuft, true);
+    if (p?.f > 0 && zs.luftAnteil < 0.9 && !this.ampel) einmal('luftwenig', `${t}: Der ${LUEFTER[zs.luefter].name} schafft nur ${z(zs.luftAnteil * 100)} % der Soll-Luftmenge: Der Stock ist zu hoch, zu dicht oder zu nass.${this.eingriffe.includes('luefterHolen') ? ' Stärkeren Lüfter holen oder Höhe wegnehmen?' : ''}`, true, 'hs.luft');
+    if (s.nachgeruestet && alt.luefter !== 'stark' && zs.luefter === 'stark') einmal('luefterda', `${t}: Der stärkere Lüfter ist da und läuft: ${z(zs.luftAnteil * 100)} % der Soll-Luftmenge.`, true);
+    if (zs.warte && seit === EINGRIFF.nachfuellenAb) einmal('lage2', `${t}: Zwei Belüftungstage sind um. Die zweite Lage (${z(zs.warte.tonnen, 1)} t) wartet noch: Ist die untere Lage angetrocknet, kannst du nachfüllen.`, true, 'hs.nachfuellen');
     if (s.hauptBei === s.t) einmal('haupt', this.ampel ? `${t}: Das Gröbste ist geschafft – auch die oberste Schicht ist fast trocken. Jetzt nur noch ab und zu belüften.` : `${t}: Haupttrocknung geschafft – auch die oberste Schicht hat 80 % TS (nach ${z(seit)} Stunden). Jetzt nur noch nachbelüften.`, true, 'hs.haupt');
     if (seit === 80 && s.hauptBei == null) einmal('80h', this.ampel ? `${t}: Schon über drei Tage – das Heu sollte jetzt fast trocken sein. Die oberste Schicht ist noch feucht.` : `${t}: 80 Stunden – die Haupttrocknung sollte jetzt vorbei sein (LK Salzburg). Die Abluft ist noch feucht: Oben im Stock ist das Heu noch nicht trocken.`, true);
     if (p?.f > 0 && p.dachK > 1 && !this.gemeldet.has('dach')) einmal('dach', `${t}: Die Sonne wärmt das Dach: Die Zuluft ist ${z(p.dachK, 1)} °C wärmer und nimmt mehr Wasser auf.`, false, 'hs.dach');
@@ -276,7 +313,16 @@ export class HeustockSpiel {
     r.querySelector('[data-schalter="entfeuchter"]').onclick = () => this.schalte('entfeuchter', !this.e.entfeuchter);
     r.querySelector('.hs-rechnen-auf').onclick = () => this.oeffneRechnen();
     r.querySelector('.hs-auto').onclick = () => this.automatik();
-    r.querySelector('.hs-sonde').onclick = () => this.handle('sonde');
+    r.querySelector('.hs-sonde').onclick = () => this.handle('sonde', { wert: 'alle' });
+    r.querySelector('.hs-sonde-mitte').onclick = () => this.handle('sonde', { wert: 'mitte' });
+    r.querySelector('.hs-sicherung').onclick = () => this.handle('sicherung');
+    // Eingriffe verändern den Stock unumkehrbar: gedrückt halten (neu gebaut, damit keine alten Hörer bleiben)
+    r.querySelectorAll('.hs-eingriff').forEach((altK) => {
+      const b = altK.cloneNode(true), art = b.dataset.eingriff;
+      b.classList.remove('haelt', 'wackelt');
+      altK.replaceWith(b);
+      halteKnopf(b, { name: b.querySelector('b').textContent, los: () => this.handle(art), melde: (text, wichtig) => this.melde(text, wichtig) });
+    });
     r.querySelector('.hs-vorinfo').onclick = () => this.handle('vorinfo');
     // Alarm beendet die Runde: gedrückt halten. Der Knopf wird je Runde neu gebaut, damit keine alten Hörer bleiben.
     const alt = r.querySelector('.hs-alarm'), alarm = alt.cloneNode(true);
@@ -301,6 +347,17 @@ export class HeustockSpiel {
     v.querySelector('span').innerHTML = info ? 'Feuerwehr ist vorinformiert ✓' : 'Feuerwehr vorinformieren <kbd>F</kbd>';
     r.querySelector('.hs-alarm').disabled = !!this.fertig;
     r.querySelector('.hs-sonde').disabled = !!this.fertig;
+    r.querySelector('.hs-sonde-mitte').disabled = !!this.fertig;
+    r.querySelectorAll('.hs-eingriff').forEach((b) => {
+      const art = b.dataset.eingriff;
+      b.hidden = !this.eingriffe.includes(art) || (art === 'nachfuellen' && !this.stock.warte && this.stock.nachgefuelltBei == null && this.stock.einfuellen.lagen !== 2);
+      b.disabled = !this.moeglich(art);
+      if (art === 'luefterHolen') b.querySelector('small').textContent = this.stock.luefter === 'stark' ? 'starker Lüfter läuft' : this.stock.bestelltBei != null ? `bestellt, läuft in ${this.stock.bestelltBei + NACHRUESTEN.warteStunden - this.stock.t} h` : `halten · Miete, kommt nach ${NACHRUESTEN.warteStunden} h`;
+    });
+    r.querySelector('.hs-sicherung').hidden = !this.stock.sicherungAus;
+    const wt = this.stock.warte, wEl = r.querySelector('.hs-warte');
+    wEl.hidden = !wt;
+    if (wt) wEl.textContent = `Zweite Lage wartet locker ausgebreitet neben der Box: ${z(wt.dm * this.stock.flaeche / 1000 / 0.87, 1)} t, unbelüftet. Sie atmet und kann schimmeln, bis sie eingefüllt und belüftet wird.`;
   }
 
   // ---------- Anzeige
@@ -311,17 +368,19 @@ export class HeustockSpiel {
     $('.jetzt', r).innerHTML = `${stundenSymbol(w)}<span>Aussen ${z(w.temp)} °C · ${z(w.rh)} % rF</span>`;
     r.querySelectorAll('.tageskarte').forEach((k) => k.classList.toggle('heute', Number(k.dataset.tag) === w.tag));
     // Sicht: Einstieg sieht den wahren Stand; sonst nur, was die Heusonde zuletzt gemessen hat
-    const g = this.sondeAuto ? { t: s.t, stellen: [{ name: 'Mitte', schichten: zs.schichten }] } : s.gemessen;
-    const alter = g ? s.t - g.t : null;
-    const sicht = g ? { schichten: g.stellen[0].schichten, alter } : null;
-    $('.hs-bild', r).innerHTML = stockBild(sicht, s.n, p, this.e, w, this.optionen, zs.endeArt === 'brand');
+    // drei Messstellen (vorne, Mitte, hinten): je die letzte Messung mit ihrem Alter, oder null
+    const stellen = this.sondeAuto ? zs.stellen.map((x) => ({ t: s.t, schichten: x.schichten })) : s.gemessen.stellen;
+    const da = stellen.filter(Boolean), alle = da.flatMap((x) => x.schichten);
+    const alter = da.length ? s.t - Math.max(...da.map((x) => x.t)) : null;
+    $('.hs-bild', r).innerHTML = stockBild({ stellen, hoehen: zs.hoehen, jetzt: s.t, laeuft: p?.f > 0, v: s.luftmengen().v, saeulen: s.saeulen.length }, p, this.e, w, this.optionen, zs.endeArt === 'brand');
     this.zeigeSteuerung();
+    this.zeigeLuftmenge(zs, p);
     if (this.ampel) return this.zeichneAmpel(zs, p);
     const vor = alter == null ? '' : alter === 0 ? 'eben gemessen' : `gemessen vor ${alter} h`;
-    $('.hs-bild', r).setAttribute('aria-label', sicht
-      ? `Heustock mit ${s.n} Schichten, ${vor}: ${sicht.schichten.map((x, i) => `Schicht ${i + 1} ${z(x.ts)} % TS, ${z(x.temp)} °C`).join('; ')}`
-      : `Heustock mit ${s.n} Schichten, noch nicht gemessen`);
-    const mTs = sicht ? { ts: 100 / (1 + sicht.schichten.reduce((a, x) => a + uAusTs(x.ts), 0) / sicht.schichten.length), tsMin: Math.min(...sicht.schichten.map((x) => x.ts)), temp: Math.max(...sicht.schichten.map((x) => x.temp)) } : null;
+    $('.hs-bild', r).setAttribute('aria-label', da.length
+      ? `Heustock, ${z(zs.hoehe, 1)} m hoch. ${stellen.map((x, i) => (x ? `${SAEULEN[i]}, gemessen vor ${s.t - x.t} Stunden: ${x.schichten.map((y, j) => `Schicht ${j + 1} ${z(y.ts)} % TS, ${z(y.temp)} °C`).join('; ')}` : `${SAEULEN[i]} nicht gemessen`)).join('. ')}`
+      : `Heustock, ${z(zs.hoehe, 1)} m hoch, noch nicht gemessen`);
+    const mTs = da.length ? { ts: 100 / (1 + alle.reduce((a, x) => a + uAusTs(x.ts), 0) / alle.length), tsMin: Math.min(...alle.map((x) => x.ts)), temp: Math.max(...alle.map((x) => x.temp)), teil: da.length < 3 } : null;
 
     const pos = (v) => `${Math.min(100, Math.max(0, (v - 50) / (95 - 50) * 100))}%`;
     const ts = $('.messer.hs-ts', r);
@@ -329,7 +388,7 @@ export class HeustockSpiel {
     ts.querySelector('.ziel').style.left = pos(ANLAGE.lagerTs);
     ts.querySelector('.ziel').style.width = `calc(${pos(95)} - ${pos(ANLAGE.lagerTs)})`;
     ts.querySelector('.nadel').style.left = pos(mTs?.ts ?? 50);
-    ts.querySelector('small').textContent = mTs ? `feuchteste Schicht ${z(mTs.tsMin, 1)} % · ${vor} · lagerfähig ab ${ANLAGE.lagerTs} %` : `Heusonde stecken · lagerfähig ab ${ANLAGE.lagerTs} %`;
+    ts.querySelector('small').textContent = mTs ? `feuchteste Schicht ${z(mTs.tsMin, 1)} % · ${vor}${mTs.teil ? ' · nicht alle Stellen' : ''} · lagerfähig ab ${ANLAGE.lagerTs} %` : `Heusonde stecken · lagerfähig ab ${ANLAGE.lagerTs} %`;
     ts.classList.toggle('im-ziel', s.lagerfaehig);
     ts.classList.toggle('ungemessen', !mTs);
 
@@ -355,6 +414,24 @@ export class HeustockSpiel {
     luft('.hs-ab', laeuft ? p.abT : null, p?.abRh, laeuft ? (p.abRh > 90 ? 'fast gesättigt: das Heu ist noch feucht' : p.abRh < 50 ? 'unter 50 %: fast lagerfähig' : 'über dem Heu gemessen') : 'Lüfter steht');
     r.querySelector('.hs-rechnen-auf').disabled = !laeuft || this.fertig;
     r.querySelector('.hs-auto').disabled = this.fertig || this.auto;
+  }
+
+  // Luftmenge: was der Lüfter gegen den Widerstand des Stocks tatsächlich bringt
+  zeigeLuftmenge(zs, p) {
+    const m = $('.messer.hs-menge', this.root), s = this.stock, laeuft = p?.f > 0, a = zs.luftAnteil;
+    const steht = { einfuellen: 'Lüfter startet nach dem Einfüllen', sicherung: 'Sicherung gefallen', stromausfall: 'Stromausfall' }[zs.sperre];
+    m.querySelector('i').style.width = `${Math.round(100 * (laeuft || !p ? a : 0))}%`;
+    if (this.ampel) {
+      ['gelb', 'gruen', 'rot', 'aus'].forEach((x) => m.classList.toggle(`ampel-${x}`, x === (steht ? 'rot' : !laeuft && p ? 'aus' : a < 0.7 ? 'rot' : a < 0.9 ? 'gelb' : 'gruen')));
+      m.querySelector('span').textContent = 'Kommt genug Luft durch?';
+      m.querySelector('strong').textContent = steht ? 'nein!' : !laeuft && p ? 'Lüfter steht' : a < 0.7 ? 'zu wenig' : a < 0.9 ? 'knapp' : 'ja';
+      m.querySelector('small').textContent = steht ?? 'Durch einen hohen, nassen Stock kommt weniger Luft.';
+      return;
+    }
+    m.querySelector('span').textContent = 'Luftmenge';
+    m.querySelector('strong').textContent = steht ? 'Lüfter steht' : `${z(a * 100)} % vom Soll`;
+    m.querySelector('small').textContent = steht ?? `${z(zs.luftV * s.flaeche, 1)} m³/s · ${LUEFTER[zs.luefter].name}${this.optionen.rechnen ? ` · Druck ${z(zs.druck)} Pa` : ''} · Stock ${z(zs.hoehe, 1)} m`;
+    m.classList.toggle('warnung', !!steht || a < 0.9);
   }
 
   // Niveau Einstieg: dieselben Messer, aber mit Ampelfarbe und einem kurzen Wort statt der Zahl
@@ -395,7 +472,7 @@ export class HeustockSpiel {
     const p = this.stock.letzteLuft;
     if (!p || !(p.f > 0) || !this.optionen.rechnen) return;
     if (!this.pause) this.setzeTempo(0);
-    const d = $('#hs-rechnen'), V = ANLAGE.luft * this.stock.flaeche;
+    const d = $('#hs-rechnen'), V = (p.v ?? ANLAGE.luft) * this.stock.flaeche; // tatsächliche Luftmenge
     // gerundete Messwerte, wie angezeigt: damit rechnen die Lernenden
     const m = { zuT: +p.zuT.toFixed(1), zuRh: Math.round(p.zuRh), abT: +p.abT.toFixed(1), abRh: Math.round(p.abRh), V: +V.toFixed(1) };
     this.messung = { ...m, p, aussen: { t: p.aussenT, rh: p.aussenRh } };
@@ -434,34 +511,39 @@ export class HeustockSpiel {
   }
 }
 
-// ---------- Bild des Heustocks (SVG, Farben über CSS-Variablen)
-// sicht: { schichten: [{ ts, temp }], alter } aus der letzten Messung, oder null (noch nie gemessen)
-function stockBild(sicht, n, p, e, w, opt, brennt = false) {
-  const B = 360, H = 230, x0 = 70, x1 = 290, yRost = 190, yOben = 50;
-  const schichten = sicht?.schichten ?? Array.from({ length: n }, () => null), altKlasse = sicht && sicht.alter >= 24 ? ' hs-alt' : '';
-  const hS = (yRost - yOben) / n, laeuft = p?.f > 0, nacht = w.rad <= 0;
+// ---------- Bild des Heustocks (SVG, Farben über CSS-Variablen): drei Messstellen nebeneinander
+// sicht: { stellen: [{ t, schichten: [{ ts, temp }] } | null ×3], hoehen (m je Stelle), jetzt, laeuft, v, saeulen }
+function stockBild(sicht, p, e, w, opt, brennt = false) {
+  const B = 360, H = 230, x0 = 70, x1 = 290, yRost = 190, yOben = 46, bS = (x1 - x0) / 3;
+  const laeuft = p?.f > 0, nacht = w.rad <= 0, hMax = Math.max(...sicht.hoehen, 0.5);
   const teile = [];
   // Dach mit Sonne (Warmluft) und Gebäude
   teile.push(`<path d="M40 40 L180 4 L320 40" fill="none" stroke="var(--leise)" stroke-width="4"/>`);
   if (opt.dach) teile.push(`<path d="M60 34 L180 10 L300 34" fill="none" stroke="${e.dach && laeuft && !nacht ? 'var(--sonne)' : 'var(--linie)'}" stroke-width="6" stroke-linecap="round"><title>Dachkollektor</title></path>`);
   teile.push(`<rect x="${x0 - 4}" y="${yOben - 4}" width="${x1 - x0 + 8}" height="${yRost - yOben + 8}" fill="none" stroke="var(--leise)" stroke-width="2" rx="4"/>`);
-  schichten.forEach((s, i) => {
-    const y = yRost - (i + 1) * hS;
-    if (!s) {
-      teile.push(`<rect x="${x0}" y="${y}" width="${x1 - x0}" height="${hS}" class="hs-ungemessen" stroke="var(--karte)" stroke-width="1"/><text x="${(x0 + x1) / 2}" y="${y + hS / 2 + 6}" text-anchor="middle" class="hs-schicht">?</text>`);
-      return;
-    }
-    const nass = Math.min(1, Math.max(0, (uAusTs(s.ts) - uAusTs(87)) / (uAusTs(55) - uAusTs(87))));
-    teile.push(`<rect x="${x0}" y="${y}" width="${x1 - x0}" height="${hS}" fill="var(--gelb)"/><rect x="${x0}" y="${y}" width="${x1 - x0}" height="${hS}" fill="var(--gruen-dunkel)" fill-opacity="${(0.15 + 0.8 * nass).toFixed(2)}"${s.temp > 35 ? ' stroke="var(--rot)" stroke-width="3"' : ''}/>`);
-    const text = opt.ampel ? `${s.ts >= ANLAGE.lagerTs ? 'trocken' : s.ts >= ANLAGE.lagerTs - 5 ? 'fast trocken' : 'feucht'}${s.temp > 35 ? ' · warm!' : ''}` : `${z(s.ts)} % · ${z(s.temp)} °C`;
-    teile.push(`<text x="${(x0 + x1) / 2}" y="${y + hS / 2 + 6}" text-anchor="middle" class="hs-schicht${altKlasse}">${text}</text>`);
+  sicht.stellen.forEach((st, k) => {
+    const xa = x0 + k * bS, hPx = (yRost - yOben) * sicht.hoehen[k] / hMax, n = st?.schichten.length ?? 1, hS = hPx / n;
+    const alt = st && sicht.jetzt - st.t >= 24 ? ' hs-alt' : '';
+    if (!st) {
+      teile.push(`<rect x="${xa}" y="${yRost - hPx}" width="${bS}" height="${hPx}" class="hs-ungemessen" stroke="var(--karte)" stroke-width="1"/><text x="${xa + bS / 2}" y="${yRost - hPx / 2 + 6}" text-anchor="middle" class="hs-schicht">?</text>`);
+    } else st.schichten.forEach((s, i) => {
+      const y = yRost - (i + 1) * hS;
+      const nass = Math.min(1, Math.max(0, (uAusTs(s.ts) - uAusTs(87)) / (uAusTs(55) - uAusTs(87))));
+      teile.push(`<rect x="${xa}" y="${y}" width="${bS}" height="${hS}" fill="var(--gelb)"/><rect x="${xa}" y="${y}" width="${bS}" height="${hS}" fill="var(--gruen-dunkel)" fill-opacity="${(0.15 + 0.8 * nass).toFixed(2)}" stroke="${s.temp > 35 ? 'var(--rot)' : 'var(--karte)'}" stroke-width="${s.temp > 35 ? 3 : 0.5}"/>`);
+      const text = opt.ampel ? `${s.ts >= ANLAGE.lagerTs ? 'trocken' : s.ts >= ANLAGE.lagerTs - 5 ? 'fast' : 'feucht'}${s.temp > 35 ? '!' : ''}` : `${z(s.ts)} % · ${z(s.temp)}°`;
+      if (hS >= 14) teile.push(`<text x="${xa + bS / 2}" y="${y + hS / 2 + 5}" text-anchor="middle" class="hs-schicht klein${alt}">${text}</text>`);
+    });
+    teile.push(`<text x="${xa + bS / 2}" y="${yRost + 34}" text-anchor="middle" class="hs-stelle">${SAEULEN[k]}${st && !opt.ampel ? ` · ${sicht.jetzt - st.t === 0 ? 'jetzt' : `vor ${sicht.jetzt - st.t} h`}` : ''}</text>`);
   });
   if (brennt) teile.push(`<text x="${(x0 + x1) / 2}" y="${yOben - 14}" text-anchor="middle" class="hs-klein" fill="var(--rot)">Brand!</text>`);
-  // Rost, Lüfter, Pfeile
+  // Rost, Lüfter, Pfeile (dicker, wo mehr Luft durchgeht: Kamin)
   teile.push(`<line x1="${x0}" x2="${x1}" y1="${yRost + 6}" y2="${yRost + 6}" stroke="var(--leise)" stroke-width="3" stroke-dasharray="6 4"/>`);
   teile.push(`<g class="hs-luefter${laeuft ? ' dreht' : ''}" transform="translate(32 ${yRost + 4})"><circle r="20" fill="var(--karte)" stroke="var(--leise)" stroke-width="3"/><path d="M0 0 L0 -15 A15 15 0 0 1 13 -7 Z M0 0 L13 7 A15 15 0 0 1 -0 15 Z M0 0 L-13 7 A15 15 0 0 1 -13 -7 Z" fill="var(--blau)"/><title>Lüfter</title></g>`);
   if (laeuft) {
-    for (const x of [110, 180, 250]) teile.push(`<path d="M${x} ${yRost + 22} L${x} ${yOben - 14}" class="hs-pfeil" stroke="var(--blau)" stroke-width="3" fill="none" marker-end="url(#hs-spitze)"/>`);
+    [0, 1, 2].forEach((k) => {
+      const v = sicht.v[Math.min(k, sicht.v.length - 1)], x = x0 + (k + 0.5) * bS, yTop = yRost - (yRost - yOben) * sicht.hoehen[k] / hMax;
+      teile.push(`<path d="M${x} ${yRost + 20} L${x} ${yTop - 12}" class="hs-pfeil" stroke="var(--blau)" stroke-width="${Math.max(1, Math.min(7, 3 * v / ANLAGE.luft)).toFixed(1)}" fill="none" marker-end="url(#hs-spitze)"/>`);
+    });
   }
   if (laeuft && !opt.ampel) {
     teile.push(`<text x="${x1 + 8}" y="${yOben + 20}" class="hs-klein leise">Abluft</text><text x="${x1 + 8}" y="${yOben + 38}" class="hs-klein">${z(p.abRh)} %</text>`);
@@ -469,4 +551,3 @@ function stockBild(sicht, n, p, e, w, opt, brennt = false) {
   }
   return `<svg viewBox="0 0 ${B} ${H}" class="hs-svg" aria-hidden="true"><defs><marker id="hs-spitze" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="var(--blau)"/></marker></defs>${teile.join('')}</svg>`;
 }
-

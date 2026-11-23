@@ -5,7 +5,7 @@ import { Heustock, LUFT, ANLAGE, uAusTs } from './belueftung.js';
 // Ein Stock mit überall gleicher TS, belüftet mit Luft von `temp` °C und `rh` % (ohne Sonne); Mittel über `stunden`
 export function konstant({ ts, temp = 20, rh, stunden = 1, dach = false, entfeuchter = false, luefter = 'dauer', belegung = null }) {
   const wetter = Array.from({ length: stunden + 2 }, (_, t) => ({ t, temp, rh, rad: dach ? 700 : 0, regen: 0 }));
-  const h = new Heustock({ dmFeld: 0.3, ts, t0: 0, wetter });
+  const h = new Heustock({ dmFeld: 0.3, ts, t0: 0, wetter, luftFest: true }); // Prüfstand: feste Soll-Luftmenge
   if (belegung) for (const s of h.schichten) s.dm = belegung / h.n;
   for (const s of h.schichten) s.temp = temp;
   h.t0 = -100; // keine Startregel (24 h Dauerbetrieb), damit die Betriebsart wirkt

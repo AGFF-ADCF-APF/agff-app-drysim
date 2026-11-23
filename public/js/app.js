@@ -11,6 +11,7 @@ import { BEGRIFFE, mitBegriffen } from './begriffe.js';
 import { Assistent } from './assistent.js';
 import { KARTEN_GRAFIK } from './grafik.js';
 import { HeustockSpiel, feldAusRunde } from './heustock.js';
+import { Heustock, BOX, LUEFTER, ANLAGE, PREISE, fuellhoehe, schuetthoeheUrteil, druckSchaetzung, pannenAus } from './belueftung.js';
 import { niveau, info as niveauInfo, gueltig as niveauGueltig, zeigt, karteSichtbar, beiWechsel, baueNiveauWahl, setzeNiveau } from './niveau.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -91,7 +92,10 @@ $('#begriffe-auf').addEventListener('click', () => dialogOeffnen($('#begriffe'))
 // Schnitt- und Zinkenhöhen ohne Vorgabe: die Spieler müssen sie selbst einstellen
 const PFLICHT = { schnitthoehe: 'cm', zetterHoehe: 'cm über Boden', schwaderHoehe: 'cm über Boden' };
 const PFLICHT_NAME = { schnitthoehe: 'Schnitthöhe', zetterHoehe: 'Zinkenhöhe Kreiselzetter', schwaderHoehe: 'Zinkenhöhe Schwader' };
-const wahl = { ...GRUNDPLAN, wetter: 'hoch', modus: 'live', schnitthoehe: null, zetterHoehe: null, schwaderHoehe: null };
+// Anlage der Heubelüftung (anl…): Standardlüfter, Warmdach, ohne Entfeuchter, passende Box
+const ANLAGE_WAHL = { anlLuefter: 'standard', anlDach: true, anlEntf: false, anlBox: 'passend' };
+const ANLAGE_FELD = { luefter: 'anlLuefter', dach: 'anlDach', entfeuchter: 'anlEntf', box: 'anlBox' };
+const wahl = { ...GRUNDPLAN, ...ANLAGE_WAHL, wetter: 'hoch', modus: 'live', schnitthoehe: null, zetterHoehe: null, schwaderHoehe: null };
 const setup = $('#setupform');
 const BESCHREIBUNG = {
   bestand: {
@@ -133,6 +137,20 @@ const OPTIONEN = {
   stadium: Object.entries(STADIEN).map(([k, v]) => ({ wert: Number(k), titel: v.name, text: BESCHREIBUNG.stadium[k], extra: stadiumBild(Number(k)) })),
   boden: [{ wert: 'eben', titel: 'Eben und sauber', extra: bodenBild('eben') }, { wert: 'maulwurf', titel: 'Maulwurfshaufen', extra: bodenBild('maulwurf') }],
   modus: [{ wert: 'live', titel: 'Live: die Uhr läuft' }, { wert: 'ruhig', titel: 'Ruhig: du bestimmst, wann die Zeit weiterläuft' }],
+  anlLuefter: [
+    { wert: 'standard', titel: 'Standardlüfter', text: `${z(LUEFTER.standard.kw, 2)} kW je m² Box. Reicht für eine normale Füllhöhe.`, textEinfach: 'Reicht für eine normale Füllhöhe.' },
+    { wert: 'stark', titel: 'Starker Lüfter', text: `Mehr Druck für hohe, nasse oder kleereiche Stöcke. ${z(LUEFTER.stark.kw, 2)} kW je m² Box: mehr Strom, teurer.`, textEinfach: 'Mehr Druck für hohe, nasse Stöcke. Braucht mehr Strom und kostet mehr.' },
+  ],
+  anlDach: [
+    { wert: true, titel: 'Mit Dachabsaugung', text: 'Die Sonne wärmt die Luft unter dem Dach vor: Das Heu trocknet schneller und mit weniger Strom.' },
+    { wert: false, titel: 'Ohne Warmluft', text: 'Reine Kaltbelüftung. Bei feuchtem Wetter dauert es lange.' },
+  ],
+  anlEntf: [
+    { wert: false, titel: 'Ohne Entfeuchter', text: 'Nachts und bei Regen trocknet das Heu kaum.' },
+    { wert: true, titel: 'Mit Entfeuchter', text: 'Trocknet auch nachts und bei Regen. Braucht viel Strom; unter 10 °C oder bei trockener Luft kostet er nur.' },
+  ],
+  anlBox: Object.entries(BOX).map(([k, b]) => ({ wert: k, titel: `${b.name.replace(/^./, (c) => c.toUpperCase())}: ${b.m2JeHa * ANLAGE.feldHa} m²`,
+    text: { klein: 'Wenig Fläche für die Parzelle: Der Stock wird hoch.', passend: `${b.m2JeHa} m² je Hektare, wie die Beratung empfiehlt.`, gross: 'Viel Fläche: niedriger Stock, aber mehr Lüfterleistung und teurer.' }[k] })),
 };
 
 // Kleine Punkteskala für Zucker, Eiweiss und Silierbarkeit
@@ -203,6 +221,7 @@ const SK = 'drysim-einstellungen';
 const GUELTIG = {
   wetter: (v) => v === 'zufall' || WETTER.some((w) => w.id === v),
   bestand: (v) => v in BESTAENDE, stadium: (v) => String(v) in STADIEN, boden: (v) => ['eben', 'maulwurf'].includes(v),
+  anlLuefter: (v) => v in LUEFTER, anlDach: (v) => typeof v === 'boolean', anlEntf: (v) => typeof v === 'boolean', anlBox: (v) => v in BOX,
   aufbereiter: (v) => v in AUFBEREITER, ablage: (v) => typeof v === 'number' && v >= 30 && v <= 100, siloart: (v) => v in SILOARTEN, modus: (v) => ['live', 'ruhig'].includes(v),
   schnitthoehe: (v) => v === null || (typeof v === 'number' && v >= 4 && v <= 12),
   zetterHoehe: (v) => v === null || (typeof v === 'number' && v >= 0 && v <= 8),
@@ -240,8 +259,42 @@ function aktualisiereOffen() {
   $('#schritt-maschinen').classList.toggle('fertig', !fehlt.length);
   speichereEinstellungen();
 }
+// Anlage der Heubelüftung: nur bei Belüftungsheu, je Niveau mehr oder weniger zu wählen (Tabelle in niveau.js).
+// Die Füllhöhe ergibt sich aus Ertrag, Parzelle (2 ha), Boxfläche und Raumgewicht; nach Feldverlusten bleiben rund 94 % des Ertrags.
+function zeigeAnlage() {
+  const felder = zeigt('belueftung.anlage') ?? [], belueft = wahl.siloart === 'belueftung';
+  for (const [k, f] of Object.entries(ANLAGE_FELD)) if (!felder.includes(k)) wahl[f] = ANLAGE_WAHL[f]; // nicht wählbar: vorgegeben
+  const offen = belueft && felder.length > 0;
+  $('#s-anlage').hidden = !offen; $('#schritt-anlage').hidden = !offen;
+  if (!offen) return;
+  for (const [k, f] of Object.entries(ANLAGE_FELD)) {
+    setup.querySelector(`[data-anlage="${k}"]`).hidden = !felder.includes(k);
+    setup.querySelectorAll(`[data-feld="${f}"] button`).forEach((b, i) => b.setAttribute('aria-pressed', String(OPTIONEN[f][i].wert === wahl[f])));
+  }
+  const dm = Number(setup.ertrag.value) / 100 * 0.94, h = fuellhoehe(dm, wahl.anlBox), urteil = schuetthoeheUrteil(h, wahl.bestand);
+  const el = $('#fuellhoehe');
+  el.className = `fuellhoehe ${{ gut: 'gut', hoch: 'achtung', zuHoch: 'warnung', niedrig: 'achtung' }[urteil]}`;
+  el.textContent = `Diese Ernte (${setup.ertrag.value} dt TS/ha von ${ANLAGE.feldHa} ha) ergibt in dieser Box rund ${z(h)} m Heu. ` + {
+    gut: 'Das passt: Für eine Charge gelten 1 bis 2 m als Richtwert.',
+    hoch: 'Das ist viel für eine Charge: Richtwert 1 bis 2 m, höchstens 3 m. Je feuchter das Heu, desto weniger darf hinein.',
+    zuHoch: `Zu hoch für eine Charge: höchstens 3 m, bei Klee und sehr jungem Futter 2 m. Die Luft kommt schlecht durch${felder.includes('box') ? '' : ' – ein starker Lüfter hilft etwas'}.`,
+    niedrig: 'Wenig Heu auf viel Fläche: Die erste Schicht sollte mindestens 1 m hoch sein, sonst entweicht Luft ungenutzt.',
+  }[urteil];
+  const profi = $('#anlage-profi');
+  if (!zeigt('belueftung.kennlinie')) { profi.innerHTML = ''; return; }
+  const d = (ts) => druckSchaetzung({ hoehe: h, bestand: wahl.bestand, ts, dach: wahl.anlDach, entfeuchter: wahl.anlEntf, luefter: wahl.anlLuefter });
+  const zeile = (ts) => { const x = d(ts); return `<tr><th scope="row">Heu mit ${ts} % TS</th><td>${z(x.stock, 0)} Pa Stock + ${z(x.anlage, 0)} Pa Anlage = ${z(x.bedarf, 0)} Pa</td><td>${x.reicht ? 'reicht' : '<b>reicht nicht für die Soll-Luftmenge</b>'}</td></tr>`; };
+  const fix = wahl.anlDach && wahl.anlEntf ? PREISE.fixDachEntf : wahl.anlEntf ? PREISE.fixEntf : wahl.anlDach ? PREISE.fixDach : PREISE.fixKalt;
+  profi.innerHTML = `<h3>Kennlinie und Kosten</h3><table class="rechnung"><tbody>
+    <tr><th scope="row">${LUEFTER[wahl.anlLuefter].name}</th><td colspan="2">bringt die Soll-Luftmenge von ${z(ANLAGE.luft, 2)} m³/s je m² bis ${z(d(65).luefter, 0)} Pa; ${z(LUEFTER[wahl.anlLuefter].kw * BOX[wahl.anlBox].m2JeHa * ANLAGE.feldHa)} kW</td></tr>
+    ${[55, 65, 75].map(zeile).join('')}
+    <tr><th scope="row">Festkosten der Anlage</th><td colspan="2">rund ${z(fix.wert * BOX[wahl.anlBox].m2JeHa / BOX.passend.m2JeHa + (wahl.anlLuefter === 'stark' ? PREISE.stark.wert : 0))} Fr. je t Heu, dazu Strom (${z(PREISE.strom.wert, 2)} Fr. je kWh, Annahme)</td></tr>
+  </tbody></table><p class="hinweis">Druckbedarf: 160 Pa je Meter Stockhöhe (kleereich 240, gräserreich 120), Dachabsaugung und Entfeuchter je 120 Pa (LK Salzburg); nasses Heu braucht mehr (Annahme). ${einstellungenPannen() ? 'Pannen sind eingeschaltet (abschalten mit ?pannen=aus in der Adresse).' : ''}</p>`;
+}
+const einstellungenPannen = () => !!zeigt('belueftung.pannen') && new URLSearchParams(location.search).get('pannen') !== 'aus';
 const nachWahl = (feld, wert) => {
   $('.code', setup).hidden = wahl.wetter !== 'zufall';
+  zeigeAnlage();
   maschinenBilder();
   aktualisiereOffen();
   if (feld) lerntipp(feld, wert);
@@ -265,7 +318,7 @@ for (const feld of Object.keys(PFLICHT)) {
   reglerAnzeige(feld);
 }
 setup.ablage.addEventListener('input', () => { wahl.ablage = Number(setup.ablage.value); maschinenBilder(); aktualisiereOffen(); reglerTipp('ablage'); });
-setup.ertrag.addEventListener('input', () => { setup.ertragAus.value = `${setup.ertrag.value} dt TS/ha`; setup.ertrag.setAttribute('aria-valuetext', setup.ertragAus.value); maschinenBilder(); aktualisiereOffen(); });
+setup.ertrag.addEventListener('input', () => { setup.ertragAus.value = `${setup.ertrag.value} dt TS/ha`; setup.ertrag.setAttribute('aria-valuetext', setup.ertragAus.value); maschinenBilder(); zeigeAnlage(); aktualisiereOffen(); });
 setup.name.addEventListener('input', speichereEinstellungen);
 setup.code.addEventListener('input', speichereEinstellungen);
 document.querySelectorAll('[data-sprung]').forEach((b) => b.addEventListener('click', () => {
@@ -287,7 +340,8 @@ function einsatzNiveau(wechsel = false) {
   setup.classList.toggle('kurz', kurz);
   $('#mehr-einstellen').hidden = !kurz;
   if (!kurz) { setup.classList.remove('mehr-offen'); $('#mehr-knopf').setAttribute('aria-expanded', 'false'); }
-  ['siloart', 'modus'].forEach((f) => baueWahl($(`[data-feld="${f}"]`, setup), f, wahl, nachWahl));
+  ['siloart', 'modus', ...Object.values(ANLAGE_FELD)].forEach((f) => baueWahl($(`[data-feld="${f}"]`, setup), f, wahl, nachWahl));
+  zeigeAnlage();
   maschinenBilder();
   aktualisiereOffen();
 }
@@ -312,11 +366,12 @@ einsatzNiveau(!lies(sessionStorage, SK));
   }
 }
 $('.code', setup).hidden = wahl.wetter !== 'zufall';
+zeigeAnlage();
 maschinenBilder();
 aktualisiereOffen();
 
 // ---------- Traktor-Assistent: Lernhilfe je Schritt, Abschnitt und Einstellung
-const ABSCHNITT = { 's-wetter': 'setup.wetter', 's-wiese': 'setup.wiese', 's-maschinen': 'setup.maschinen', 's-silo': 'setup.silo' };
+const ABSCHNITT = { 's-wetter': 'setup.wetter', 's-wiese': 'setup.wiese', 's-maschinen': 'setup.maschinen', 's-silo': 'setup.silo', 's-anlage': 'setup.anlage' };
 let letzterAbschnitt = null;
 function assistentFuer(id) {
   const k = { start: 'start', wetten: 'wetten' }[id];
@@ -341,6 +396,7 @@ Assistent.beiOeffnen = () => { if (spiel && !spiel.plan && !spiel.pause && !spie
 function lerntipp(feld, wert) {
   const key = {
     aufbereiter: `setup.aufb.${wert}`, siloart: `setup.silo.${wert}`,
+    anlLuefter: `setup.anlage.luefter.${wert}`, anlDach: `setup.anlage.dach.${wert}`, anlEntf: wert ? 'setup.anlage.entfeuchter' : null, anlBox: `setup.anlage.box.${wert}`,
     bestand: `setup.bestand.${wert}`, stadium: `setup.stadium.${wert}`, boden: wert === 'maulwurf' ? 'setup.boden.maulwurf' : null,
   }[feld];
   if (key) Assistent.hinweis(key);
@@ -386,8 +442,44 @@ function starteSpiel({ einstellungen, sz, wetterRef = null, plan = null, tipp = 
   spiel = new Spiel($('#spiel'), {
     setup: einstellungen, wetterSzenario: sz, wetterRef, plan, resume,
     onEnde: (res, feld, feldLog) => (res.plan.siloart === 'belueftung' && !plan && feld
-      ? starteHeustock({ feld, einstellungen, sz, wetterRef, feldLog })
+      ? fuelleEin(feld, einstellungen).then(() => starteHeustock({ feld, einstellungen, sz, wetterRef, feldLog }))
       : zeigeErgebnis(res, sz, tipp, einstellungen)),
+  });
+}
+
+// ---------- Einfüllen: Schritt zwischen Einfahren und Belüften (Dialog). Die Wahl gehört zu den Einstellungen der Runde
+// und wird mit ihnen gesichert. Im Einstieg wird automatisch richtig eingefüllt.
+const EF_OPTIONEN = {
+  lagen: [{ wert: 1, titel: 'Alles auf einmal', text: 'Die ganze Ernte kommt jetzt in die Box.' },
+    { wert: 2, titel: 'In zwei Lagen', text: 'Jetzt die Hälfte. Der Rest wartet locker ausgebreitet und kommt nach zwei bis drei Belüftungstagen obendrauf (Knopf «Nachfüllen»).' }],
+  verteilen: [{ wert: true, titel: 'Gleichmässig verteilen', text: 'Eine Stunde mehr Arbeit: überall gleich hoch und locker.' },
+    { wert: false, titel: 'Abladen, wie es kommt', text: 'Geht schnell. An der Abladestelle liegt das Heu höher und dichter.' }],
+  start: [{ wert: 'sofort', titel: 'Lüfter läuft beim Einfüllen', text: 'Die Luft hält das Heu locker und kühl.' },
+    { wert: 'danach', titel: 'Lüfter erst nach dem Einfüllen', text: 'Ruhiger zum Arbeiten. Das feuchte Heu liegt drei Stunden ohne Luft.' }],
+};
+function fuelleEin(feld, einstellungen) {
+  const felder = zeigt('belueftung.einfuellen') ?? [];
+  const ef = { lagen: 1, verteilen: true, start: 'sofort' };
+  einstellungen.einfuellen = ef; feld.p.einfuellen = ef;
+  if (!felder.length) return Promise.resolve();
+  const d = $('#einfuellen'), start = feld.heustockStart();
+  const zeichne = () => {
+    const probe = new Heustock({ ...start, einfuellen: ef }), L = probe.luftmengen(), urteil = schuetthoeheUrteil(probe.hoehe, einstellungen.bestand);
+    const el = $('#einfuellen-hoehe');
+    el.className = `fuellhoehe ${{ gut: 'gut', hoch: 'achtung', zuHoch: 'warnung', niedrig: 'achtung' }[urteil]}`;
+    el.textContent = `So liegt das Heu ${ef.verteilen ? '' : 'an der höchsten Stelle '}${z(probe.hoehe)} m hoch${ef.lagen === 2 ? ' (erste Lage)' : ''}. `
+      + { gut: 'Das passt für eine Charge (Richtwert 1 bis 2 m).', hoch: 'Viel für eine Charge: Richtwert 1 bis 2 m, höchstens 3 m.', zuHoch: 'Zu hoch für eine Charge: Die Luft kommt schlecht durch.', niedrig: 'Niedrig: Unter 1 m entweicht Luft ungenutzt.' }[urteil]
+      + (L.anteil < 0.95 ? ` Der ${LUEFTER[probe.luefter].name} schafft dagegen nur ${z(L.anteil * 100, 0)} % der Soll-Luftmenge.` : ' Der Lüfter bringt die volle Luftmenge.');
+  };
+  $('#einfuellen-lage').textContent = `${z(new Heustock(start).mengeTonnen())} t Heu mit ${z(start.ts)} % TS sind eingefahren. Die Box hat ${BOX[start.anlage?.box ?? 'passend'].m2JeHa * ANLAGE.feldHa} m².`;
+  for (const k of Object.keys(EF_OPTIONEN)) {
+    d.querySelector(`[data-ef="${k}"]`).hidden = !felder.includes(k);
+    baueWahl(d.querySelector(`[data-feld="${k}"]`), EF_OPTIONEN[k], ef, zeichne);
+  }
+  zeichne();
+  return new Promise((fertig) => {
+    d.addEventListener('close', () => fertig(), { once: true });
+    d.showModal();
   });
 }
 
@@ -396,7 +488,7 @@ function starteHeustock({ feld, einstellungen, sz, wetterRef, feldLog, resume = 
   zeige('heustock');
   spiel = new HeustockSpiel($('#heustock'), {
     // Was der Heustock je Niveau zeigt (Tabelle in niveau.js): Einstieg ohne Entfeuchter, Rechenaufgabe nur wo vorgesehen
-    feld, setup: { ...einstellungen, belueftungOptionen: { entfeuchter: zeigt('belueftung.steuerung') !== 'ein-aus', rechnen: !!zeigt('belueftung.aufgabe'), ampel: zeigt('belueftung.anzeige') === 'ampel', messen: zeigt('belueftung.messen'), ernstfall: zeigt('belueftung.ernstfall') } },
+    feld, setup: { ...einstellungen, belueftungOptionen: { entfeuchter: zeigt('belueftung.steuerung') !== 'ein-aus', rechnen: !!zeigt('belueftung.aufgabe'), ampel: zeigt('belueftung.anzeige') === 'ampel', messen: zeigt('belueftung.messen'), ernstfall: zeigt('belueftung.ernstfall'), eingriffe: zeigt('belueftung.eingriffe') } },
     wetterSzenario: sz, wetterRef, feldLog, resume,
     onEnde: (lauf) => zeigeErgebnis(feld.bewerte(lauf), sz, null, einstellungen),
   });
@@ -412,6 +504,10 @@ setup.addEventListener('submit', (ev) => {
   }
   const wetterRef = { id: wahl.wetter, code: setup.code.value.trim().toUpperCase() };
   const einstellungen = { ...wahl, ertrag: Number(setup.ertrag.value), name: setup.name.value.trim(), niveau: niveau() };
+  if (wahl.siloart === 'belueftung') {
+    einstellungen.anlage = { luefter: wahl.anlLuefter, dach: wahl.anlDach, entfeuchter: wahl.anlEntf, box: wahl.anlBox };
+    if (einstellungenPannen()) einstellungen.pannen = pannenAus(`${wetterRef.id}${wetterRef.code}`);
+  }
   starteSpiel({ einstellungen, sz: wetterVon(wetterRef.id, wetterRef.code), wetterRef });
 });
 

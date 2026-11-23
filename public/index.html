@@ -119,6 +119,7 @@
         <button type="button" data-sprung="s-wiese"><span>2</span> Wiese</button>
         <button type="button" data-sprung="s-maschinen" id="schritt-maschinen"><span>3</span> Maschinen</button>
         <button type="button" data-sprung="s-silo"><span>4</span> Silage/Heu</button>
+        <button type="button" data-sprung="s-anlage" id="schritt-anlage" hidden><span>5</span> Anlage</button>
       </nav>
       <div class="karte" id="s-wetter">
         <h2>1 · Wetterbericht</h2>
@@ -185,6 +186,16 @@
         <h3 class="unter">Wie willst du spielen?</h3>
         <div class="chips" data-feld="modus"></div>
         <label class="name">Name oder Team <input name="name" maxlength="30" placeholder="für die Rangliste" autocomplete="nickname" autocapitalize="words" enterkeyhint="done"></label>
+      </div>
+      <div class="karte" id="s-anlage" hidden>
+        <h2>5 · Heubelüftung: deine Anlage</h2>
+        <p class="hinweis" id="anlage-hinweis">Die Anlage gilt für die ganze Runde. Was der Betrieb nicht hat, lässt sich während der Belüftung nicht zuschalten.</p>
+        <div class="anlage-feld" data-anlage="luefter"><h3>Lüfter</h3><div class="wahl" data-feld="anlLuefter"></div></div>
+        <div class="anlage-feld" data-anlage="dach"><h3>Warmluft</h3><div class="wahl" data-feld="anlDach"></div></div>
+        <div class="anlage-feld" data-anlage="entfeuchter"><h3>Entfeuchter</h3><div class="wahl" data-feld="anlEntf"></div></div>
+        <div class="anlage-feld" data-anlage="box"><h3>Boxfläche</h3><div class="wahl" data-feld="anlBox"></div></div>
+        <p class="fuellhoehe" id="fuellhoehe" role="status"></p>
+        <div id="anlage-profi"></div>
       </div>
       <div class="startleiste">
         <p class="offen" id="offen" role="status"></p>
@@ -255,6 +266,7 @@
         <div class="messer hs-temp"><span>Stocktemperatur</span><strong></strong><div class="balken"><i></i></div><small></small></div>
         <div class="messer hs-wasser"><span>Wasserentzug</span><strong></strong><div class="balken"><i></i></div><small></small></div>
         <div class="messer hs-strom"><span>Strom</span><strong></strong><div class="balken"><i></i></div><small></small></div>
+        <div class="messer hs-menge"><span>Luftmenge</span><strong></strong><div class="balken"><i></i></div><small></small></div>
       </div>
       <div class="hs-steuer" role="group" aria-label="Belüftung steuern">
         <div class="hs-gruppe"><b id="hs-luefter-titel">Lüfter</b>
@@ -270,10 +282,17 @@
         <button type="button" class="hs-knopf hs-auto">Steuerung übernimmt (Zeitraffer)</button>
       </div>
       <div class="hs-steuer hs-eingriffe" role="group" aria-label="Kontrollieren und eingreifen">
-        <button type="button" class="hs-knopf hs-sonde hs-nur-sonde" aria-keyshortcuts="S">Heusonde stecken <kbd>S</kbd></button>
+        <button type="button" class="hs-knopf hs-sonde hs-nur-sonde" aria-keyshortcuts="S"><span><b>Heusonde stecken <kbd>S</kbd></b><small>alle drei Stellen</small></span></button>
+        <button type="button" class="hs-knopf hs-sonde-mitte hs-nur-raster"><span><b>Heusonde: nur Mitte</b><small>schneller, eine Stelle</small></span></button>
         <button type="button" class="hs-knopf hs-vorinfo" aria-keyshortcuts="F" aria-pressed="false"><span>Feuerwehr vorinformieren <kbd>F</kbd></span></button>
         <button type="button" class="hs-knopf hs-alarm"><span><b>Feuerwehr alarmieren</b><small>halten · beendet die Runde</small></span></button>
+        <button type="button" class="hs-knopf hs-eingriff" data-eingriff="umschichten"><span><b>Umschichten</b><small>halten · Greifer mischt den Stock</small></span></button>
+        <button type="button" class="hs-knopf hs-eingriff" data-eingriff="nachfuellen"><span><b>Nachfüllen</b><small>halten · zweite Lage einfüllen</small></span></button>
+        <button type="button" class="hs-knopf hs-eingriff" data-eingriff="auslagern"><span><b>Oberste Lage auslagern</b><small>halten · verfüttern</small></span></button>
+        <button type="button" class="hs-knopf hs-eingriff" data-eingriff="luefterHolen"><span><b>Stärkeren Lüfter holen</b><small>halten · Miete, kommt nach 24 h</small></span></button>
+        <button type="button" class="hs-knopf hs-sicherung" hidden><span><b>Sicherung einschalten</b><small>Der Lüfter steht!</small></span></button>
       </div>
+      <p class="hinweis hs-warte" role="status" hidden></p>
       <p class="hinweis hs-info">Intervall: Die Steuerung lüftet, wenn die Luft das Heu trocknet. Sonst lüftet sie alle 4 Stunden eine halbe Stunde gegen Erwärmung und immer, wenn das Heu über 35 °C warm wird. Die ersten 24 Stunden läuft der Lüfter durch.</p>
       <div class="unten">
         <div class="bericht"></div>
@@ -300,6 +319,19 @@
       </form>
     </dialog>
   </section>
+
+  <!-- Einfüllen (zwischen Einfahren und Belüften): js/app.js -->
+  <dialog id="einfuellen" aria-labelledby="einfuellen-titel">
+    <form method="dialog">
+      <h2 id="einfuellen-titel">Einfüllen: Wie kommt das Heu in die Box?</h2>
+      <p id="einfuellen-lage"></p>
+      <div data-ef="lagen"><h3>Schütthöhe</h3><div class="wahl" data-feld="lagen"></div></div>
+      <div data-ef="verteilen"><h3>Verteilen</h3><div class="wahl" data-feld="verteilen"></div></div>
+      <div data-ef="start"><h3>Lüfter</h3><div class="wahl" data-feld="start"></div></div>
+      <p class="fuellhoehe" id="einfuellen-hoehe" role="status"></p>
+      <div class="los"><button class="gross-knopf gruen"><b>So einfüllen</b></button></div>
+    </form>
+  </dialog>
 
   <!-- Silo öffnen -->
   <section id="ergebnis" class="bildschirm" hidden aria-labelledby="ergebnis-titel">

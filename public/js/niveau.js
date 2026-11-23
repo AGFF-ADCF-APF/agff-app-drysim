@@ -17,7 +17,10 @@ export const TABELLE = {
     ergebnis: { karten: ['einstieg'], kurz: true, zahlen: false, rueckblick: false, rechenweg: false, export: false, aufgaben: false },
     assistent: { stufe: 'einfach', nurAufWunsch: false },
     // Bildschirm «Am Heustock»: ohne Entfeuchter und ohne Rechenaufgabe
-    belueftung: { steuerung: 'ein-aus', anzeige: 'ampel', aufgabe: null, messen: 'auto', ernstfall: 'vorschlag' },
+    // Bildschirm «Am Heustock» (Konzept Heubelüftung, Abschnitt 7): Anlage vorgegeben, Einfüllen automatisch richtig,
+    // Messung automatisch mit Ampel, Eingriffe nur Lüfter und Feuerwehr, Warnung mit Handlungsvorschlag
+    belueftung: { steuerung: 'ein-aus', anzeige: 'ampel', aufgabe: null, anlage: [], kennlinie: false, einfuellen: [], messen: 'auto',
+      eingriffe: [], ernstfall: 'vorschlag', pannen: false, kosten: false, karten: 'einfach' },
   },
   praxis: {
     name: 'Praxis', zeichen: '●●○', fuer: 'EFZ und Betriebsleiterschule',
@@ -26,7 +29,9 @@ export const TABELLE = {
     feld: { ampel: false, vorschlag: false, zahlen: true, profi: false },
     ergebnis: { karten: ['einstieg', 'praxis'], kurz: false, zahlen: true, rueckblick: true, rechenweg: false, export: false, aufgaben: false },
     assistent: { stufe: null, nurAufWunsch: false },
-    belueftung: { steuerung: 'praxis', anzeige: 'zahlen', aufgabe: 'wasserentzug', messen: 'hand', ernstfall: 'warnung' }, // Nachrechnen ist freiwillig (Knopf)
+    // Lüfter und Warmluft wählen, Höhe sehen und verteilen, Heusonde als Handlung, dazu Umschichten und Lüfter holen; Nachrechnen freiwillig
+    belueftung: { steuerung: 'praxis', anzeige: 'zahlen', aufgabe: 'wasserentzug', anlage: ['luefter', 'dach'], kennlinie: false, einfuellen: ['verteilen', 'start'], messen: 'hand',
+      eingriffe: ['umschichten', 'luefterHolen'], ernstfall: 'warnung', pannen: false, kosten: false, karten: 'alle' },
   },
   profi: {
     name: 'Profi', zeichen: '●●●', fuer: 'Höhere Fachschule und Hochschule',
@@ -35,7 +40,9 @@ export const TABELLE = {
     feld: { ampel: false, vorschlag: false, zahlen: true, profi: true },
     ergebnis: { karten: ['einstieg', 'praxis', 'profi'], kurz: false, zahlen: true, rueckblick: true, rechenweg: true, export: true, aufgaben: true },
     assistent: { stufe: 'fachlich', nurAufWunsch: true },                  // Traktor meldet sich nur auf Wunsch
-    belueftung: { steuerung: 'praxis', anzeige: 'zahlen', aufgabe: 'wasserentzug', messen: 'hand', ernstfall: 'werte' },
+    // Alles wählen mit Kennlinie und Kosten, Lagen und Nachfüllen, Messraster und Messkalender, Auslagern, Pannen; nur Messwerte
+    belueftung: { steuerung: 'praxis', anzeige: 'zahlen', aufgabe: 'wasserentzug', anlage: ['luefter', 'dach', 'entfeuchter', 'box'], kennlinie: true, einfuellen: ['verteilen', 'start', 'lagen'], messen: 'raster',
+      eingriffe: ['umschichten', 'luefterHolen', 'auslagern', 'nachfuellen'], ernstfall: 'werte', pannen: true, kosten: true, karten: 'alle' },
   },
 };
 export const NIVEAUS = Object.keys(TABELLE);
